@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+
+{% block title %}Gym Tracker Pro | Elite Progressive Web App for Workout & Fitness Analytics{% endblock %}
+
+{% block content %}
+<div class="space-y-16 py-6">
+
+  <!-- 1. Hero Section -->
+  <section class="relative overflow-hidden rounded-3xl bg-gradient-to-b from-[#1E1E1E] via-[#161616] to-[#121212] border border-gray-800 p-8 sm:p-12 lg:p-16 text-center shadow-2xl">
+    <!-- Ambient glow backdrops -->
+    <div class="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-[#CCFF00]/10 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute bottom-0 right-10 w-72 h-72 bg-[#FFD700]/10 rounded-full blur-3xl pointer-events-none"></div>
+
+    <div class="relative z-10 max-w-4xl mx-auto space-y-6">
+      <!-- Badge -->
+      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#CCFF00]/10 border border-[#CCFF00]/30 text-[#CCFF00] text-xs font-black uppercase tracking-widest shadow-sm">
+        <span class="w-2 h-2 rounded-full bg-[#CCFF00] animate-ping"></span>
+        Progressive Web Application (PWA)
+      </div>
+
+      <!-- Main Headline -->
+      <h1 class="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white leading-tight">
+        FORGE YOUR <span class="text-[#CCFF00] drop-shadow-[0_0_20px_rgba(204,255,0,0.4)]">LEGACY.</span><br/>
+        TRACK EVERY <span class="text-[#FFD700]">REP.</span>
+      </h1>
+
+      <!-- Subtitle -->
+      <p class="text-gray-400 text-base sm:text-xl max-w-2xl mx-auto leading-relaxed">
+        The ultimate workout tracking and fitness analytics platform. Precision 1RM calculations, dynamic multi-set logging, daily macro balancing, and zero-compromise data portability.
+      </p>
+
+      <!-- Persistent Hero Call-to-Action (CTA) -->
+      <div class="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+        <a href="{{ url_for('register') }}" class="w-full sm:w-auto px-8 py-4 rounded-xl font-black text-black bg-[#CCFF00] hover:bg-[#b8e600] text-base transition-all transform hover:scale-105 active:scale-95 shadow-lg shadow-[#CCFF00]/25 flex items-center justify-center gap-2">
+          <span>START TRACKING FREE</span>
+          <span>→</span>
+        </a>
+        <a href="{{ url_for('login') }}" class="w-full sm:w-auto px-8 py-4 rounded-xl font-bold text-white bg-[#1E1E1E] hover:bg-gray-800 border border-gray-700 text-base transition flex items-center justify-center gap-2">
+          <span>ALREADY A MEMBER? LOG IN</span>
+        </a>
+      </div>
+
+      <!-- PWA Badge & Install Notice -->
+      <div class="pt-6 flex flex-wrap items-center justify-center gap-6 text-xs text-gray-400 font-semibold">
+        <div class="flex items-center gap-1.5 text-gray-300">
+          <span class="text-[#CCFF00]">✓</span> Install to iOS & Android in 1 Click
+        </div>
+        <div class="flex items-center gap-1.5 text-gray-300">
+          <span class="text-[#CCFF00]">✓</span> Works 100% Offline with Service Worker
+        </div>
+        <div class="flex items-center gap-1.5 text-gray-300">
+          <span class="text-[#CCFF00]">✓</span> No App Store Fees or Delays
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Dynamic Fitness Motivational Quote Card -->
+  <section class="max-w-4xl mx-auto">
+    <div class="gt-card p-6 bg-gradient-to-r from-[#1A1A1A] to-[#1E1E1E] border border-gray-800 shadow-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-start gap-4">
+        <div class="w-12 h-12 rounded-2xl bg-[#CCFF00]/10 border border-[#CCFF00]/30 flex items-center justify-center text-2xl shrink-0 text-[#CCFF00]">
+          ⚡
+        </div>
+        <div>
+          <div class="text-[11px] uppercase font-black tracking-widest text-[#CCFF00] mb-1">Daily Discipline Inspiration</div>
+          <p id="motivational-quote-text" class="text-base sm:text-lg font-medium text-white italic transition-opacity duration-300">
+            "The only bad workout is the one that didn't happen."
+          </p>
+          <div id="motivational-quote-author" class="text-xs text-gray-400 font-semibold mt-1">
+            — Gym Proverb
+          </div>
+        </div>
+      </div>
+      <button type="button" id="btn-refresh-quote" class="px-4 py-2 rounded-xl text-xs font-bold bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700 hover:border-[#CCFF00]/50 transition shrink-0 flex items-center gap-1.5">
+        <span>🔄</span> New Quote
+      </button>
+    </div>
+  </section>
+
+  <!-- 3. Primary Feature Highlights (Architectural Modules M1-M8) -->
+  <section class="space-y-8">
+    <div class="text-center max-w-2xl mx-auto">
+      <h2 class="text-xs font-black uppercase tracking-widest text-[#CCFF00] mb-2">Engineered For Athletes</h2>
+      <h3 class="text-3xl sm:text-4xl font-black text-white">Full-Stack Athletic Intelligence</h3>
+      <p class="text-gray-400 text-sm mt-2">Every tool you need to break plateaus, optimize periodization, and safeguard your training history.</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+
+      <!-- M4 Card -->
+      <div class="tilt-card gt-card p-6 border border-gray-800 hover:border-[#CCFF00]/50">
+        <div class="tilt-inner space-y-4">
+          <div class="w-12 h-12 rounded-xl bg-[#CCFF00]/10 border border-[#CCFF00]/30 flex items-center justify-center text-2xl text-[#CCFF00]">
+            🏋️‍♂️
+          </div>
+          <h4 class="text-xl font-black text-white">Workout & Exercise Logger</h4>
+          <p class="text-gray-400 text-sm leading-relaxed">
+            Dynamic multi-set entries with target muscle selection, sets, reps, and load tracking. Instant set duplication, RPE evaluation, and date filtering.
+          </p>
+          <div class="text-xs font-bold text-[#CCFF00] flex items-center gap-1">
+            <span>Module M4</span> • <span>Multi-Set Engine</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- M6 Card -->
+      <div class="tilt-card gt-card p-6 border border-gray-800 hover:border-[#FFD700]/50">
+        <div class="tilt-inner space-y-4">
+          <div class="w-12 h-12 rounded-xl bg-[#FFD700]/10 border border-[#FFD700]/30 flex items-center justify-center text-2xl text-[#FFD700]">
+            ⚡
+          </div>
+          <h4 class="text-xl font-black text-white">1RM Analytical Engine</h4>
+          <p class="text-gray-400 text-sm leading-relaxed">
+            Formula-driven calculation using standard Epley: <code>1RM = W × (1 + R/30)</code>. Automatically breaks down training zones (50%, 75%, 85%, 90%) for structured periodization.
+          </p>
+          <div class="text-xs font-bold text-[#FFD700] flex items-center gap-1">
+            <span>Module M6</span> • <span>Epley Standard</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- M5 Card -->
+      <div class="tilt-card gt-card p-6 border border-gray-800 hover:border-[#00E5FF]/50">
+        <div class="tilt-inner space-y-4">
+          <div class="w-12 h-12 rounded-xl bg-[#00E5FF]/10 border border-[#00E5FF]/30 flex items-center justify-center text-2xl text-[#00E5FF]">
+            🥗
+          </div>
+          <h4 class="text-xl font-black text-white">Nutrition & Macro Tracker</h4>
+          <p class="text-gray-400 text-sm leading-relaxed">
+            Itemized meal logging with daily caloric budget progress bars and precise Protein, Carbohydrate, and Fat split tracking.
+          </p>
+          <div class="text-xs font-bold text-[#00E5FF] flex items-center gap-1">
+            <span>Module M5</span> • <span>Macro Splits</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- M7 Card -->
+      <div class="tilt-card gt-card p-6 border border-gray-800 hover:border-[#FFD700]/50">
+        <div class="tilt-inner space-y-4">
+          <div class="w-12 h-12 rounded-xl bg-[#FFD700]/10 border border-[#FFD700]/30 flex items-center justify-center text-2xl text-[#FFD700]">
+            🏆
+          </div>
+          <h4 class="text-xl font-black text-white">PR Analytics & Milestones</h4>
+          <p class="text-gray-400 text-sm leading-relaxed">
+            Automated all-time record detection for Bench Press, Back Squat, and Deadlift. Historical Chart.js progression graphs and 1000-lb Club tracking.
+          </p>
+          <div class="text-xs font-bold text-[#FFD700] flex items-center gap-1">
+            <span>Module M7</span> • <span>Auto-PR Engine</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- M8 Card -->
+      <div class="tilt-card gt-card p-6 border border-gray-800 hover:border-[#CCFF00]/50">
+        <div class="tilt-inner space-y-4">
+          <div class="w-12 h-12 rounded-xl bg-[#CCFF00]/10 border border-[#CCFF00]/30 flex items-center justify-center text-2xl text-[#CCFF00]">
+            💾
+          </div>
+          <h4 class="text-xl font-black text-white">Data Export Subsystem</h4>
+          <p class="text-gray-400 text-sm leading-relaxed">
+            Complete user-owned data portability. One-click localized generation and export of entire workout sessions, lift records, and meals to standard .csv and .zip.
+          </p>
+          <div class="text-xs font-bold text-[#CCFF00] flex items-center gap-1">
+            <span>Module M8</span> • <span>100% Data Portability</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- M1 & PWA Card -->
+      <div class="tilt-card gt-card p-6 border border-gray-800 hover:border-gray-600">
+        <div class="tilt-inner space-y-4">
+          <div class="w-12 h-12 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-2xl text-purple-400">
+            🔒
+          </div>
+          <h4 class="text-xl font-black text-white">Security & PWA Architecture</h4>
+          <p class="text-gray-400 text-sm leading-relaxed">
+            Bcrypt cryptographic password hashing, session management, Service Worker asset caching, and offline-ready installable web app deployment.
+          </p>
+          <div class="text-xs font-bold text-purple-400 flex items-center gap-1">
+            <span>Module M1</span> • <span>Bcrypt + PWA</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- 4. Interactive Live 1RM Teaser Widget -->
+  <section class="max-w-3xl mx-auto gt-card p-8 bg-[#181818] border border-gray-800">
+    <div class="text-center mb-6">
+      <span class="text-xs font-black uppercase tracking-widest text-[#FFD700]">Live Formula Demo</span>
+      <h3 class="text-2xl font-black text-white mt-1">Test the 1RM Analytical Engine</h3>
+      <p class="text-gray-400 text-xs mt-1">See how the standard Epley equation computes your theoretical maximum strength.</p>
+    </div>
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+      <div>
+        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Weight Lifted (kg/lbs)</label>
+        <input type="number" id="teaser-weight" value="100" min="1" step="0.5" class="gt-input w-full font-bold text-center text-lg">
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Reps Completed</label>
+        <input type="number" id="teaser-reps" value="5" min="1" max="30" class="gt-input w-full font-bold text-center text-lg">
+      </div>
+    </div>
+
+    <div class="p-4 rounded-xl bg-[#121212] border border-[#CCFF00]/40 flex items-center justify-between">
+      <div>
+        <div class="text-xs text-gray-400 font-semibold">Calculated 1-Rep Max (Epley)</div>
+        <div class="text-xs text-gray-500 font-mono" id="teaser-math">100 × (1 + 5/30) = 116.7</div>
+      </div>
+      <div class="text-right">
+        <span class="text-3xl font-black text-[#CCFF00]" id="teaser-result">116.7</span>
+        <span class="text-xs text-gray-400 font-bold ml-1">kg/lbs</span>
+      </div>
+    </div>
+
+    <div class="text-center mt-6">
+      <a href="{{ url_for('register') }}" class="inline-flex items-center gap-2 text-xs font-bold text-[#CCFF00] hover:underline">
+        Create an account to save records and unlock personalized training zones →
+      </a>
+    </div>
+  </section>
+
+  <!-- 5. Bottom Final CTA Banner -->
+  <section class="gt-card p-10 bg-gradient-to-r from-[#171717] via-[#1E1E1E] to-[#171717] border border-[#CCFF00]/30 text-center relative overflow-hidden">
+    <div class="relative z-10 space-y-4 max-w-xl mx-auto">
+      <h3 class="text-2xl sm:text-3xl font-black text-white">Ready To Level Up Your Training?</h3>
+      <p class="text-gray-400 text-sm">Join Gym Tracker Pro today and take full control over your workout logs, macros, and records.</p>
+      <div class="pt-2">
+        <a href="{{ url_for('register') }}" class="neon-btn inline-block px-8 py-3.5 rounded-xl text-sm font-black shadow-lg">
+          GET STARTED NOW — FREE
+        </a>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  // Simple teaser interactivity
+  function updateTeaser() {
+    const w = parseFloat(document.getElementById('teaser-weight').value || 0);
+    const r = parseInt(document.getElementById('teaser-reps').value || 0);
+    const resultElem = document.getElementById('teaser-result');
+    const mathElem = document.getElementById('teaser-math');
+    if (w > 0 && r > 0) {
+      const oneRm = r === 1 ? w : Math.round(w * (1 + r / 30) * 10) / 10;
+      resultElem.textContent = oneRm.toFixed(1);
+      mathElem.textContent = `${w} × (1 + ${r}/30) = ${oneRm.toFixed(1)}`;
+    } else {
+      resultElem.textContent = '0.0';
+    }
+  }
+
+  document.getElementById('teaser-weight').addEventListener('input', updateTeaser);
+  document.getElementById('teaser-reps').addEventListener('input', updateTeaser);
+</script>
+{% endblock %}

@@ -1,0 +1,54 @@
+{
+  "name": "Gym Tracker Pro",
+  "short_name": "GymTracker",
+  "description": "High-performance Progressive Web App for workout tracking, 1RM analytics, nutrition monitoring, and personal records.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#121212",
+  "theme_color": "#121212",
+  "categories": ["fitness", "health", "sports", "lifestyle"],
+  "icons": [
+    {
+      "src": "/static/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/static/icons/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Log Workout",
+      "short_name": "Log",
+      "description": "Quickly record today's training session",
+      "url": "/workouts",
+      "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Track Macros",
+      "short_name": "Macros",
+      "description": "Log meals and calories",
+      "url": "/nutrition",
+      "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "1RM Calculator",
+      "short_name": "1RM",
+      "description": "Calculate 1-Rep Max and training zones",
+      "url": "/one-rep-max",
+      "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

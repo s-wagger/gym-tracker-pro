@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Nutrition & Macro Tracker | Gym Tracker Pro{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-2 text-xs uppercase font-black tracking-widest text-[#00E5FF]">
+        <span>Module M5</span> • <span>Macro Balance</span>
+      </div>
+      <h1 class="text-3xl font-black text-white tracking-tight mt-1">Calorie & Macro Tracker</h1>
+      <p class="text-gray-400 text-xs">Itemized meal logging with live caloric budget progress and macronutrient splits.</p>
+    </div>
+
+    <!-- Date Navigator -->
+    <div class="flex items-center gap-2 bg-[#1E1E1E] border border-gray-800 p-1.5 rounded-xl">
+      <button type="button" id="btn-prev-day" class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition" title="Previous Day">
+        ◀
+      </button>
+      <input type="date" id="nutrition-active-date" value="{{ today }}" class="bg-transparent text-white font-bold text-xs py-1 px-2 border-none focus:outline-none">
+      <button type="button" id="btn-next-day" class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition" title="Next Day">
+        ▶
+      </button>
+      <button type="button" id="btn-today" class="px-2.5 py-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-[11px] font-bold text-[#CCFF00] transition">
+        Today
+      </button>
+    </div>
+  </div>
+
+  <!-- Caloric Budget & Macro Progress Overview -->
+  <section class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+
+    <!-- Total Caloric Budget Card (Spans 4 on mobile, 1 on desktop or featured) -->
+    <div class="gt-card p-6 bg-gradient-to-b from-[#1E1E1E] to-[#171717] border border-gray-800 flex flex-col justify-between">
+      <div>
+        <div class="flex items-center justify-between text-xs text-gray-400 uppercase font-black tracking-wider mb-2">
+          <span>Daily Caloric Budget</span>
+          <span>🔥</span>
+        </div>
+        <div class="text-3xl font-black text-white">
+          <span id="cal-consumed">{{ nutrition.totals.calories | int }}</span>
+          <span class="text-sm font-semibold text-gray-500">/ <span id="cal-target">{{ targets.calories }}</span> kcal</span>
+        </div>
+        <div class="text-xs font-bold text-[#CCFF00] mt-1" id="cal-remaining">
+          {{ [0, targets.calories - nutrition.totals.calories] | max | int }} kcal left
+        </div>
+      </div>
+
+      <!-- Calorie Progress Bar -->
+      <div class="mt-4">
+        {% set cal_pct = (nutrition.totals.calories / targets.calories * 100) | round | int %}
+        <div class="w-full bg-gray-800 rounded-full h-3 overflow-hidden">
+          <div id="cal-progress-bar" class="h-full rounded-full transition-all duration-700 {{ 'bg-red-500' if cal_pct > 100 else 'bg-[#CCFF00]' }}" style="width: {{ [cal_pct, 100] | min }}%"></div>
+        </div>
+        <div class="text-right text-[11px] text-gray-500 font-semibold mt-1">
+          {{ cal_pct }}% of daily target
+        </div>
+      </div>
+    </div>
+
+    <!-- Protein Progress Card -->
+    <div class="gt-card p-5 border border-gray-800 bg-[#1A1A1A]">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-black uppercase tracking-wider text-blue-400">🥩 Protein</span>
+        <span class="text-xs font-bold text-white" id="protein-val">{{ nutrition.totals.protein | int }} / {{ targets.protein }}g</span>
+      </div>
+      <div class="w-full bg-gray-800 rounded-full h-2 overflow-hidden mb-2">
+        {% set p_pct = (nutrition.totals.protein / targets.protein * 100) | round | int %}
+        <div id="protein-progress-bar" class="h-full rounded-full bg-blue-500 transition-all duration-700" style="width: {{ [p_pct, 100] | min }}%"></div>
+      </div>
+      <div class="flex items-center justify-between text-[11px] text-gray-500">
+        <span>4 kcal / gram</span>
+        <span class="text-blue-400 font-semibold">{{ (nutrition.totals.protein * 4) | int }} kcal</span>
+      </div>
+    </div>
+
+    <!-- Carbohydrates Progress Card -->
+    <div class="gt-card p-5 border border-gray-800 bg-[#1A1A1A]">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-black uppercase tracking-wider text-amber-400">🍚 Carbs</span>
+        <span class="text-xs font-bold text-white" id="carbs-val">{{ nutrition.totals.carbs | int }} / {{ targets.carbs }}g</span>
+      </div>
+      <div class="w-full bg-gray-800 rounded-full h-2 overflow-hidden mb-2">
+        {% set c_pct = (nutrition.totals.carbs / targets.carbs * 100) | round | int %}
+        <div id="carbs-progress-bar" class="h-full rounded-full bg-amber-400 transition-all duration-700" style="width: {{ [c_pct, 100] | min }}%"></div>
+      </div>
+      <div class="flex items-center justify-between text-[11px] text-gray-500">
+        <span>4 kcal / gram</span>
+        <span class="text-amber-400 font-semibold">{{ (nutrition.totals.carbs * 4) | int }} kcal</span>
+      </div>
+    </div>
+
+    <!-- Fat Progress Card -->
+    <div class="gt-card p-5 border border-gray-800 bg-[#1A1A1A]">
+      <div class="flex items-center justify-between mb-2">
+        <span class="text-xs font-black uppercase tracking-wider text-red-400">🥑 Fats</span>
+        <span class="text-xs font-bold text-white" id="fat-val">{{ nutrition.totals.fat | int }} / {{ targets.fat }}g</span>
+      </div>
+      <div class="w-full bg-gray-800 rounded-full h-2 overflow-hidden mb-2">
+        {% set f_pct = (nutrition.totals.fat / targets.fat * 100) | round | int %}
+        <div id="fat-progress-bar" class="h-full rounded-full bg-red-500 transition-all duration-700" style="width: {{ [f_pct, 100] | min }}%"></div>
+      </div>
+      <div class="flex items-center justify-between text-[11px] text-gray-500">
+        <span>9 kcal / gram</span>
+        <span class="text-red-400 font-semibold">{{ (nutrition.totals.fat * 9) | int }} kcal</span>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- Meal Logging Form & Itemized Foods Layout -->
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+
+    <!-- Meal Log Form -->
+    <div class="gt-card p-6 bg-[#1A1A1A] border border-gray-800 h-fit">
+      <div class="flex items-center gap-3 pb-3 mb-4 border-b border-gray-800">
+        <div class="w-9 h-9 rounded-xl bg-[#00E5FF]/10 border border-[#00E5FF]/30 flex items-center justify-center text-lg text-[#00E5FF]">
+          ➕
+        </div>
+        <div>
+          <h3 class="text-base font-black text-white">Log Food Item</h3>
+          <span class="text-[11px] text-gray-400">Add food and exact macro values</span>
+        </div>
+      </div>
+
+      <form id="nutrition-log-form" class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Meal Category</label>
+          <select id="meal-type" class="gt-input w-full bg-[#121212] text-xs font-semibold">
+            <option value="Breakfast">🍳 Breakfast</option>
+            <option value="Lunch">🥗 Lunch</option>
+            <option value="Dinner">🥩 Dinner</option>
+            <option value="Snack">🍎 Snack</option>
+            <option value="Post-Workout">🥤 Post-Workout</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Food / Meal Name *</label>
+          <input type="text" id="food-name" required placeholder="e.g. 200g Chicken Breast & Rice" class="gt-input w-full text-xs font-semibold">
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Calories (kcal) *</label>
+            <input type="number" id="meal-calories" required min="0" step="1" placeholder="450" class="gt-input w-full text-xs font-bold">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-blue-400 uppercase mb-1">Protein (g)</label>
+            <input type="number" id="meal-protein" min="0" step="0.5" placeholder="40" class="gt-input w-full text-xs font-bold">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-bold text-amber-400 uppercase mb-1">Carbs (g)</label>
+            <input type="number" id="meal-carbs" min="0" step="0.5" placeholder="50" class="gt-input w-full text-xs font-bold">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-red-400 uppercase mb-1">Fat (g)</label>
+            <input type="number" id="meal-fat" min="0" step="0.5" placeholder="10" class="gt-input w-full text-xs font-bold">
+          </div>
+        </div>
+
+        <button type="submit" class="w-full py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider bg-[#00E5FF] hover:bg-[#00cce6] text-black transition shadow-lg shadow-[#00E5FF]/20 flex items-center justify-center gap-1.5">
+          <span>ADD TO MEAL LOG</span>
+        </button>
+      </form>
+    </div>
+
+    <!-- Itemized Meal Entries Grouped by Category -->
+    <div class="lg:col-span-2 space-y-4">
+      <div class="flex items-center justify-between pb-2 border-b border-gray-800">
+        <h3 class="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+          <span>📋</span> Today's Itemized Food Intake
+        </h3>
+        <span class="text-xs text-gray-500">Grouped by meal period</span>
+      </div>
+
+      <div id="meal-items-container">
+        <!-- Rendered dynamically by nutrition.js -->
+        {% for cat in ["Breakfast", "Lunch", "Dinner", "Snack", "Post-Workout"] %}
+          {% set items = nutrition.grouped[cat] %}
+          <div class="gt-card p-4 mb-4 border border-gray-800">
+            <div class="flex items-center justify-between pb-2 mb-2 border-b border-gray-800/80">
+              <div class="flex items-center gap-2">
+                <span class="text-base">
+                  {% if cat == 'Breakfast' %}🍳{% elif cat == 'Lunch' %}🥗{% elif cat == 'Dinner' %}🥩{% elif cat == 'Snack' %}🍎{% else %}🥤{% endif %}
+                </span>
+                <h4 class="font-bold text-white text-sm">{{ cat }}</h4>
+                <span class="text-xs text-gray-400">({{ items | length }} items)</span>
+              </div>
+              <div class="text-xs font-bold text-[#CCFF00]">
+                {% set cat_cals = items | sum(attribute='calories') %}
+                {{ cat_cals | int }} kcal
+              </div>
+            </div>
+
+            {% if items | length == 0 %}
+              <div class="text-xs text-gray-500 italic py-2 text-center">No foods logged for {{ cat }}.</div>
+            {% else %}
+              <div class="divide-y divide-gray-800/40">
+                {% for item in items %}
+                  <div class="flex items-center justify-between py-2 text-xs">
+                    <div>
+                      <div class="font-semibold text-gray-200">{{ item.food_name }}</div>
+                      <div class="text-[11px] text-gray-400 mt-0.5">
+                        P: <span class="text-blue-400 font-medium">{{ item.protein }}g</span> • 
+                        C: <span class="text-amber-400 font-medium">{{ item.carbs }}g</span> • 
+                        F: <span class="text-red-400 font-medium">{{ item.fat }}g</span>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <span class="font-bold text-white">{{ item.calories | int }} kcal</span>
+                      <button onclick="deleteMealItem({{ item.id }})" class="text-gray-500 hover:text-red-400 p-1 transition" title="Delete entry">
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/nutrition.js"></script>
+{% endblock %}

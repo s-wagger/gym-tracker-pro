@@ -1,0 +1,192 @@
+/* Gym Tracker Pro - Core Visual Styling */
+:root {
+  --bg-dark: #121212;
+  --card-dark: #1E1E1E;
+  --card-border: #2A2A2A;
+  --accent-lime: #CCFF00;
+  --accent-gold: #FFD700;
+  --accent-cyan: #00E5FF;
+  --text-muted: #9CA3AF;
+}
+
+body {
+  background-color: var(--bg-dark);
+  color: #FFFFFF;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #121212;
+}
+::-webkit-scrollbar-thumb {
+  background: #2E2E2E;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-lime);
+}
+
+/* High-Contrast Card Base */
+.gt-card {
+  background-color: var(--card-dark);
+  border: 1px solid var(--card-border);
+  border-radius: 1rem;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.gt-card:hover {
+  border-color: rgba(204, 255, 0, 0.4);
+  box-shadow: 0 10px 30px -10px rgba(204, 255, 0, 0.15);
+}
+
+/* 3D Tilt Card Container */
+.tilt-card {
+  transform-style: preserve-3d;
+  perspective: 1000px;
+  transition: transform 0.15s ease-out, box-shadow 0.2s ease-out;
+  will-change: transform;
+}
+
+.tilt-inner {
+  transform: translateZ(25px);
+  transform-style: preserve-3d;
+}
+
+/* Neon Glow Accents */
+.neon-glow-lime {
+  text-shadow: 0 0 12px rgba(204, 255, 0, 0.6);
+}
+
+.neon-glow-gold {
+  text-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
+}
+
+.neon-border-lime {
+  box-shadow: 0 0 20px -3px rgba(204, 255, 0, 0.35);
+  border-color: var(--accent-lime);
+}
+
+.neon-btn {
+  background-color: var(--accent-lime);
+  color: #000000;
+  font-weight: 800;
+  transition: all 0.2s ease;
+}
+
+.neon-btn:hover {
+  background-color: #bdf700;
+  box-shadow: 0 0 25px rgba(204, 255, 0, 0.5);
+  transform: translateY(-2px);
+}
+
+.neon-btn:active {
+  transform: translateY(1px);
+}
+
+/* PR Gold Badge Glow */
+.pr-badge {
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 170, 0, 0.1));
+  border: 1px solid rgba(255, 215, 0, 0.5);
+  color: #FFD700;
+  box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+}
+
+/* Pulse animation for active streak */
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(204, 255, 0, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 28px rgba(204, 255, 0, 0.7);
+  }
+}
+
+.pulse-glow {
+  animation: pulseGlow 2.5s infinite ease-in-out;
+}
+
+/* Micro-interaction Dynamic Set Rows */
+.set-row {
+  transition: background-color 0.2s ease, transform 0.15s ease;
+}
+.set-row:hover {
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+/* Toast Notification Floating Container */
+#toast-container {
+  position: fixed;
+  top: 1.5rem;
+  right: 1.5rem;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  pointer-events: none;
+}
+
+.toast {
+  pointer-events: auto;
+  min-width: 280px;
+  max-width: 420px;
+  padding: 1rem 1.25rem;
+  border-radius: 0.75rem;
+  background-color: #1E1E1E;
+  border: 1px solid #333;
+  color: #fff;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  animation: slideInRight 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Mobile Bottom Navigation Bar for PWA */
+.mobile-nav-bar {
+  background-color: rgba(18, 18, 18, 0.95);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid #222222;
+}
+
+/* Form Inputs Styling */
+.gt-input {
+  background-color: #121212;
+  border: 1px solid #2E2E2E;
+  color: #FFFFFF;
+  border-radius: 0.625rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.925rem;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.gt-input:focus {
+  outline: none;
+  border-color: var(--accent-lime);
+  box-shadow: 0 0 0 2px rgba(204, 255, 0, 0.2);
+}
+
+/* Training Zone Progress Bars */
+.zone-bar-fill {
+  transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+}

@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}1RM Analytical Engine | Gym Tracker Pro{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-2 text-xs uppercase font-black tracking-widest text-[#FFD700]">
+        <span>Module M6</span> • <span>Epley Standard Formula</span>
+      </div>
+      <h1 class="text-3xl font-black text-white tracking-tight mt-1">1-Rep Max Analytical Engine</h1>
+      <p class="text-gray-400 text-xs">Standard formula calculation, periodization breakdown, and training zones.</p>
+    </div>
+
+    <div>
+      <select id="calc-unit" class="gt-input text-xs font-bold bg-[#1E1E1E]">
+        <option value="kg" {{ 'selected' if user.unit_preference == 'kg' else '' }}>Kilograms (kg)</option>
+        <option value="lbs" {{ 'selected' if user.unit_preference == 'lbs' else '' }}>Pounds (lbs)</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- Interactive Calculator & Big 1RM Readout -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+    <!-- Left Controls (5 cols) -->
+    <div class="lg:col-span-5 gt-card p-6 bg-[#1A1A1A] border border-gray-800 space-y-6">
+      <div class="flex items-center gap-3 pb-3 border-b border-gray-800">
+        <div class="w-10 h-10 rounded-xl bg-[#FFD700]/10 border border-[#FFD700]/30 flex items-center justify-center text-xl text-[#FFD700]">
+          🔢
+        </div>
+        <div>
+          <h2 class="text-base font-black text-white">Lift Parameters</h2>
+          <span class="text-[11px] text-gray-400">Input load and completed repetitions</span>
+        </div>
+      </div>
+
+      <!-- Weight Input & Slider -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-bold text-gray-300 uppercase">Weight Lifted</label>
+          <span class="text-xs font-black text-[#CCFF00]"><span id="weight-display-val">100</span> {{ user.unit_preference }}</span>
+        </div>
+        <input type="number" id="calc-weight" value="100" min="1" step="0.5" class="gt-input w-full font-bold text-lg text-center">
+        <input type="range" id="calc-weight-slider" min="10" max="300" step="2.5" value="100" class="w-full accent-[#CCFF00] cursor-pointer">
+      </div>
+
+      <!-- Reps Input & Slider -->
+      <div class="space-y-2">
+        <div class="flex items-center justify-between">
+          <label class="text-xs font-bold text-gray-300 uppercase">Completed Reps</label>
+          <span class="text-xs font-black text-[#FFD700]"><span id="reps-display-val">5</span> Reps</span>
+        </div>
+        <input type="number" id="calc-reps" value="5" min="1" max="30" step="1" class="gt-input w-full font-bold text-lg text-center">
+        <input type="range" id="calc-reps-slider" min="1" max="25" step="1" value="5" class="w-full accent-[#FFD700] cursor-pointer">
+      </div>
+
+      <!-- Save Calculated 1RM to Personal Records Modal/Form -->
+      <div class="pt-4 border-t border-gray-800 space-y-3">
+        <label class="block text-xs font-bold text-gray-400 uppercase">Save to Personal Records</label>
+        <div class="flex gap-2">
+          <select id="calc-save-exercise" class="gt-input flex-1 text-xs bg-[#121212] font-semibold">
+            {% for ex in exercises %}
+              <option value="{{ ex }}">{{ ex }}</option>
+            {% endfor %}
+          </select>
+          <button type="button" id="btn-save-calc-pr" class="px-3 py-2 rounded-xl bg-[#FFD700] text-black font-black text-xs hover:bg-[#e6c200] transition shrink-0">
+            Save PR
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Readout & Formulas (7 cols) -->
+    <div class="lg:col-span-7 space-y-6">
+
+      <!-- Main Epley 1RM Hero Card -->
+      <div class="gt-card p-6 sm:p-8 bg-gradient-to-r from-[#1E1E1E] via-[#1A1A1A] to-[#141414] border border-[#CCFF00]/40 shadow-2xl relative overflow-hidden">
+        <div class="absolute -top-16 -right-16 w-48 h-48 bg-[#CCFF00]/10 rounded-full blur-2xl pointer-events-none"></div>
+
+        <div class="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <span class="text-[11px] uppercase font-black tracking-widest text-[#CCFF00]">Epley Standard 1-Rep Max</span>
+            <div class="text-4xl sm:text-6xl font-black text-white mt-1 flex items-baseline gap-2">
+              <span id="display-1rm-val" class="neon-glow-lime">116.7</span>
+              <span id="display-1rm-unit" class="text-lg sm:text-2xl font-bold text-gray-400">{{ user.unit_preference }}</span>
+            </div>
+            <div class="text-xs text-gray-400 mt-2 font-mono" id="display-formula-breakdown">
+              100 × (1 + 5/30) = 116.7 {{ user.unit_preference }}
+            </div>
+          </div>
+
+          <div class="sm:text-right shrink-0 p-4 rounded-xl bg-[#121212] border border-gray-800">
+            <div class="text-[10px] uppercase font-bold text-gray-400">Standard Formula</div>
+            <div class="text-xs font-mono text-[#CCFF00] font-bold mt-0.5">1RM = W × (1 + R/30)</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formula Comparison Grid -->
+      <div class="grid grid-cols-2 gap-4">
+        <div class="gt-card p-4 border border-gray-800 bg-[#171717]">
+          <div class="text-[10px] uppercase font-bold text-gray-400">Brzycki Formula</div>
+          <div class="text-xl font-black text-white mt-1" id="display-brzycki-val">112.5 {{ user.unit_preference }}</div>
+          <div class="text-[10px] text-gray-500 font-mono mt-0.5">W × (36 / (37 - R))</div>
+        </div>
+
+        <div class="gt-card p-4 border border-gray-800 bg-[#171717]">
+          <div class="text-[10px] uppercase font-bold text-gray-400">Lombardi Formula</div>
+          <div class="text-xl font-black text-white mt-1" id="display-lombardi-val">117.5 {{ user.unit_preference }}</div>
+          <div class="text-[10px] text-gray-500 font-mono mt-0.5">W × (R ^ 0.10)</div>
+        </div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <!-- Automatic Generation of Training Zones -->
+  <section class="space-y-4">
+    <div class="flex items-center justify-between pb-2 border-b border-gray-800">
+      <div>
+        <h2 class="text-xl font-black text-white flex items-center gap-2">
+          <span>⚡</span> Periodized Training Zones Breakdown
+        </h2>
+        <p class="text-gray-400 text-xs">Standard percentage brackets (50%, 75%, 85%, 90% 1RM) for structured hypertrophy & strength programming.</p>
+      </div>
+    </div>
+
+    <!-- Zones Grid -->
+    <div id="training-zones-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <!-- Populated dynamically by calculator.js -->
+    </div>
+  </section>
+
+  <!-- Periodization Guide Reference Card -->
+  <section class="gt-card p-6 bg-[#171717] border border-gray-800">
+    <h3 class="text-sm font-black uppercase tracking-wider text-white mb-3 flex items-center gap-2">
+      <span>📚</span> Periodization Programming Standards
+    </h3>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-gray-300">
+      <div class="p-3.5 rounded-xl bg-[#121212] border border-gray-800">
+        <div class="font-bold text-[#CCFF00] mb-1">Hypertrophy Block (70% - 80% 1RM)</div>
+        <p class="text-gray-400 leading-relaxed">Focus on high volume (8-12 reps per set), metabolic stress, and time under tension to stimulate muscle protein synthesis and cross-sectional area growth.</p>
+      </div>
+      <div class="p-3.5 rounded-xl bg-[#121212] border border-gray-800">
+        <div class="font-bold text-[#FFD700] mb-1">Strength Block (80% - 90% 1RM)</div>
+        <p class="text-gray-400 leading-relaxed">Focus on myofibrillar tension and motor unit synchronization (3-6 reps per set). Heavy compound loads with 3-5 minute recovery intervals.</p>
+      </div>
+      <div class="p-3.5 rounded-xl bg-[#121212] border border-gray-800">
+        <div class="font-bold text-red-400 mb-1">Peaking & Testing (90% - 100% 1RM)</div>
+        <p class="text-gray-400 leading-relaxed">Taper volume by 40-50% while sustaining high neural intensity (1-3 reps). Maximizes neurological readiness for testing all-time PRs.</p>
+      </div>
+    </div>
+  </section>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/calculator.js"></script>
+{% endblock %}

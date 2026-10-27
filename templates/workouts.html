@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block title %}Workout Logger | Gym Tracker Pro{% endblock %}
+
+{% block content %}
+<div class="space-y-8">
+
+  <!-- Header -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+      <div class="flex items-center gap-2 text-xs uppercase font-black tracking-widest text-[#CCFF00]">
+        <span>Module M4</span> • <span>Multi-Set Engine</span>
+      </div>
+      <h1 class="text-3xl font-black text-white tracking-tight mt-1">Workout & Exercise Logger</h1>
+      <p class="text-gray-400 text-xs">Record multi-set training sessions, track intensity, and unlock personal records.</p>
+    </div>
+    
+    <div class="flex items-center gap-3">
+      <span class="text-xs font-bold text-gray-400">Unit: <strong class="text-white">{{ user.unit_preference | upper }}</strong></span>
+    </div>
+  </div>
+
+  <!-- Active Workout Logging Card -->
+  <section class="gt-card p-6 sm:p-8 bg-[#1A1A1A] border border-gray-800 shadow-xl">
+    <div class="flex items-center justify-between pb-4 mb-6 border-b border-gray-800">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-[#CCFF00]/10 border border-[#CCFF00]/30 flex items-center justify-center text-xl text-[#CCFF00]">
+          🏋️‍♂️
+        </div>
+        <div>
+          <h2 class="text-lg font-black text-white">Record Active Session</h2>
+          <span class="text-xs text-gray-400">Configure exercise and add completed sets</span>
+        </div>
+      </div>
+      <div class="text-right">
+        <span id="live-session-volume" class="text-xs font-black text-[#CCFF00] bg-[#CCFF00]/10 px-3 py-1.5 rounded-lg border border-[#CCFF00]/30">
+          0 total volume
+        </span>
+      </div>
+    </div>
+
+    <form id="workout-log-form" class="space-y-6">
+      
+      <!-- Top Row: Title, Date, Muscle Group -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Session Title</label>
+          <input type="text" id="log-workout-title" value="Push Day Hypertrophy" placeholder="e.g. Heavy Leg Day" class="gt-input w-full font-semibold">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Session Date</label>
+          <input type="date" id="log-workout-date" value="{{ today }}" class="gt-input w-full font-semibold">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Target Muscle Group</label>
+          <select id="log-muscle-group" class="gt-input w-full font-semibold bg-[#121212]">
+            <option value="Chest" selected>Chest</option>
+            <option value="Back">Back</option>
+            <option value="Legs">Legs</option>
+            <option value="Shoulders">Shoulders</option>
+            <option value="Arms">Arms</option>
+            <option value="Core">Core</option>
+            <option value="Full Body">Full Body</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Exercise Selection -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Exercise</label>
+          <select id="log-exercise-select" class="gt-input w-full font-semibold bg-[#121212]">
+            <!-- Populated dynamically by logger.js -->
+          </select>
+        </div>
+
+        <div id="custom-exercise-container" class="hidden">
+          <label class="block text-xs font-bold text-[#CCFF00] uppercase mb-1">Custom Exercise Name</label>
+          <input type="text" id="log-custom-exercise" placeholder="e.g. Incline Machine Press" class="gt-input w-full font-semibold border-[#CCFF00]/40">
+        </div>
+      </div>
+
+      <!-- Dynamic Multi-Set Entries Container -->
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <label class="text-xs font-bold text-gray-300 uppercase">Multi-Set Entries</label>
+          <span class="text-[11px] text-gray-500">Weight in {{ user.unit_preference }} • Warmups excluded from volume</span>
+        </div>
+
+        <div id="sets-container" class="space-y-2">
+          <!-- Populated and dynamically managed by logger.js -->
+        </div>
+
+        <!-- Add Set Button -->
+        <button type="button" id="btn-add-set" class="w-full py-2.5 rounded-xl border border-dashed border-gray-700 hover:border-[#CCFF00] text-gray-300 hover:text-[#CCFF00] bg-[#141414] hover:bg-gray-800/40 text-xs font-bold transition flex items-center justify-center gap-1.5 mt-2">
+          <span>＋</span> Add Another Set
+        </button>
+      </div>
+
+      <!-- Session Notes -->
+      <div>
+        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Workout Notes / RPE Reflections</label>
+        <textarea id="log-workout-notes" rows="2" placeholder="Felt great on top sets. Paused at the bottom for 1 sec..." class="gt-input w-full text-xs"></textarea>
+      </div>
+
+      <!-- Submit Button -->
+      <div class="pt-2">
+        <button type="submit" class="neon-btn w-full py-3.5 px-6 rounded-xl font-black text-sm uppercase tracking-wider shadow-lg shadow-[#CCFF00]/20 flex items-center justify-center gap-2">
+          <span>💾 SAVE WORKOUT SESSION & CHECK PRS</span>
+        </button>
+      </div>
+
+    </form>
+  </section>
+
+  <!-- Filterable Session Historical View -->
+  <section class="space-y-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-gray-800">
+      <div>
+        <h2 class="text-xl font-black text-white flex items-center gap-2">
+          <span>📅</span> Workout History
+        </h2>
+        <p class="text-gray-400 text-xs">Filter past workouts by muscle group, exercise name, or date.</p>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="gt-card p-4 bg-[#181818] border border-gray-800 grid grid-cols-1 sm:grid-cols-4 gap-3">
+      <div>
+        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Filter Muscle</label>
+        <select id="filter-muscle" class="gt-input w-full text-xs py-2 bg-[#121212]">
+          <option value="All" selected>All Muscle Groups</option>
+          <option value="Chest">Chest</option>
+          <option value="Back">Back</option>
+          <option value="Legs">Legs</option>
+          <option value="Shoulders">Shoulders</option>
+          <option value="Arms">Arms</option>
+          <option value="Core">Core</option>
+          <option value="Full Body">Full Body</option>
+        </select>
+      </div>
+
+      <div>
+        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Search Exercise</label>
+        <input type="text" id="filter-exercise" placeholder="e.g. Bench, Squat..." class="gt-input w-full text-xs py-2">
+      </div>
+
+      <div>
+        <label class="block text-[10px] font-bold text-gray-400 uppercase mb-1">Filter by Date</label>
+        <input type="date" id="filter-date" class="gt-input w-full text-xs py-2">
+      </div>
+
+      <div class="flex items-end gap-2">
+        <button type="button" id="btn-apply-filters" class="flex-1 py-2 px-3 rounded-lg bg-[#CCFF00] text-black font-bold text-xs hover:bg-[#b8e600] transition">
+          Apply
+        </button>
+        <button type="button" id="btn-reset-filters" class="py-2 px-3 rounded-lg bg-gray-800 text-gray-300 font-bold text-xs hover:bg-gray-700 transition">
+          Reset
+        </button>
+      </div>
+    </div>
+
+    <!-- History Session Cards List -->
+    <div id="workout-history-list" class="space-y-4">
+      {% if sessions | length == 0 %}
+        <div class="text-center py-12 bg-[#1E1E1E] border border-gray-800 rounded-2xl p-8">
+          <div class="text-4xl mb-3">🏋️‍♂️</div>
+          <h3 class="text-lg font-bold text-white mb-1">No Workouts Recorded</h3>
+          <p class="text-gray-400 text-sm">Use the form above to log your first training session.</p>
+        </div>
+      {% else %}
+        {% for s in sessions %}
+          <div class="gt-card p-5 border border-gray-800 hover:border-gray-700 transition" id="workout-card-{{ s.id }}">
+            <div class="flex flex-wrap items-center justify-between gap-3 mb-4 border-b border-gray-800/80 pb-3">
+              <div>
+                <div class="flex items-center gap-2">
+                  <h3 class="text-lg font-bold text-white">{{ s.title }}</h3>
+                  {% if s.has_pr %}
+                    <span class="px-2 py-0.5 rounded-full text-xs font-bold bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/40 flex items-center gap-1">🏆 PR</span>
+                  {% endif %}
+                </div>
+                <div class="text-xs text-gray-400 mt-0.5">📅 {{ s.date }} • {{ s.exercises_summary | join(', ') }}</div>
+              </div>
+              <div class="flex items-center gap-4">
+                <div class="text-right">
+                  <div class="text-sm font-black text-[#CCFF00]">{{ s.total_volume | int }}</div>
+                  <div class="text-[10px] uppercase font-bold text-gray-500">Vol ({{ user.unit_preference }})</div>
+                </div>
+                <button onclick="deleteWorkoutSession({{ s.id }})" class="text-gray-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-gray-800 transition" title="Delete workout">
+                  🗑️
+                </button>
+              </div>
+            </div>
+
+            <!-- Sets Table -->
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-gray-300">
+                <thead class="text-[10px] uppercase tracking-wider text-gray-500 bg-[#171717] rounded-lg">
+                  <tr>
+                    <th class="py-2 px-3">Set</th>
+                    <th class="py-2 px-3">Exercise</th>
+                    <th class="py-2 px-3">Weight</th>
+                    <th class="py-2 px-3">Reps</th>
+                    <th class="py-2 px-3">Volume</th>
+                    <th class="py-2 px-3">Est 1RM</th>
+                    <th class="py-2 px-3 text-right">Status</th>
+                  </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-800/60">
+                  {% for set in s.sets %}
+                    <tr class="hover:bg-white/[0.02]">
+                      <td class="py-2.5 px-3 font-bold text-gray-400">#{{ set.set_number }}</td>
+                      <td class="py-2.5 px-3 font-semibold text-white">{{ set.exercise_name }}</td>
+                      <td class="py-2.5 px-3 font-bold text-[#CCFF00]">{{ set.weight }}</td>
+                      <td class="py-2.5 px-3 font-bold text-white">{{ set.reps }}</td>
+                      <td class="py-2.5 px-3 text-gray-400">{{ (set.weight * set.reps) | int }}</td>
+                      <td class="py-2.5 px-3 text-[#FFD700] font-semibold">{{ set.estimated_1rm if set.estimated_1rm else '-' }}</td>
+                      <td class="py-2.5 px-3 text-right">
+                        {% if set.is_pr %}
+                          <span class="text-[#FFD700] font-bold">🏆 PR</span>
+                        {% elif set.is_warmup %}
+                          <span class="text-gray-500">Warmup</span>
+                        {% else %}
+                          <span class="text-gray-400">Done</span>
+                        {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+
+            {% if s.notes %}
+              <div class="mt-3 pt-3 border-t border-gray-800/60 text-xs text-gray-400 italic">📝 {{ s.notes }}</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </section>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/logger.js"></script>
+{% endblock %}

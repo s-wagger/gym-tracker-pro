@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline | Gym Tracker Pro</title>
+  <link rel="manifest" href="/static/manifest.json">
+  <meta name="theme-color" content="#121212">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-[#121212] text-white min-h-screen flex items-center justify-center p-4">
+  <div class="max-w-md w-full bg-[#1E1E1E] border border-gray-800 rounded-2xl p-8 text-center shadow-2xl relative overflow-hidden">
+    <div class="absolute -top-12 -right-12 w-32 h-32 bg-[#CCFF00]/10 rounded-full blur-2xl pointer-events-none"></div>
+    <div class="w-16 h-16 mx-auto mb-6 rounded-2xl bg-[#CCFF00]/10 border border-[#CCFF00]/30 flex items-center justify-center text-[#CCFF00]">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 4.243a9 9 0 01-12.728 0m0 0l2.829-2.829m-2.829 2.829L3 21m2.828-15.536a9 9 0 0112.728 0"></path>
+      </svg>
+    </div>
+    <h1 class="text-2xl font-black tracking-tight text-white mb-2">You're Offline</h1>
+    <p class="text-gray-400 text-sm mb-6 leading-relaxed">
+      Gym Tracker Pro is running in offline PWA mode. Check your internet connection or revisit pages you've previously loaded.
+    </p>
+    <div class="space-y-3">
+      <button onclick="window.location.reload()" class="w-full py-3 px-6 rounded-xl font-bold bg-[#CCFF00] text-black hover:bg-[#b8e600] transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-lg shadow-[#CCFF00]/20">
+        Retry Connection
+      </button>
+      <a href="/dashboard" class="block w-full py-3 px-6 rounded-xl font-semibold bg-gray-800 text-gray-200 hover:bg-gray-700 transition">
+        Return to Cached Dashboard
+      </a>
+    </div>
+  </div>
+</body>
+</html>

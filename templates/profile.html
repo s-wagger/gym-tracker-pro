@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Profile & Preferences | Gym Tracker Pro{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8 py-4">
+
+  <!-- Header -->
+  <div>
+    <div class="flex items-center gap-2 text-xs uppercase font-black tracking-widest text-[#CCFF00]">
+      <span>Module M1</span> • <span>Account Maintenance</span>
+    </div>
+    <h1 class="text-3xl font-black text-white tracking-tight mt-1">Profile & Nutrition Targets</h1>
+    <p class="text-gray-400 text-xs">Configure your daily nutritional goals, weight unit preferences, and security credentials.</p>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+    <!-- Profile & Targets Form (7 cols) -->
+    <div class="lg:col-span-7 gt-card p-6 bg-[#1A1A1A] border border-gray-800 space-y-6">
+      <div class="flex items-center gap-3 pb-3 border-b border-gray-800">
+        <div class="w-10 h-10 rounded-xl bg-[#CCFF00]/10 border border-[#CCFF00]/30 flex items-center justify-center text-xl text-[#CCFF00]">
+          ⚙️
+        </div>
+        <div>
+          <h2 class="text-base font-black text-white">Athlete Preferences & Goals</h2>
+          <span class="text-[11px] text-gray-400">Personalize your dashboard and macro progress bars</span>
+        </div>
+      </div>
+
+      <form method="POST" action="{{ url_for('profile') }}" class="space-y-4">
+        <input type="hidden" name="action" value="update_profile">
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Display Name</label>
+            <input type="text" name="display_name" value="{{ user.display_name }}" required class="gt-input w-full font-semibold">
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Username (Immutable)</label>
+            <input type="text" value="{{ user.username }}" disabled class="gt-input w-full bg-gray-900 text-gray-500 font-mono">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Email Address</label>
+          <input type="email" value="{{ user.email }}" disabled class="gt-input w-full bg-gray-900 text-gray-500">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Preferred Weight Unit</label>
+          <div class="grid grid-cols-2 gap-3">
+            <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-gray-800 bg-[#141414] cursor-pointer hover:border-gray-700">
+              <input type="radio" name="unit_preference" value="kg" {{ 'checked' if user.unit_preference == 'kg' else '' }} class="accent-[#CCFF00]">
+              <span class="text-xs font-bold text-white">Kilograms (kg)</span>
+            </label>
+            <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-gray-800 bg-[#141414] cursor-pointer hover:border-gray-700">
+              <input type="radio" name="unit_preference" value="lbs" {{ 'checked' if user.unit_preference == 'lbs' else '' }} class="accent-[#CCFF00]">
+              <span class="text-xs font-bold text-white">Pounds (lbs)</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Macro Targets Section -->
+        <div class="pt-4 border-t border-gray-800 space-y-3">
+          <label class="block text-xs font-black uppercase tracking-wider text-[#00E5FF]">Daily Nutritional Targets</label>
+          
+          <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Daily Calorie Target (kcal)</label>
+            <input type="number" name="daily_calorie_target" value="{{ user.daily_calorie_target }}" min="500" step="50" required class="gt-input w-full font-bold text-[#CCFF00]">
+          </div>
+
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-blue-400 uppercase mb-1">Protein (g)</label>
+              <input type="number" name="daily_protein_target" value="{{ user.daily_protein_target }}" min="0" step="5" required class="gt-input w-full font-bold">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-amber-400 uppercase mb-1">Carbs (g)</label>
+              <input type="number" name="daily_carbs_target" value="{{ user.daily_carbs_target }}" min="0" step="5" required class="gt-input w-full font-bold">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-red-400 uppercase mb-1">Fat (g)</label>
+              <input type="number" name="daily_fat_target" value="{{ user.daily_fat_target }}" min="0" step="5" required class="gt-input w-full font-bold">
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="neon-btn w-full py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg">
+          SAVE PROFILE & TARGETS
+        </button>
+      </form>
+    </div>
+
+    <!-- Password Maintenance Card (5 cols) -->
+    <div class="lg:col-span-5 gt-card p-6 bg-[#1A1A1A] border border-gray-800 h-fit space-y-6">
+      <div class="flex items-center gap-3 pb-3 border-b border-gray-800">
+        <div class="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-xl text-purple-400">
+          🔒
+        </div>
+        <div>
+          <h2 class="text-base font-black text-white">Security & Password</h2>
+          <span class="text-[11px] text-gray-400">Update your access password</span>
+        </div>
+      </div>
+
+      <form method="POST" action="{{ url_for('profile') }}" class="space-y-4">
+        <input type="hidden" name="action" value="change_password">
+
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Current Password *</label>
+          <input type="password" name="current_password" required placeholder="••••••••" class="gt-input w-full">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">New Password *</label>
+          <input type="password" name="new_password" required placeholder="Min 6 characters" class="gt-input w-full">
+        </div>
+
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Confirm New Password *</label>
+          <input type="password" name="confirm_new_password" required placeholder="••••••••" class="gt-input w-full">
+        </div>
+
+        <button type="submit" class="w-full py-3 px-4 rounded-xl font-bold text-xs uppercase tracking-wider bg-gray-800 hover:bg-gray-700 text-white border border-gray-700 hover:border-purple-400 transition">
+          UPDATE PASSWORD
+        </button>
+      </form>
+
+      <div class="p-3 bg-[#141414] rounded-xl border border-gray-800 text-[11px] text-gray-500">
+        Account created: <strong class="text-gray-400">{{ user.created_at }}</strong>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+{% endblock %}

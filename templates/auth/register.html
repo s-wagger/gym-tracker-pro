@@ -1,0 +1,79 @@
+{% extends "base.html" %}
+
+{% block title %}Create Account | Gym Tracker Pro{% endblock %}
+
+{% block content %}
+<div class="max-w-lg mx-auto py-8">
+  <div class="gt-card p-8 bg-[#1E1E1E] border border-gray-800 shadow-2xl relative overflow-hidden">
+    <!-- Top accent strip -->
+    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#CCFF00] via-[#FFD700] to-[#CCFF00]"></div>
+
+    <div class="text-center mb-6">
+      <div class="w-12 h-12 mx-auto mb-3 rounded-2xl bg-[#CCFF00]/10 border border-[#CCFF00]/30 flex items-center justify-center text-xl text-[#CCFF00]">
+        ⚡
+      </div>
+      <h1 class="text-2xl font-black text-white">Join Gym Tracker Pro</h1>
+      <p class="text-gray-400 text-xs mt-1">Start tracking workouts, 1RM analytics, and macros today</p>
+    </div>
+
+    <form method="POST" action="{{ url_for('register') }}" class="space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Username *</label>
+          <input type="text" name="username" required placeholder="titan_lifter" class="gt-input w-full">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Display Name</label>
+          <input type="text" name="display_name" placeholder="Alex Rivers" class="gt-input w-full">
+        </div>
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Email Address *</label>
+        <input type="email" name="email" required placeholder="alex@workout.com" class="gt-input w-full">
+      </div>
+
+      <div>
+        <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Preferred Weight Unit</label>
+        <div class="grid grid-cols-2 gap-3">
+          <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-gray-800 bg-[#141414] cursor-pointer hover:border-gray-700">
+            <input type="radio" name="unit_preference" value="kg" checked class="accent-[#CCFF00]">
+            <span class="text-xs font-bold text-white">Kilograms (kg)</span>
+          </label>
+          <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-gray-800 bg-[#141414] cursor-pointer hover:border-gray-700">
+            <input type="radio" name="unit_preference" value="lbs" class="accent-[#CCFF00]">
+            <span class="text-xs font-bold text-white">Pounds (lbs)</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Password *</label>
+          <input type="password" name="password" required placeholder="Min 6 characters" class="gt-input w-full">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Confirm Password *</label>
+          <input type="password" name="confirm_password" required placeholder="••••••••" class="gt-input w-full">
+        </div>
+      </div>
+
+      <div class="p-3 bg-[#171717] rounded-xl border border-gray-800 text-[11px] text-gray-400 flex items-center gap-2">
+        <span class="text-xs">🔒</span>
+        <span>Passwords are securely salted and hashed with industry-standard bcrypt encryption.</span>
+      </div>
+
+      <button type="submit" class="neon-btn w-full py-3 px-4 rounded-xl font-black text-sm uppercase tracking-wider shadow-lg shadow-[#CCFF00]/20">
+        Create Athlete Account
+      </button>
+    </form>
+
+    <div class="mt-6 pt-6 border-t border-gray-800 text-center text-xs text-gray-400">
+      Already have an account? 
+      <a href="{{ url_for('login') }}" class="text-[#CCFF00] font-bold hover:underline ml-1">
+        Sign in here
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
