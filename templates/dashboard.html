@@ -24,7 +24,11 @@
       </div>
 
       <!-- Quick Action Buttons -->
-      <div class="flex items-center gap-3 shrink-0">
+      <div class="flex items-center gap-2 sm:gap-3 shrink-0">
+        <!-- Theme Toggle Button -->
+        <button type="button" class="btn-theme-toggle p-2.5 rounded-xl bg-[#141414] hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-700 transition flex items-center gap-1.5 text-xs font-bold" title="Switch Dark / Light Theme">
+          <span class="theme-icon">☀️</span> <span class="theme-label hidden sm:inline">Theme</span>
+        </button>
         <a href="{{ url_for('workouts') }}" class="neon-btn px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md">
           <span>🏋️‍♂️</span> Log Workout
         </a>
@@ -48,6 +52,90 @@
       </button>
     </div>
   </section>
+
+  <!-- Personalized Fitness & Diet Plan Blueprint Banner -->
+  {% if plan %}
+  <section class="gt-card p-6 bg-gradient-to-r from-[#171717] via-[#1C1C1C] to-[#171717] border border-[#CCFF00]/40 shadow-xl relative overflow-hidden">
+    <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+      <div class="space-y-2">
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30">
+            {{ plan.badge }}
+          </span>
+          <span class="text-xs font-bold text-gray-400">BMI: <strong class="text-white">{{ plan.bmi }}</strong> ({{ plan.bmi_category }})</span>
+          <span class="text-xs text-gray-500">•</span>
+          <span class="text-xs font-bold text-gray-400">TDEE: <strong class="text-white">{{ plan.tdee }}</strong> kcal</span>
+        </div>
+        <h2 class="text-xl sm:text-2xl font-black text-white tracking-tight">
+          {{ plan.title }}
+        </h2>
+        <p class="text-xs text-gray-300 leading-relaxed max-w-2xl">
+          Protocol: <strong class="text-white">{{ plan.workout_split_name }}</strong>. 
+          Target Calories: <strong class="text-[#CCFF00]">{{ plan.targets.calories }} kcal</strong> 
+          (P: <strong class="text-blue-400">{{ plan.targets.protein }}g</strong> • 
+          C: <strong class="text-amber-400">{{ plan.targets.carbs }}g</strong> • 
+          F: <strong class="text-red-400">{{ plan.targets.fat }}g</strong>).
+        </p>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-3 shrink-0">
+        <button type="button" id="btn-apply-plan-targets" class="px-4 py-2.5 rounded-xl bg-[#CCFF00] text-black font-black text-xs uppercase tracking-wider hover:bg-[#b8e600] transition shadow-md flex items-center gap-1.5">
+          <span>⚡ Apply Plan Macros</span>
+        </button>
+        <button type="button" onclick="document.getElementById('plan-details-modal').classList.toggle('hidden')" class="px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700 text-xs font-bold transition flex items-center gap-1.5">
+          <span>📋 View Full Schedule</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Collapsible Plan Schedule & Rules Modal/Drawer -->
+    <div id="plan-details-modal" class="hidden mt-6 pt-6 border-t border-gray-800/80 space-y-6">
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Workout Schedule -->
+        <div class="space-y-3">
+          <h3 class="text-xs font-black uppercase tracking-widest text-[#CCFF00] flex items-center gap-1.5">
+            <span>🏋️‍♂️</span> Recommended Training Schedule
+          </h3>
+          <div class="space-y-2">
+            {% for d in plan.workout_days %}
+              <div class="p-3 rounded-xl bg-[#121212] border border-gray-800 text-xs">
+                <div class="flex items-center justify-between mb-1">
+                  <span class="font-black text-[#CCFF00]">{{ d.day }}</span>
+                  <span class="font-bold text-gray-300">{{ d.focus }}</span>
+                </div>
+                <div class="text-gray-400 text-[11px] leading-relaxed">{{ d.routine }}</div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Nutrition Guidelines -->
+        <div class="space-y-3">
+          <h3 class="text-xs font-black uppercase tracking-widest text-[#00E5FF] flex items-center gap-1.5">
+            <span>🥗</span> Core Nutritional Principles
+          </h3>
+          <div class="p-4 rounded-xl bg-[#121212] border border-gray-800 space-y-3 text-xs">
+            {% for r in plan.nutrition_rules %}
+              <div class="flex items-start gap-2.5 text-gray-300">
+                <span class="text-[#CCFF00] font-bold mt-0.5">✓</span>
+                <span class="leading-relaxed">{{ r }}</span>
+              </div>
+            {% endfor %}
+          </div>
+
+          <div class="p-4 rounded-xl bg-[#141414] border border-gray-800/80 text-[11px] text-gray-400">
+            Want to adjust your Height, Weight, or Goal? 
+            <a href="{{ url_for('profile') }}" class="text-[#CCFF00] font-bold hover:underline ml-1">
+              Edit in Profile Settings →
+            </a>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+  {% endif %}
 
   <!-- 2. High-Impact KPI Overview Cards -->
   <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -330,4 +418,23 @@
   </div>
 
 </div>
+
+<script>
+  document.getElementById('btn-apply-plan-targets')?.addEventListener('click', async () => {
+    try {
+      const res = await fetch('/api/plan/apply-targets', { method: 'POST' });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (typeof showToast === 'function') {
+          showToast(`Applied ${data.targets.calories} kcal targets to your profile!`, 'success', 'TARGETS UPDATED');
+        } else {
+          alert('Custom targets applied successfully!');
+        }
+        setTimeout(() => window.location.reload(), 1000);
+      }
+    } catch (err) {
+      alert('Error updating targets.');
+    }
+  });
+</script>
 {% endblock %}

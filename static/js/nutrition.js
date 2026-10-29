@@ -258,4 +258,150 @@ async function deleteMealItem(entryId) {
   }
 }
 
-document.addEventListener('DOMContentLoaded', initNutritionTracker);
+// -------------------------------------------------------------
+// AI Food Camera & Nutrition Vision Scanner
+// -------------------------------------------------------------
+let currentScannedData = null;
+
+function initAiCameraScanner() {
+  const openBtn = document.getElementById('btn-open-camera-modal');
+  const closeBtn = document.getElementById('btn-close-camera-modal');
+  const modal = document.getElementById('ai-camera-modal');
+  const uploadZone = document.getElementById('camera-upload-zone');
+  const fileInput = document.getElementById('camera-file-input');
+  const previewZone = document.getElementById('camera-preview-zone');
+  const imagePreview = document.getElementById('scanned-image-preview');
+  const scanningIndicator = document.getElementById('scanning-indicator');
+  const resultsZone = document.getElementById('scan-results-zone');
+  const retakeBtn = document.getElementById('btn-retake-camera');
+  const confirmBtn = document.getElementById('btn-confirm-scanned-meal');
+
+  if (!openBtn || !modal) return;
+
+  openBtn.addEventListener('click', () => {
+    modal.classList.remove('hidden');
+    resetCameraState();
+  });
+
+  closeBtn.addEventListener('click', () => {
+    modal.classList.add('hidden');
+    resetCameraState();
+  });
+
+  uploadZone.addEventListener('click', () => {
+    fileInput.click();
+  });
+
+  retakeBtn?.addEventListener('click', () => {
+    resetCameraState();
+    fileInput.click();
+  });
+
+  fileInput.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    // Show preview
+    const reader = new FileReader();
+    reader.onload = async (evt) => {
+      imagePreview.src = evt.target.result;
+      uploadZone.classList.add('hidden');
+      previewZone.classList.remove('hidden');
+      scanningIndicator.classList.remove('hidden');
+      resultsZone.classList.add('hidden');
+
+      // Upload and analyze
+      const formData = new FormData();
+      formData.append('meal_image', file);
+
+      try {
+        const res = await fetch('/api/nutrition/scan-meal', {
+          method: 'POST',
+          body: formData
+        });
+        const data = await res.json();
+        scanningIndicator.classList.add('hidden');
+
+        if (res.ok && data.success && data.analysis) {
+          currentScannedData = data.analysis;
+          renderScanResults(data.analysis);
+          resultsZone.classList.remove('hidden');
+        } else {
+          showToast(data.error || 'Could not analyze meal image.', 'error');
+          resetCameraState();
+        }
+      } catch (err) {
+        scanningIndicator.classList.add('hidden');
+        showToast('Network error while processing image.', 'error');
+        resetCameraState();
+      }
+    };
+    reader.readAsDataURL(file);
+  });
+
+  confirmBtn?.addEventListener('click', async () => {
+    if (!currentScannedData) return;
+    const mealType = document.getElementById('camera-meal-type')?.value || 'Lunch';
+
+    try {
+      const res = await fetch('/api/nutrition/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: activeNutritionDate,
+          meal_type: mealType,
+          food_name: currentScannedData.food_name,
+          calories: currentScannedData.calories,
+          protein: currentScannedData.protein,
+          carbs: currentScannedData.carbs,
+          fat: currentScannedData.fat
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast(`Logged "${currentScannedData.food_name}" (${currentScannedData.calories} kcal) via AI Scanner!`, 'success');
+        modal.classList.add('hidden');
+        resetCameraState();
+        fetchNutritionForDate(activeNutritionDate);
+      } else {
+        showToast(data.error || 'Failed to save scanned meal.', 'error');
+      }
+    } catch (err) {
+      showToast('Error saving meal.', 'error');
+    }
+  });
+
+  function resetCameraState() {
+    fileInput.value = '';
+    currentScannedData = null;
+    uploadZone.classList.remove('hidden');
+    previewZone.classList.add('hidden');
+    resultsZone.classList.add('hidden');
+    scanningIndicator.classList.add('hidden');
+  }
+
+  function renderScanResults(analysis) {
+    document.getElementById('detected-food-name').textContent = analysis.food_name;
+    document.getElementById('detected-food-desc').textContent = `${analysis.description} (${analysis.portion_size})`;
+    document.getElementById('detected-cals').textContent = Math.round(analysis.calories);
+    document.getElementById('detected-protein').textContent = `${Math.round(analysis.protein)}g`;
+    document.getElementById('detected-carbs').textContent = `${Math.round(analysis.carbs)}g`;
+    document.getElementById('detected-fat').textContent = `${Math.round(analysis.fat)}g`;
+
+    const breakdownContainer = document.getElementById('detected-breakdown-list');
+    if (breakdownContainer && analysis.breakdown) {
+      breakdownContainer.innerHTML = analysis.breakdown.map((item) => `
+        <div class="flex items-center justify-between p-1.5 rounded-lg bg-[#181818] border border-gray-800">
+          <span>${item.item} (${item.portion})</span>
+          <span class="font-bold text-white">${Math.round(item.calories)} kcal • P: ${Math.round(item.protein)}g</span>
+        </div>
+      `).join('');
+    }
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initNutritionTracker();
+  initAiCameraScanner();
+});

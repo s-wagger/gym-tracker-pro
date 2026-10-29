@@ -12,10 +12,15 @@
     <div class="absolute bottom-0 right-10 w-72 h-72 bg-[#FFD700]/10 rounded-full blur-3xl pointer-events-none"></div>
 
     <div class="relative z-10 max-w-4xl mx-auto space-y-6">
-      <!-- Badge -->
-      <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#CCFF00]/10 border border-[#CCFF00]/30 text-[#CCFF00] text-xs font-black uppercase tracking-widest shadow-sm">
-        <span class="w-2 h-2 rounded-full bg-[#CCFF00] animate-ping"></span>
-        Progressive Web Application (PWA)
+      <!-- Badge & Theme Toggle -->
+      <div class="flex items-center justify-center gap-3">
+        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#CCFF00]/10 border border-[#CCFF00]/30 text-[#CCFF00] text-xs font-black uppercase tracking-widest shadow-sm">
+          <span class="w-2 h-2 rounded-full bg-[#CCFF00] animate-ping"></span>
+          Progressive Web Application (PWA)
+        </div>
+        <button type="button" class="btn-theme-toggle inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-[#1E1E1E] border border-gray-700 text-xs font-bold text-gray-200 hover:text-white transition shadow-sm">
+          <span class="theme-icon">☀️</span> <span class="theme-label">Light</span>
+        </button>
       </div>
 
       <!-- Main Headline -->

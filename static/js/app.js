@@ -1,10 +1,47 @@
 /**
  * Gym Tracker Pro - Core Application Scripts
- * Handles 3D card tilt interactions, dynamic motivational quotes, and global toast notifications.
+ * Handles Theme Toggling (Dark/Light), 3D card tilt interactions,
+ * dynamic motivational quotes, and global toast notifications.
  */
 
-// 1. 3D Card Tilt Interaction Engine
+// 0. Theme Switcher Engine (Dark Theme ↔ White/Light Theme)
+function initThemeToggle() {
+  const savedTheme = localStorage.getItem('gym_theme') || 'dark';
+  applyTheme(savedTheme);
+
+  document.querySelectorAll('.btn-theme-toggle').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const isLight = document.documentElement.classList.contains('light');
+      const nextTheme = isLight ? 'dark' : 'light';
+      applyTheme(nextTheme);
+      localStorage.setItem('gym_theme', nextTheme);
+      if (typeof showToast === 'function') {
+        showToast(`Switched to ${nextTheme === 'light' ? 'Light Theme' : 'Dark Theme'}`, 'info');
+      }
+    });
+  });
+}
+
+function applyTheme(theme) {
+  if (theme === 'light') {
+    document.documentElement.classList.remove('dark');
+    document.documentElement.classList.add('light');
+    document.querySelectorAll('.theme-icon').forEach(el => el.textContent = '🌙');
+    document.querySelectorAll('.theme-label').forEach(el => el.textContent = 'Dark');
+  } else {
+    document.documentElement.classList.remove('light');
+    document.documentElement.classList.add('dark');
+    document.querySelectorAll('.theme-icon').forEach(el => el.textContent = '☀️');
+    document.querySelectorAll('.theme-label').forEach(el => el.textContent = 'Light');
+  }
+}
+
+// 1. 3D Card Tilt Interaction Engine (Safe for mobile: only activates on mouse devices)
 function init3DTiltCards() {
+  // Disable on touch screens to prevent interference with mobile scrolling
+  if (!window.matchMedia('(pointer: fine)').matches) return;
+
   const cards = document.querySelectorAll('.tilt-card');
 
   cards.forEach((card) => {
@@ -15,8 +52,8 @@ function init3DTiltCards() {
       const mouseX = e.clientX - rect.left;
       const mouseY = e.clientY - rect.top;
 
-      const rotateY = ((mouseX / cardWidth) - 0.5) * 16; // Max 8 deg
-      const rotateX = ((mouseY / cardHeight) - 0.5) * -16; // Invert for natural tilt
+      const rotateY = ((mouseX / cardWidth) - 0.5) * 14;
+      const rotateX = ((mouseY / cardHeight) - 0.5) * -14;
 
       card.style.transform = `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.02, 1.02, 1.02)`;
     });
@@ -123,6 +160,7 @@ function showToast(message, type = 'success', title = null) {
 
 // 4. Initialize DOM triggers
 document.addEventListener('DOMContentLoaded', () => {
+  initThemeToggle();
   init3DTiltCards();
   setDynamicMotivationalQuote();
 

@@ -37,12 +37,26 @@
   <!-- Chart.js for PR analytics -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
+  <!-- Prevent Theme Flicker Script -->
+  <script>
+    (function() {
+      const saved = localStorage.getItem('gym_theme') || 'dark';
+      if (saved === 'light') {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
+      } else {
+        document.documentElement.classList.remove('light');
+        document.documentElement.classList.add('dark');
+      }
+    })();
+  </script>
+
   {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-[#121212] text-gray-100 min-h-screen flex flex-col pb-16 md:pb-0">
+<body class="bg-[#121212] text-gray-100 min-h-screen flex flex-col pb-16 md:pb-0 transition-colors duration-200">
 
   <!-- Desktop & Tablet Navigation Bar -->
-  <header class="sticky top-0 z-50 bg-[#121212]/90 backdrop-blur-md border-b border-gray-800">
+  <header class="sticky top-0 z-50 bg-[#121212]/90 backdrop-blur-md border-b border-gray-800 transition-colors duration-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       
       <!-- Logo & Brand -->
@@ -80,8 +94,14 @@
       </nav>
       {% endif %}
 
-      <!-- Right Controls: PWA Install + Profile / Auth -->
+      <!-- Right Controls: Theme Toggle + PWA Install + Profile / Auth -->
       <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Theme Switcher Button -->
+        <button type="button" class="btn-theme-toggle p-2 rounded-xl bg-[#1E1E1E] border border-gray-800 hover:border-[#CCFF00]/40 text-gray-300 hover:text-white transition flex items-center gap-1.5 shadow-sm text-xs font-bold" title="Toggle Dark / White Theme">
+          <span class="theme-icon text-sm">☀️</span>
+          <span class="theme-label hidden sm:inline text-[11px]">Light</span>
+        </button>
+
         <!-- PWA Install Button -->
         <button type="button" class="btn-pwa-install hidden px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider bg-[#CCFF00]/10 border border-[#CCFF00]/40 text-[#CCFF00] hover:bg-[#CCFF00] hover:text-black transition flex items-center gap-1.5 shadow-sm">
           <span>📲</span> Install App

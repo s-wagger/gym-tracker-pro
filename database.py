@@ -46,9 +46,22 @@ def init_db():
             daily_protein_target INTEGER DEFAULT 160,
             daily_carbs_target INTEGER DEFAULT 250,
             daily_fat_target INTEGER DEFAULT 70,
+            height REAL DEFAULT 175.0,
+            weight REAL DEFAULT 75.0,
+            fitness_goal TEXT DEFAULT 'gain_weight',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """)
+
+        # Migration check for existing databases
+        cursor.execute("PRAGMA table_info(users);")
+        existing_cols = [c["name"] for c in cursor.fetchall()]
+        if "height" not in existing_cols:
+            cursor.execute("ALTER TABLE users ADD COLUMN height REAL DEFAULT 175.0;")
+        if "weight" not in existing_cols:
+            cursor.execute("ALTER TABLE users ADD COLUMN weight REAL DEFAULT 75.0;")
+        if "fitness_goal" not in existing_cols:
+            cursor.execute("ALTER TABLE users ADD COLUMN fitness_goal TEXT DEFAULT 'gain_weight';")
 
         # Workout Sessions table
         cursor.execute("""

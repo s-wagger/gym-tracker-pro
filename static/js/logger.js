@@ -244,6 +244,34 @@ function calculateLiveVolume() {
   volumeElem.textContent = `${totalVol.toLocaleString()} total volume`;
 }
 
+// Tab switching between History and Record Form
+function switchWorkoutView(mode) {
+  const formSection = document.getElementById('section-workout-form');
+  const historySection = document.getElementById('section-workout-history');
+  const btnHistory = document.getElementById('tab-btn-history');
+  const btnNew = document.getElementById('tab-btn-new');
+
+  if (mode === 'new') {
+    if (formSection) formSection.classList.remove('hidden');
+    if (historySection) historySection.classList.add('hidden');
+    if (btnNew) {
+      btnNew.className = 'flex-1 py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center justify-center gap-2 bg-[#CCFF00] text-black shadow-sm';
+    }
+    if (btnHistory) {
+      btnHistory.className = 'flex-1 py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center justify-center gap-2 text-gray-400 hover:text-white';
+    }
+  } else {
+    if (formSection) formSection.classList.add('hidden');
+    if (historySection) historySection.classList.remove('hidden');
+    if (btnHistory) {
+      btnHistory.className = 'flex-1 py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center justify-center gap-2 bg-[#CCFF00] text-black shadow-sm';
+    }
+    if (btnNew) {
+      btnNew.className = 'flex-1 py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center justify-center gap-2 text-gray-400 hover:text-white';
+    }
+  }
+}
+
 async function handleWorkoutSubmit(e) {
   e.preventDefault();
   const title = document.getElementById('log-workout-title').value.trim();
@@ -301,13 +329,12 @@ async function handleWorkoutSubmit(e) {
           showToast(`🏆 NEW PERSONAL RECORD! ${pr.exercise}: ${pr.weight} × ${pr.reps} reps (Est 1RM: ${pr.estimated_1rm})`, 'pr', 'PR UNLOCKED!');
         });
       } else {
-        showToast('Workout successfully logged!', 'success');
+        showToast('Workout successfully saved to your logs!', 'success');
       }
 
-      // Reload page or refresh list
-      setTimeout(() => {
-        window.location.reload();
-      }, 1200);
+      // Automatically switch to history tab so the user immediately sees their saved log!
+      switchWorkoutView('history');
+      applyWorkoutFilters();
     } else {
       showToast(data.error || 'Failed to save workout session.', 'error');
     }

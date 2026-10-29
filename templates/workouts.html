@@ -5,14 +5,14 @@
 {% block content %}
 <div class="space-y-8">
 
-  <!-- Header -->
+  <!-- Header & Segmented Tab Switcher -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
     <div>
       <div class="flex items-center gap-2 text-xs uppercase font-black tracking-widest text-[#CCFF00]">
         <span>Module M4</span> • <span>Multi-Set Engine</span>
       </div>
-      <h1 class="text-3xl font-black text-white tracking-tight mt-1">Workout & Exercise Logger</h1>
-      <p class="text-gray-400 text-xs">Record multi-set training sessions, track intensity, and unlock personal records.</p>
+      <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight mt-1">Workout & Exercise Logger</h1>
+      <p class="text-gray-400 text-xs">Record multi-set training sessions, track intensity, and review past logs.</p>
     </div>
     
     <div class="flex items-center gap-3">
@@ -20,15 +20,25 @@
     </div>
   </div>
 
-  <!-- Active Workout Logging Card -->
-  <section class="gt-card p-6 sm:p-8 bg-[#1A1A1A] border border-gray-800 shadow-xl">
+  <!-- Segmented Tab Switcher (Mobile & Desktop Friendly) -->
+  <div class="flex items-center gap-2 p-1.5 rounded-2xl bg-[#171717] border border-gray-800">
+    <button type="button" id="tab-btn-history" onclick="switchWorkoutView('history')" class="flex-1 py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center justify-center gap-2 bg-[#CCFF00] text-black shadow-sm">
+      <span>📜</span> <span>Saved Workout Logs ({{ sessions | length }})</span>
+    </button>
+    <button type="button" id="tab-btn-new" onclick="switchWorkoutView('new')" class="flex-1 py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider transition flex items-center justify-center gap-2 text-gray-400 hover:text-white">
+      <span>➕</span> <span>Record New Workout</span>
+    </button>
+  </div>
+
+  <!-- Active Workout Logging Card (Tab Content) -->
+  <section id="section-workout-form" class="gt-card p-5 sm:p-8 bg-[#1A1A1A] border border-gray-800 shadow-xl hidden">
     <div class="flex items-center justify-between pb-4 mb-6 border-b border-gray-800">
       <div class="flex items-center gap-3">
         <div class="w-10 h-10 rounded-xl bg-[#CCFF00]/10 border border-[#CCFF00]/30 flex items-center justify-center text-xl text-[#CCFF00]">
           🏋️‍♂️
         </div>
         <div>
-          <h2 class="text-lg font-black text-white">Record Active Session</h2>
+          <h2 class="text-base sm:text-lg font-black text-white">Record Active Session</h2>
           <span class="text-xs text-gray-400">Configure exercise and add completed sets</span>
         </div>
       </div>
@@ -45,7 +55,7 @@
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div>
           <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Session Title</label>
-          <input type="text" id="log-workout-title" value="Push Day Hypertrophy" placeholder="e.g. Heavy Leg Day" class="gt-input w-full font-semibold">
+          <input type="text" id="log-workout-title" value="Pull Day Hypertrophy" placeholder="e.g. Heavy Pull Day" class="gt-input w-full font-semibold">
         </div>
 
         <div>
@@ -56,8 +66,8 @@
         <div>
           <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Target Muscle Group</label>
           <select id="log-muscle-group" class="gt-input w-full font-semibold bg-[#121212]">
-            <option value="Chest" selected>Chest</option>
-            <option value="Back">Back</option>
+            <option value="Chest">Chest</option>
+            <option value="Back" selected>Back</option>
             <option value="Legs">Legs</option>
             <option value="Shoulders">Shoulders</option>
             <option value="Arms">Arms</option>
@@ -78,7 +88,7 @@
 
         <div id="custom-exercise-container" class="hidden">
           <label class="block text-xs font-bold text-[#CCFF00] uppercase mb-1">Custom Exercise Name</label>
-          <input type="text" id="log-custom-exercise" placeholder="e.g. Incline Machine Press" class="gt-input w-full font-semibold border-[#CCFF00]/40">
+          <input type="text" id="log-custom-exercise" placeholder="e.g. Lat Pulldown" class="gt-input w-full font-semibold border-[#CCFF00]/40">
         </div>
       </div>
 
@@ -115,8 +125,8 @@
     </form>
   </section>
 
-  <!-- Filterable Session Historical View -->
-  <section class="space-y-4">
+  <!-- Filterable Session Historical View (Tab Content) -->
+  <section id="section-workout-history" class="space-y-4">
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-gray-800">
       <div>
         <h2 class="text-xl font-black text-white flex items-center gap-2">

@@ -21,6 +21,9 @@ class User(UserMixin):
         self.daily_protein_target = data.get("daily_protein_target") or 160
         self.daily_carbs_target = data.get("daily_carbs_target") or 250
         self.daily_fat_target = data.get("daily_fat_target") or 70
+        self.height = float(data.get("height") or 175.0)
+        self.weight = float(data.get("weight") or 75.0)
+        self.fitness_goal = data.get("fitness_goal") or "gain_weight"
         self.created_at = data.get("created_at")
 
     @staticmethod
@@ -48,16 +51,16 @@ class User(UserMixin):
             return User(row) if row else None
 
     @staticmethod
-    def create(username: str, email: str, password: str, display_name: str = None, unit_preference: str = "kg"):
+    def create(username: str, email: str, password: str, display_name: str = None, unit_preference: str = "kg", height: float = 175.0, weight: float = 75.0, fitness_goal: str = "gain_weight"):
         salt = bcrypt.gensalt()
         pw_hash = bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
         user_id = None
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-            INSERT INTO users (username, email, password_hash, display_name, unit_preference)
-            VALUES (?, ?, ?, ?, ?)
-            """, (username.strip(), email.strip().lower(), pw_hash, (display_name or username).strip(), unit_preference))
+            INSERT INTO users (username, email, password_hash, display_name, unit_preference, height, weight, fitness_goal)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (username.strip(), email.strip().lower(), pw_hash, (display_name or username).strip(), unit_preference, float(height), float(weight), fitness_goal))
             user_id = cursor.lastrowid
         return User.get_by_id(user_id)
 
@@ -73,16 +76,26 @@ class User(UserMixin):
             conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (pw_hash, self.id))
         self.password_hash = pw_hash
 
-    def update_profile(self, display_name: str, unit_preference: str, calorie_target: int, protein_target: int, carbs_target: int, fat_target: int):
+    def update_profile(self, display_name: str, unit_preference: str, calorie_target: int, protein_target: int, carbs_target: int, fat_target: int, height: float = None, weight: float = None, fitness_goal: str = None):
+        h = float(height) if height is not None else self.height
+        w = float(weight) if weight is not None else self.weight
+        g = fitness_goal if fitness_goal is not None else self.fitness_goal
         with get_db() as conn:
             conn.execute("""
             UPDATE users SET display_name = ?, unit_preference = ?, daily_calorie_target = ?, 
-            daily_protein_target = ?, daily_carbs_target = ?, daily_fat_target = ?
+            daily_protein_target = ?, daily_carbs_target = ?, daily_fat_target = ?,
+            height = ?, weight = ?, fitness_goal = ?
             WHERE id = ?
-            """, (display_name.strip(), unit_preference, calorie_target, protein_target, carbs_target, fat_target, self.id))
+            """, (display_name.strip(), unit_preference, calorie_target, protein_target, carbs_target, fat_target, h, w, g, self.id))
         self.display_name = display_name
         self.unit_preference = unit_preference
         self.daily_calorie_target = calorie_target
+        self.daily_protein_target = protein_target
+        self.daily_carbs_target = carbs_target
+        self.daily_fat_target = fat_target
+        self.height = h
+        self.weight = w
+        self.fitness_goal = g
         self.daily_protein_target = protein_target
         self.daily_carbs_target = carbs_target
         self.daily_fat_target = fat_target

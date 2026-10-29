@@ -114,17 +114,37 @@
   <!-- Meal Logging Form & Itemized Foods Layout -->
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-    <!-- Meal Log Form -->
-    <div class="gt-card p-6 bg-[#1A1A1A] border border-gray-800 h-fit">
-      <div class="flex items-center gap-3 pb-3 mb-4 border-b border-gray-800">
-        <div class="w-9 h-9 rounded-xl bg-[#00E5FF]/10 border border-[#00E5FF]/30 flex items-center justify-center text-lg text-[#00E5FF]">
-          ➕
+    <!-- Meal Log Column -->
+    <div class="space-y-4">
+      <!-- AI Camera Quick Scan Button -->
+      <div class="gt-card p-4 bg-gradient-to-r from-[#1E1E1E] via-[#222222] to-[#1E1E1E] border border-[#CCFF00]/40 shadow-xl">
+        <div class="flex items-center gap-3 mb-2">
+          <div class="w-10 h-10 rounded-xl bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/40 flex items-center justify-center text-xl shrink-0">
+            📸
+          </div>
+          <div>
+            <h3 class="text-sm font-black text-white">Smart Food Camera Scanner</h3>
+            <p class="text-[10px] text-gray-400">Snap a photo — AI calculates exact calories & macros</p>
+          </div>
         </div>
-        <div>
-          <h3 class="text-base font-black text-white">Log Food Item</h3>
-          <span class="text-[11px] text-gray-400">Add food and exact macro values</span>
-        </div>
+
+        <button type="button" id="btn-open-camera-modal" class="neon-btn w-full py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-[#CCFF00]/20">
+          <span>📷</span>
+          <span>TAKE PHOTO OF MEAL</span>
+        </button>
       </div>
+
+      <!-- Manual Log Form -->
+      <div class="gt-card p-6 bg-[#1A1A1A] border border-gray-800 h-fit">
+        <div class="flex items-center gap-3 pb-3 mb-4 border-b border-gray-800">
+          <div class="w-9 h-9 rounded-xl bg-[#00E5FF]/10 border border-[#00E5FF]/30 flex items-center justify-center text-lg text-[#00E5FF]">
+            ✏️
+          </div>
+          <div>
+            <h3 class="text-base font-black text-white">Manual Meal Log</h3>
+            <span class="text-[11px] text-gray-400">Or enter macros manually</span>
+          </div>
+        </div>
 
       <form id="nutrition-log-form" class="space-y-4">
         <div>
@@ -170,6 +190,111 @@
         </button>
       </form>
     </div>
+  </div>
+
+  <!-- AI Camera Scanner Modal -->
+  <div id="ai-camera-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+    <div class="gt-card p-6 max-w-lg w-full bg-[#1A1A1A] border border-[#CCFF00]/50 rounded-2xl shadow-2xl relative space-y-4 my-8">
+      
+      <!-- Modal Header -->
+      <div class="flex items-center justify-between pb-3 border-b border-gray-800">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">📸</span>
+          <h3 class="text-base font-black text-white">Smart Nutrition Camera</h3>
+        </div>
+        <button type="button" id="btn-close-camera-modal" class="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-800 text-lg transition">✕</button>
+      </div>
+
+      <!-- Meal Period Selection for Scanned Item -->
+      <div>
+        <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Meal Period</label>
+        <select id="camera-meal-type" class="gt-input w-full bg-[#121212] text-xs font-semibold">
+          <option value="Breakfast">🍳 Breakfast</option>
+          <option value="Lunch" selected>🥗 Lunch</option>
+          <option value="Dinner">🥩 Dinner</option>
+          <option value="Snack">🍎 Snack</option>
+          <option value="Post-Workout">🥤 Post-Workout</option>
+        </select>
+      </div>
+
+      <!-- Camera Capture Zone -->
+      <div id="camera-upload-zone" class="border-2 border-dashed border-gray-700 hover:border-[#CCFF00] rounded-2xl p-8 text-center cursor-pointer transition bg-[#141414] hover:bg-gray-800/40">
+        <!-- Hidden file input that triggers native mobile camera -->
+        <input type="file" id="camera-file-input" accept="image/*" capture="environment" class="hidden">
+        <div class="text-5xl mb-3">📷</div>
+        <div class="text-sm font-black text-white mb-1">Tap to Open Camera or Upload Photo</div>
+        <div class="text-xs text-gray-400 max-w-xs mx-auto">
+          Take a clear photo of your plate, meal container, or snack.
+        </div>
+      </div>
+
+      <!-- Image Preview & Scanning Indicator -->
+      <div id="camera-preview-zone" class="hidden space-y-3">
+        <div class="relative rounded-xl overflow-hidden max-h-64 bg-black flex items-center justify-center border border-gray-800">
+          <img id="scanned-image-preview" src="" alt="Meal preview" class="w-full h-auto object-cover max-h-64">
+          <div id="scanning-indicator" class="hidden absolute inset-0 bg-black/75 flex flex-col items-center justify-center text-center p-4">
+            <div class="w-12 h-12 border-4 border-[#CCFF00] border-t-transparent rounded-full animate-spin mb-3"></div>
+            <div class="text-xs font-black uppercase tracking-wider text-[#CCFF00] animate-pulse">AI Analyzing Food Items & Portion Weight...</div>
+            <div class="text-[10px] text-gray-400 mt-1">Calculating calories, protein, carbs & fats</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recognized Results Card -->
+      <div id="scan-results-zone" class="hidden space-y-4 p-4 rounded-xl bg-[#121212] border border-[#CCFF00]/40">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <h4 id="detected-food-name" class="text-base font-black text-white">Grilled Chicken & Jasmine Rice</h4>
+            <div id="detected-food-desc" class="text-xs text-gray-400 mt-0.5">Estimated portion ~420g total</div>
+          </div>
+          <span id="detected-confidence" class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30 shrink-0">
+            AI Verified
+          </span>
+        </div>
+
+        <!-- Macro Split Badges -->
+        <div class="grid grid-cols-4 gap-2 text-center pt-2 border-t border-gray-800">
+          <div class="p-2.5 rounded-xl bg-[#181818] border border-gray-800">
+            <div class="text-[10px] uppercase font-bold text-gray-400">Calories</div>
+            <div id="detected-cals" class="text-lg font-black text-white">540</div>
+            <div class="text-[9px] text-gray-500">kcal</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-[#181818] border border-gray-800">
+            <div class="text-[10px] uppercase font-bold text-blue-400">Protein</div>
+            <div id="detected-protein" class="text-lg font-black text-blue-400">48g</div>
+            <div class="text-[9px] text-gray-500">4 kcal/g</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-[#181818] border border-gray-800">
+            <div class="text-[10px] uppercase font-bold text-amber-400">Carbs</div>
+            <div id="detected-carbs" class="text-lg font-black text-amber-400">62g</div>
+            <div class="text-[9px] text-gray-500">4 kcal/g</div>
+          </div>
+          <div class="p-2.5 rounded-xl bg-[#181818] border border-gray-800">
+            <div class="text-[10px] uppercase font-bold text-red-400">Fat</div>
+            <div id="detected-fat" class="text-lg font-black text-red-400">8g</div>
+            <div class="text-[9px] text-gray-500">9 kcal/g</div>
+          </div>
+        </div>
+
+        <!-- Itemized Breakdown List -->
+        <div>
+          <div class="text-[10px] uppercase font-bold text-gray-500 mb-1">Identified Plate Components:</div>
+          <div id="detected-breakdown-list" class="space-y-1.5 text-xs text-gray-300"></div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex items-center gap-2 pt-2 border-t border-gray-800">
+          <button type="button" id="btn-confirm-scanned-meal" class="flex-1 py-3 px-4 rounded-xl bg-[#CCFF00] hover:bg-[#b8e600] text-black font-black text-xs uppercase tracking-wider transition shadow-lg shadow-[#CCFF00]/25 flex items-center justify-center gap-1.5">
+            <span>✓</span> <span>Log This Meal to My Day</span>
+          </button>
+          <button type="button" id="btn-retake-camera" class="py-3 px-4 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs transition">
+            Retake Photo
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
 
     <!-- Itemized Meal Entries Grouped by Category -->
     <div class="lg:col-span-2 space-y-4">

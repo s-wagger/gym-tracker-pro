@@ -61,6 +61,30 @@
           </div>
         </div>
 
+        <!-- Biometrics & Goal Settings -->
+        <div class="pt-4 border-t border-gray-800 space-y-3">
+          <label class="block text-xs font-black uppercase tracking-wider text-[#CCFF00]">Biometrics & Training Goal</label>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Height (cm)</label>
+              <input type="number" name="height" value="{{ user.height }}" min="100" max="250" step="0.5" class="gt-input w-full font-bold">
+            </div>
+            <div>
+              <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Weight ({{ user.unit_preference }})</label>
+              <input type="number" name="weight" value="{{ user.weight }}" min="30" max="300" step="0.5" class="gt-input w-full font-bold">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Fitness Goal</label>
+            <select name="fitness_goal" class="gt-input w-full bg-[#121212] font-semibold text-xs">
+              <option value="gain_weight" {{ 'selected' if user.fitness_goal == 'gain_weight' else '' }}>🥩 Gain Weight / Hypertrophy Surplus</option>
+              <option value="lose_weight" {{ 'selected' if user.fitness_goal == 'lose_weight' else '' }}>🔥 Lose Weight / Fat Loss Deficit</option>
+              <option value="maintain_weight" {{ 'selected' if user.fitness_goal == 'maintain_weight' else '' }}>⚖️ Maintain Weight with Good Diet</option>
+            </select>
+          </div>
+        </div>
+
         <!-- Macro Targets Section -->
         <div class="pt-4 border-t border-gray-800 space-y-3">
           <label class="block text-xs font-black uppercase tracking-wider text-[#00E5FF]">Daily Nutritional Targets</label>

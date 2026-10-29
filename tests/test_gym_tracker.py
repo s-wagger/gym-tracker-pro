@@ -18,7 +18,8 @@ from database import init_db, get_db
 from models import User, WorkoutManager, NutritionManager, AnalyticsManager, ExportManager
 from formulas import (
     calculate_epley_1rm, calculate_brzycki_1rm,
-    calculate_lombardi_1rm, get_training_zones, evaluate_milestones
+    calculate_lombardi_1rm, get_training_zones, evaluate_milestones,
+    calculate_user_fitness_plan
 )
 
 class GymTrackerTestCase(unittest.TestCase):
@@ -254,6 +255,42 @@ class GymTrackerTestCase(unittest.TestCase):
         res = self.client.get("/offline.html")
         self.assertEqual(res.status_code, 200)
         self.assertIn(b"You're Offline", res.data)
+
+    # ---------------------------------------------------------
+    # 7. Personalized Fitness Plans & AI Camera Tests
+    # ---------------------------------------------------------
+    def test_personalized_fitness_plans(self):
+        # 1. Gain Weight test
+        plan_gain = calculate_user_fitness_plan(height_cm=180, weight_val=75, unit="kg", goal="gain_weight")
+        self.assertEqual(plan_gain["bmi"], 23.1)
+        self.assertGreater(plan_gain["targets"]["calories"], plan_gain["tdee"])
+        self.assertEqual(plan_gain["targets"]["protein"], 150) # 75kg * 2.0
+
+        # 2. Lose Weight test
+        plan_loss = calculate_user_fitness_plan(height_cm=180, weight_val=85, unit="kg", goal="lose_weight")
+        self.assertLess(plan_loss["targets"]["calories"], plan_loss["tdee"])
+        self.assertEqual(plan_loss["targets"]["protein"], 187) # 85kg * 2.2
+
+        # 3. Maintain Weight test
+        plan_maint = calculate_user_fitness_plan(height_cm=175, weight_val=70, unit="kg", goal="maintain_weight")
+        self.assertEqual(plan_maint["targets"]["calories"], plan_maint["tdee"])
+        self.assertEqual(plan_maint["targets"]["protein"], 126) # 70kg * 1.8
+
+    def test_ai_food_camera_scanner(self):
+        user = User.create("cameratester", "camera@test.com", "pass1234")
+        with self.client.session_transaction() as sess:
+            sess["_user_id"] = str(user.id)
+            sess["_fresh"] = True
+
+        # Test scan with base64 dummy image
+        dummy_b64 = "data:image/jpeg;base64," + "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" * 5
+        res = self.client.post("/api/nutrition/scan-meal", json={"image_data": dummy_b64})
+        self.assertEqual(res.status_code, 200)
+        data = json.loads(res.data)
+        self.assertTrue(data["success"])
+        self.assertIn("calories", data["analysis"])
+        self.assertIn("protein", data["analysis"])
+        self.assertGreater(data["analysis"]["calories"], 0)
 
 if __name__ == "__main__":
     unittest.main()
