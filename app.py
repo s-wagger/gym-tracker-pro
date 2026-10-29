@@ -11,6 +11,7 @@ import json
 import base64
 import zipfile
 import urllib.request
+import urllib.error
 try:
     import requests
 except ImportError:
@@ -437,7 +438,7 @@ def api_scan_meal():
         }), 400
 
     try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_api_key}"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={gemini_api_key}"
         b64_str = base64.b64encode(image_bytes).decode("utf-8")
         prompt = (
             "You are an expert sports nutritionist and computer vision AI for a gym fitness tracking app. "
@@ -469,17 +470,30 @@ def api_scan_meal():
                 res_json = resp.json()
                 raw_text = res_json["candidates"][0]["content"]["parts"][0]["text"].strip()
             else:
-                err_msg = resp.text
-                return jsonify({"success": False, "error": f"Gemini API returned error ({resp.status_code}): {err_msg}"}), 400
+                try:
+                    err_json = resp.json()
+                    clean_err = err_json.get("error", {}).get("message", resp.text)
+                except Exception:
+                    clean_err = resp.text
+                return jsonify({"success": False, "is_api_error": True, "error": f"Gemini API Error ({resp.status_code}): {clean_err}"}), 400
         else:
             req = urllib.request.Request(
                 url,
                 data=json.dumps(payload).encode("utf-8"),
                 headers={"Content-Type": "application/json"}
             )
-            with urllib.request.urlopen(req, timeout=25) as resp:
-                res_json = json.loads(resp.read().decode("utf-8"))
-                raw_text = res_json["candidates"][0]["content"]["parts"][0]["text"].strip()
+            try:
+                with urllib.request.urlopen(req, timeout=25) as resp:
+                    res_json = json.loads(resp.read().decode("utf-8"))
+                    raw_text = res_json["candidates"][0]["content"]["parts"][0]["text"].strip()
+            except urllib.error.HTTPError as http_err:
+                err_body = http_err.read().decode("utf-8")
+                try:
+                    err_json = json.loads(err_body)
+                    clean_err = err_json.get("error", {}).get("message", err_body)
+                except Exception:
+                    clean_err = err_body
+                return jsonify({"success": False, "is_api_error": True, "error": f"Gemini API Error ({http_err.code}): {clean_err}"}), 400
 
         if raw_text:
             if raw_text.startswith("```"):
@@ -488,7 +502,7 @@ def api_scan_meal():
             analysis = json.loads(raw_text)
     except Exception as ex:
         print("Gemini API call failed:", ex)
-        return jsonify({"success": False, "error": f"AI Scanner error: {str(ex)}. Check your Gemini API key."}), 400
+        return jsonify({"success": False, "is_api_error": True, "error": f"AI Scanner error: {str(ex)}. Check your Gemini API key."}), 400
 
     if not analysis:
         return jsonify({"success": False, "error": "AI could not process this image."}), 400

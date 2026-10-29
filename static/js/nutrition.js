@@ -375,11 +375,21 @@ function initAiCameraScanner() {
           apiKeyInput?.focus();
           showToast('Google Gemini API Key required. Paste your free key above to scan.', 'warning');
         } else if (data.is_food === false || !res.ok) {
+          const errorTitle = document.getElementById('camera-error-title');
           if (errorBanner && errorMessage) {
-            errorMessage.textContent = data.error || 'No food detected in this photo. Please aim your camera at an actual meal.';
+            if (data.is_food === false) {
+              if (errorTitle) errorTitle.textContent = "No Food Detected";
+              errorMessage.textContent = data.error || 'No food detected in this photo. Please aim your camera at an actual meal.';
+            } else if (data.is_api_error) {
+              if (errorTitle) errorTitle.textContent = "Gemini AI API Error";
+              errorMessage.textContent = data.error;
+            } else {
+              if (errorTitle) errorTitle.textContent = "Scan Processing Error";
+              errorMessage.textContent = data.error || 'Could not analyze meal image.';
+            }
             errorBanner.classList.remove('hidden');
           } else {
-            showToast(data.error || 'No food detected.', 'error');
+            showToast(data.error || 'Could not analyze image.', 'error');
           }
         }
       } catch (err) {
