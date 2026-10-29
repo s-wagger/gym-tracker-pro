@@ -10,7 +10,11 @@ import re
 import json
 import base64
 import zipfile
-import requests
+import urllib.request
+try:
+    import requests
+except ImportError:
+    requests = None
 from datetime import datetime
 from flask import (
     Flask, render_template, request, redirect, url_for, flash,
@@ -422,14 +426,28 @@ def api_scan_meal():
                     ]
                 }]
             }
-            resp = requests.post(url, json=payload, timeout=25)
-            if resp.status_code == 200:
-                res_json = resp.json()
-                text_resp = res_json["candidates"][0]["content"]["parts"][0]["text"].strip()
-                if text_resp.startswith("```"):
-                    text_resp = re.sub(r"^```(?:json)?\s*", "", text_resp)
-                    text_resp = re.sub(r"\s*```$", "", text_resp)
-                analysis = json.loads(text_resp)
+            if requests is not None:
+                resp = requests.post(url, json=payload, timeout=25)
+                if resp.status_code == 200:
+                    res_json = resp.json()
+                    text_resp = res_json["candidates"][0]["content"]["parts"][0]["text"].strip()
+                    if text_resp.startswith("```"):
+                        text_resp = re.sub(r"^```(?:json)?\s*", "", text_resp)
+                        text_resp = re.sub(r"\s*```$", "", text_resp)
+                    analysis = json.loads(text_resp)
+            else:
+                req = urllib.request.Request(
+                    url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"}
+                )
+                with urllib.request.urlopen(req, timeout=25) as resp:
+                    res_json = json.loads(resp.read().decode("utf-8"))
+                    text_resp = res_json["candidates"][0]["content"]["parts"][0]["text"].strip()
+                    if text_resp.startswith("```"):
+                        text_resp = re.sub(r"^```(?:json)?\s*", "", text_resp)
+                        text_resp = re.sub(r"\s*```$", "", text_resp)
+                    analysis = json.loads(text_resp)
         except Exception as ex:
             print("Gemini API call failed, falling back to smart vision engine:", ex)
 
