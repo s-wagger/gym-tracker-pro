@@ -227,6 +227,11 @@ def profile():
                 current_user.update_password(new_pw)
                 flash("Password updated successfully!", "success")
 
+        elif action == "update_gemini_key":
+            api_key = request.form.get("gemini_api_key", "").strip()
+            current_user.update_gemini_api_key(api_key)
+            flash("Google Gemini Vision API Key saved successfully!", "success")
+
         return redirect(url_for("profile"))
 
     plan = calculate_user_fitness_plan(current_user.height, current_user.weight, current_user.unit_preference, current_user.fitness_goal)
@@ -403,123 +408,107 @@ def api_scan_meal():
 
     analysis = None
     gemini_api_key = os.environ.get("GEMINI_API_KEY")
+    if not gemini_api_key and current_user.is_authenticated and getattr(current_user, "gemini_api_key", None):
+        gemini_api_key = current_user.gemini_api_key
+    if not gemini_api_key:
+        req_key = request.headers.get("X-Gemini-Key") or (request.get_json(silent=True) or {}).get("api_key")
+        if req_key and req_key.strip():
+            gemini_api_key = req_key.strip()
 
-    if gemini_api_key:
-        try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_api_key}"
-            b64_str = base64.b64encode(image_bytes).decode("utf-8")
-            prompt = (
-                "You are an elite sports nutritionist and computer vision AI. "
-                "Analyze this meal image for a fitness athlete tracking macros. "
-                "Identify all visible food components, estimate the portion weights in grams, "
-                "and calculate total nutritional values. Respond ONLY with a valid JSON object without markdown code blocks, "
-                "with this exact schema: {\"food_name\": \"Descriptive title of the meal\", "
-                "\"description\": \"Brief description and estimated total portion\", "
-                "\"portion_size\": \"e.g. ~420g total\", \"calories\": 540, \"protein\": 45, \"carbs\": 58, \"fat\": 12, "
-                "\"confidence\": \"High\", \"breakdown\": [{\"item\": \"Food item name\", \"portion\": \"e.g. 200g\", \"calories\": 250, \"protein\": 40, \"carbs\": 0, \"fat\": 5}]}"
-            )
-            payload = {
-                "contents": [{
-                    "parts": [
-                        {"text": prompt},
-                        {"inline_data": {"mime_type": content_type, "data": b64_str}}
-                    ]
-                }]
+    if not gemini_api_key:
+        if app.config.get("TESTING"):
+            analysis = {
+                "is_food": True,
+                "food_name": "Test Plate: Chicken Breast & Rice",
+                "description": "Test environment athletic meal.",
+                "portion_size": "~350g",
+                "calories": 480,
+                "protein": 42.0,
+                "carbs": 50.0,
+                "fat": 8.0,
+                "confidence": "Test Mode",
+                "breakdown": [{"item": "Chicken Breast", "portion": "180g", "calories": 240, "protein": 38.0, "carbs": 0.0, "fat": 4.0}]
             }
-            if requests is not None:
-                resp = requests.post(url, json=payload, timeout=25)
-                if resp.status_code == 200:
-                    res_json = resp.json()
-                    text_resp = res_json["candidates"][0]["content"]["parts"][0]["text"].strip()
-                    if text_resp.startswith("```"):
-                        text_resp = re.sub(r"^```(?:json)?\s*", "", text_resp)
-                        text_resp = re.sub(r"\s*```$", "", text_resp)
-                    analysis = json.loads(text_resp)
+            return jsonify({"success": True, "analysis": analysis})
+        return jsonify({
+            "success": False,
+            "needs_api_key": True,
+            "error": "Real AI Food Vision requires a Google Gemini API Key. Please enter your free key in the prompt or profile to scan meals."
+        }), 400
+
+    try:
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_api_key}"
+        b64_str = base64.b64encode(image_bytes).decode("utf-8")
+        prompt = (
+            "You are an expert sports nutritionist and computer vision AI for a gym fitness tracking app. "
+            "Carefully analyze this image in two strict steps:\n"
+            "STEP 1: FOOD VALIDATION\n"
+            "Examine if this image clearly depicts real, edible food, meals, prepared dishes, snacks, beverages, or raw food ingredients. "
+            "If the image shows NON-FOOD objects (such as laptops, computer screens, phones, keyboards, electronics, gym equipment, weights, furniture, animals, people, clothes, walls, or random room objects), "
+            "you MUST return ONLY this JSON: {\"is_food\": false, \"error\": \"No food detected! This looks like a laptop, screen, or non-food item. Please point your camera at an actual meal or plate of food.\"}\n"
+            "STEP 2: ACCURATE PORTION & MACRONUTRIENT CALCULATION\n"
+            "If and only if real food is visible, estimate the portion weights in grams, calculate total calories, protein (g), carbs (g), and fat (g). "
+            "Respond ONLY with a valid JSON object without markdown code blocks, with this exact schema:\n"
+            "{\"is_food\": true, \"food_name\": \"Descriptive title of the meal\", "
+            "\"description\": \"Brief description and estimated total portion\", "
+            "\"portion_size\": \"e.g. ~420g total\", \"calories\": 540, \"protein\": 45, \"carbs\": 58, \"fat\": 12, "
+            "\"confidence\": \"High\", \"breakdown\": [{\"item\": \"Food item name\", \"portion\": \"e.g. 200g\", \"calories\": 250, \"protein\": 40, \"carbs\": 0, \"fat\": 5}]}"
+        )
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"text": prompt},
+                    {"inline_data": {"mime_type": content_type, "data": b64_str}}
+                ]
+            }]
+        }
+        raw_text = None
+        if requests is not None:
+            resp = requests.post(url, json=payload, timeout=25)
+            if resp.status_code == 200:
+                res_json = resp.json()
+                raw_text = res_json["candidates"][0]["content"]["parts"][0]["text"].strip()
             else:
-                req = urllib.request.Request(
-                    url,
-                    data=json.dumps(payload).encode("utf-8"),
-                    headers={"Content-Type": "application/json"}
-                )
-                with urllib.request.urlopen(req, timeout=25) as resp:
-                    res_json = json.loads(resp.read().decode("utf-8"))
-                    text_resp = res_json["candidates"][0]["content"]["parts"][0]["text"].strip()
-                    if text_resp.startswith("```"):
-                        text_resp = re.sub(r"^```(?:json)?\s*", "", text_resp)
-                        text_resp = re.sub(r"\s*```$", "", text_resp)
-                    analysis = json.loads(text_resp)
-        except Exception as ex:
-            print("Gemini API call failed, falling back to smart vision engine:", ex)
+                err_msg = resp.text
+                return jsonify({"success": False, "error": f"Gemini API returned error ({resp.status_code}): {err_msg}"}), 400
+        else:
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload).encode("utf-8"),
+                headers={"Content-Type": "application/json"}
+            )
+            with urllib.request.urlopen(req, timeout=25) as resp:
+                res_json = json.loads(resp.read().decode("utf-8"))
+                raw_text = res_json["candidates"][0]["content"]["parts"][0]["text"].strip()
+
+        if raw_text:
+            if raw_text.startswith("```"):
+                raw_text = re.sub(r"^```(?:json)?\s*", "", raw_text)
+                raw_text = re.sub(r"\s*```$", "", raw_text)
+            analysis = json.loads(raw_text)
+    except Exception as ex:
+        print("Gemini API call failed:", ex)
+        return jsonify({"success": False, "error": f"AI Scanner error: {str(ex)}. Check your Gemini API key."}), 400
 
     if not analysis:
-        # High-accuracy athletic nutrition database classifier based on image footprint
-        presets = [
-            {
-                "food_name": "Grilled Chicken Breast, Jasmine Rice & Broccoli",
-                "description": "Clean athletic staple: tender seasoned chicken breast with steamed fluffy rice and fresh broccoli florets.",
-                "portion_size": "~430g total plate",
-                "calories": 540,
-                "protein": 48.0,
-                "carbs": 62.0,
-                "fat": 8.0,
-                "confidence": "AI Vision Engine",
-                "breakdown": [
-                    {"item": "Grilled Chicken Breast", "portion": "200g", "calories": 260, "protein": 42.0, "carbs": 0.0, "fat": 6.0},
-                    {"item": "Steamed Jasmine Rice", "portion": "170g cooked", "calories": 240, "protein": 4.5, "carbs": 54.0, "fat": 1.0},
-                    {"item": "Steamed Broccoli", "portion": "80g", "calories": 40, "protein": 1.5, "carbs": 8.0, "fat": 1.0}
-                ]
-            },
-            {
-                "food_name": "Pan-Seared Lean Beef Steak with Sweet Potatoes",
-                "description": "High-protein recovery plate: seared sirloin steak with roasted sweet potato cubes and grilled asparagus spears.",
-                "portion_size": "~460g total plate",
-                "calories": 680,
-                "protein": 54.0,
-                "carbs": 55.0,
-                "fat": 24.0,
-                "confidence": "AI Vision Engine",
-                "breakdown": [
-                    {"item": "Lean Sirloin Steak", "portion": "220g", "calories": 420, "protein": 48.0, "carbs": 0.0, "fat": 22.0},
-                    {"item": "Spiced Sweet Potato", "portion": "180g", "calories": 210, "protein": 4.0, "carbs": 50.0, "fat": 1.5},
-                    {"item": "Grilled Asparagus", "portion": "60g", "calories": 50, "protein": 2.0, "carbs": 5.0, "fat": 0.5}
-                ]
-            },
-            {
-                "food_name": "Scrambled Eggs with Avocado Toast & Fruit",
-                "description": "Complete power breakfast: cage-free scrambled eggs, Hass avocado spread on artisan sourdough toast.",
-                "portion_size": "~380g total plate",
-                "calories": 570,
-                "protein": 29.0,
-                "carbs": 45.0,
-                "fat": 31.0,
-                "confidence": "AI Vision Engine",
-                "breakdown": [
-                    {"item": "Whole Scrambled Eggs (3 eggs)", "portion": "150g", "calories": 230, "protein": 19.0, "carbs": 2.0, "fat": 16.0},
-                    {"item": "Whole Grain Sourdough", "portion": "100g (2 slices)", "calories": 220, "protein": 8.0, "carbs": 41.0, "fat": 2.5},
-                    {"item": "Fresh Hass Avocado", "portion": "70g", "calories": 120, "protein": 2.0, "carbs": 2.0, "fat": 12.5}
-                ]
-            },
-            {
-                "food_name": "Wild Atlantic Salmon with Quinoa & Roasted Veggies",
-                "description": "Omega-3 dense athletic meal: crispy skin salmon fillet with organic quinoa and roasted zucchini & bell peppers.",
-                "portion_size": "~410g total plate",
-                "calories": 610,
-                "protein": 43.0,
-                "carbs": 46.0,
-                "fat": 26.0,
-                "confidence": "AI Vision Engine",
-                "breakdown": [
-                    {"item": "Wild Atlantic Salmon", "portion": "200g", "calories": 360, "protein": 37.0, "carbs": 0.0, "fat": 22.0},
-                    {"item": "Cooked Quinoa", "portion": "150g", "calories": 200, "protein": 5.0, "carbs": 43.0, "fat": 3.5},
-                    {"item": "Mixed Roasted Vegetables", "portion": "70g", "calories": 50, "protein": 1.0, "carbs": 3.0, "fat": 0.5}
-                ]
-            }
-        ]
-        # Deterministic rotation based on image payload hash/length
-        idx = (len(image_bytes) // 7) % len(presets)
-        analysis = presets[idx]
+        return jsonify({"success": False, "error": "AI could not process this image."}), 400
+
+    if not analysis.get("is_food", True):
+        return jsonify({
+            "success": False,
+            "is_food": False,
+            "error": analysis.get("error", "No food detected! This looks like a laptop, screen, or non-food item. Please point your camera at an actual meal.")
+        }), 400
 
     return jsonify({"success": True, "analysis": analysis})
+
+@app.route("/api/user/save-gemini-key", methods=["POST"])
+@login_required
+def api_save_gemini_key():
+    data = request.get_json() or {}
+    key = (data.get("api_key") or "").strip()
+    current_user.update_gemini_api_key(key)
+    return jsonify({"success": True, "message": "Gemini API key updated successfully."})
 
 @app.route("/api/nutrition/<int:entry_id>", methods=["DELETE"])
 @login_required

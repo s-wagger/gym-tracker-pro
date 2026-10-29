@@ -202,7 +202,43 @@
           <span class="text-xl">📸</span>
           <h3 class="text-base font-black text-white">Smart Nutrition Camera</h3>
         </div>
-        <button type="button" id="btn-close-camera-modal" class="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-800 text-lg transition">✕</button>
+        <div class="flex items-center gap-2">
+          <button type="button" id="btn-toggle-key-settings" class="text-xs text-gray-400 hover:text-[#CCFF00] transition" title="AI Key Settings">🔑 API Key</button>
+          <button type="button" id="btn-close-camera-modal" class="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-800 text-lg transition">✕</button>
+        </div>
+      </div>
+
+      <!-- Gemini API Key Setup Box (Collapsible / Triggered if missing) -->
+      <div id="camera-api-key-box" class="{% if not current_user.gemini_api_key %}block{% else %}hidden{% endif %} p-4 rounded-xl bg-gray-900 border border-[#CCFF00]/40 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-1.5 text-xs font-black uppercase text-[#CCFF00]">
+            <span>⚡</span> Real Google Gemini Vision Setup
+          </div>
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="text-[11px] font-bold text-[#00E5FF] hover:underline flex items-center gap-1">
+            Get Free Key ↗
+          </a>
+        </div>
+        <p class="text-[11px] text-gray-300 leading-relaxed">
+          To accurately scan meals and reject non-food items (like laptops!), enter your free Google Gemini API key:
+        </p>
+        <div class="flex gap-2">
+          <input type="password" id="camera-gemini-key-input" value="{{ current_user.gemini_api_key or '' }}" placeholder="Paste AIzaSy... key here" class="gt-input text-xs flex-1">
+          <button type="button" id="btn-save-camera-key" class="px-4 py-2 bg-[#CCFF00] hover:bg-[#b8e600] text-black font-black text-xs rounded-xl transition">
+            SAVE
+          </button>
+        </div>
+      </div>
+
+      <!-- Non-Food or Validation Error Banner -->
+      <div id="camera-error-banner" class="hidden p-4 rounded-xl bg-red-500/15 border border-red-500/40 text-red-200 text-xs space-y-2">
+        <div class="flex items-center gap-2 font-bold text-red-300">
+          <span class="text-base">❌</span>
+          <span id="camera-error-title">No Food Detected</span>
+        </div>
+        <p id="camera-error-message" class="text-[11px] text-gray-300 leading-relaxed"></p>
+        <button type="button" id="btn-camera-retake-error" class="px-3 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-white font-bold text-[11px] transition">
+          🔄 Retake Photo of a Real Meal
+        </button>
       </div>
 
       <!-- Meal Period Selection for Scanned Item -->

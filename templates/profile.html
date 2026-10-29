@@ -156,6 +156,41 @@
       </div>
     </div>
 
+    <!-- AI Vision Camera Settings Card (5 cols) -->
+    <div class="lg:col-span-5 gt-card p-6 bg-[#1A1A1A] border border-[#CCFF00]/30 h-fit space-y-4">
+      <div class="flex items-center gap-3 pb-3 border-b border-gray-800">
+        <div class="w-10 h-10 rounded-xl bg-[#CCFF00]/10 border border-[#CCFF00]/30 flex items-center justify-center text-xl text-[#CCFF00]">
+          📸
+        </div>
+        <div>
+          <h2 class="text-base font-black text-white">Smart Food Camera AI</h2>
+          <span class="text-[11px] text-gray-400">Google Gemini Vision integration</span>
+        </div>
+      </div>
+
+      <p class="text-xs text-gray-300 leading-relaxed">
+        Enable live food recognition and automatic macro scanning from photos. Google Gemini 2.0 Flash is 100% free with no credit card required.
+      </p>
+
+      <form method="POST" action="{{ url_for('profile') }}" class="space-y-3">
+        <input type="hidden" name="action" value="update_gemini_key">
+
+        <div>
+          <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Google Gemini API Key</label>
+          <input type="password" name="gemini_api_key" value="{{ user.gemini_api_key or '' }}" placeholder="AIzaSy..." class="gt-input w-full font-mono text-xs">
+        </div>
+
+        <div class="flex items-center justify-between pt-1">
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-[#00E5FF] hover:underline flex items-center gap-1">
+            Get Free API Key ↗
+          </a>
+          <button type="submit" class="px-4 py-2 rounded-xl font-black text-xs uppercase tracking-wider bg-[#CCFF00] hover:bg-[#b8e600] text-black transition">
+            SAVE AI KEY
+          </button>
+        </div>
+      </form>
+    </div>
+
   </div>
 
 </div>

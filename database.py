@@ -49,6 +49,7 @@ def init_db():
             height REAL DEFAULT 175.0,
             weight REAL DEFAULT 75.0,
             fitness_goal TEXT DEFAULT 'gain_weight',
+            gemini_api_key TEXT DEFAULT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """)
@@ -62,6 +63,8 @@ def init_db():
             cursor.execute("ALTER TABLE users ADD COLUMN weight REAL DEFAULT 75.0;")
         if "fitness_goal" not in existing_cols:
             cursor.execute("ALTER TABLE users ADD COLUMN fitness_goal TEXT DEFAULT 'gain_weight';")
+        if "gemini_api_key" not in existing_cols:
+            cursor.execute("ALTER TABLE users ADD COLUMN gemini_api_key TEXT DEFAULT NULL;")
 
         # Workout Sessions table
         cursor.execute("""

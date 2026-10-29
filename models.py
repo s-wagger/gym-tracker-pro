@@ -24,6 +24,7 @@ class User(UserMixin):
         self.height = float(data.get("height") or 175.0)
         self.weight = float(data.get("weight") or 75.0)
         self.fitness_goal = data.get("fitness_goal") or "gain_weight"
+        self.gemini_api_key = data.get("gemini_api_key")
         self.created_at = data.get("created_at")
 
     @staticmethod
@@ -96,9 +97,12 @@ class User(UserMixin):
         self.height = h
         self.weight = w
         self.fitness_goal = g
-        self.daily_protein_target = protein_target
-        self.daily_carbs_target = carbs_target
-        self.daily_fat_target = fat_target
+
+    def update_gemini_api_key(self, api_key: str):
+        cleaned_key = api_key.strip() if api_key and api_key.strip() else None
+        with get_db() as conn:
+            conn.execute("UPDATE users SET gemini_api_key = ? WHERE id = ?", (cleaned_key, self.id))
+        self.gemini_api_key = cleaned_key
 
 
 class WorkoutManager:

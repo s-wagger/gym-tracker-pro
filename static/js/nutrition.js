@@ -275,8 +275,45 @@ function initAiCameraScanner() {
   const resultsZone = document.getElementById('scan-results-zone');
   const retakeBtn = document.getElementById('btn-retake-camera');
   const confirmBtn = document.getElementById('btn-confirm-scanned-meal');
+  
+  // API key & error elements
+  const keyToggleBtn = document.getElementById('btn-toggle-key-settings');
+  const apiKeyBox = document.getElementById('camera-api-key-box');
+  const apiKeyInput = document.getElementById('camera-gemini-key-input');
+  const saveKeyBtn = document.getElementById('btn-save-camera-key');
+  const errorBanner = document.getElementById('camera-error-banner');
+  const errorMessage = document.getElementById('camera-error-message');
+  const retakeErrorBtn = document.getElementById('btn-camera-retake-error');
 
   if (!openBtn || !modal) return;
+
+  keyToggleBtn?.addEventListener('click', () => {
+    apiKeyBox?.classList.toggle('hidden');
+  });
+
+  saveKeyBtn?.addEventListener('click', async () => {
+    const keyVal = apiKeyInput?.value?.trim();
+    if (!keyVal) {
+      showToast('Please paste a valid Gemini API key.', 'error');
+      return;
+    }
+    try {
+      const res = await fetch('/api/user/save-gemini-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ api_key: keyVal })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        showToast('Gemini API key saved! You can now scan real meals.', 'success');
+        apiKeyBox?.classList.add('hidden');
+      } else {
+        showToast(data.error || 'Failed to save key.', 'error');
+      }
+    } catch (err) {
+      showToast('Error saving API key.', 'error');
+    }
+  });
 
   openBtn.addEventListener('click', () => {
     modal.classList.remove('hidden');
@@ -297,6 +334,11 @@ function initAiCameraScanner() {
     fileInput.click();
   });
 
+  retakeErrorBtn?.addEventListener('click', () => {
+    resetCameraState();
+    fileInput.click();
+  });
+
   fileInput.addEventListener('change', async (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -309,6 +351,7 @@ function initAiCameraScanner() {
       previewZone.classList.remove('hidden');
       scanningIndicator.classList.remove('hidden');
       resultsZone.classList.add('hidden');
+      errorBanner?.classList.add('hidden');
 
       // Upload and analyze
       const formData = new FormData();
@@ -326,9 +369,18 @@ function initAiCameraScanner() {
           currentScannedData = data.analysis;
           renderScanResults(data.analysis);
           resultsZone.classList.remove('hidden');
-        } else {
-          showToast(data.error || 'Could not analyze meal image.', 'error');
-          resetCameraState();
+          errorBanner?.classList.add('hidden');
+        } else if (data.needs_api_key) {
+          apiKeyBox?.classList.remove('hidden');
+          apiKeyInput?.focus();
+          showToast('Google Gemini API Key required. Paste your free key above to scan.', 'warning');
+        } else if (data.is_food === false || !res.ok) {
+          if (errorBanner && errorMessage) {
+            errorMessage.textContent = data.error || 'No food detected in this photo. Please aim your camera at an actual meal.';
+            errorBanner.classList.remove('hidden');
+          } else {
+            showToast(data.error || 'No food detected.', 'error');
+          }
         }
       } catch (err) {
         scanningIndicator.classList.add('hidden');
@@ -379,6 +431,7 @@ function initAiCameraScanner() {
     previewZone.classList.add('hidden');
     resultsZone.classList.add('hidden');
     scanningIndicator.classList.add('hidden');
+    errorBanner?.classList.add('hidden');
   }
 
   function renderScanResults(analysis) {
