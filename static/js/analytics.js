@@ -19,10 +19,10 @@ function initAnalytics() {
 
   timeframeBtns.forEach((btn) => {
     btn.addEventListener('click', () => {
-      timeframeBtns.forEach((b) => b.classList.remove('bg-[#CCFF00]', 'text-black', 'font-black'));
-      timeframeBtns.forEach((b) => b.classList.add('bg-gray-800', 'text-gray-300'));
-      btn.classList.add('bg-[#CCFF00]', 'text-black', 'font-black');
-      btn.classList.remove('bg-gray-800', 'text-gray-300');
+      timeframeBtns.forEach((b) => b.classList.remove('bg-[#2563EB]', 'text-white', 'font-black'));
+      timeframeBtns.forEach((b) => b.classList.add('bg-[#16254F]', 'text-gray-300', 'font-semibold'));
+      btn.classList.add('bg-[#2563EB]', 'text-white', 'font-black');
+      btn.classList.remove('bg-[#16254F]', 'text-gray-300', 'font-semibold');
 
       if (exerciseSelect) {
         loadProgressionData(exerciseSelect.value, parseInt(btn.dataset.days || 0));
@@ -40,7 +40,7 @@ function initAnalytics() {
 }
 
 function getSelectedTimeframe() {
-  const activeBtn = document.querySelector('.btn-timeframe.bg-\\[\\#CCFF00\\]');
+  const activeBtn = document.querySelector('.btn-timeframe.bg-\\[\\#2563EB\\]');
   return activeBtn ? parseInt(activeBtn.dataset.days || 0) : 90;
 }
 
@@ -88,11 +88,11 @@ function renderProgressChart(exercise, points) {
         {
           label: `${exercise} Max Weight`,
           data: weights,
-          borderColor: '#CCFF00',
-          backgroundColor: 'rgba(204, 255, 0, 0.08)',
+          borderColor: '#2563EB',
+          backgroundColor: 'rgba(37, 99, 235, 0.15)',
           borderWidth: 3,
-          pointBackgroundColor: '#CCFF00',
-          pointBorderColor: '#121212',
+          pointBackgroundColor: '#2563EB',
+          pointBorderColor: '#0A1128',
           pointHoverRadius: 7,
           pointRadius: 4,
           tension: 0.3,
@@ -101,11 +101,11 @@ function renderProgressChart(exercise, points) {
         {
           label: 'Estimated 1RM (Epley)',
           data: oneRMs,
-          borderColor: '#FFD700',
+          borderColor: '#E6D5B8',
           borderDash: [5, 5],
           backgroundColor: 'transparent',
           borderWidth: 2,
-          pointBackgroundColor: '#FFD700',
+          pointBackgroundColor: '#E6D5B8',
           pointRadius: 3,
           tension: 0.2
         }
@@ -121,15 +121,15 @@ function renderProgressChart(exercise, points) {
       plugins: {
         legend: {
           labels: {
-            color: '#A0A0A0',
+            color: '#E6D5B8',
             font: { family: 'sans-serif', size: 12 }
           }
         },
         tooltip: {
-          backgroundColor: '#1E1E1E',
-          borderColor: '#333333',
+          backgroundColor: '#101C3D',
+          borderColor: '#2563EB',
           borderWidth: 1,
-          titleColor: '#CCFF00',
+          titleColor: '#E6D5B8',
           bodyColor: '#FFFFFF',
           padding: 12,
           displayColors: true
@@ -137,12 +137,12 @@ function renderProgressChart(exercise, points) {
       },
       scales: {
         x: {
-          grid: { color: 'rgba(255, 255, 255, 0.05)' },
-          ticks: { color: '#888888', font: { size: 11 } }
+          grid: { color: 'rgba(37, 99, 235, 0.1)' },
+          ticks: { color: '#8892B0', font: { size: 11 } }
         },
         y: {
-          grid: { color: 'rgba(255, 255, 255, 0.05)' },
-          ticks: { color: '#888888', font: { size: 11 } }
+          grid: { color: 'rgba(37, 99, 235, 0.1)' },
+          ticks: { color: '#8892B0', font: { size: 11 } }
         }
       }
     }
@@ -169,8 +169,8 @@ async function loadVolumeChartData() {
           datasets: [{
             label: 'Total Volume Lifted',
             data: volumes,
-            backgroundColor: 'rgba(0, 229, 255, 0.65)',
-            hoverBackgroundColor: '#00E5FF',
+            backgroundColor: 'rgba(37, 99, 235, 0.75)',
+            hoverBackgroundColor: '#2563EB',
             borderRadius: 6
           }]
         },
@@ -180,21 +180,21 @@ async function loadVolumeChartData() {
           plugins: {
             legend: { display: false },
             tooltip: {
-              backgroundColor: '#1E1E1E',
-              borderColor: '#00E5FF',
+              backgroundColor: '#101C3D',
+              borderColor: '#2563EB',
               borderWidth: 1,
-              titleColor: '#00E5FF',
+              titleColor: '#E6D5B8',
               bodyColor: '#FFF'
             }
           },
           scales: {
             x: {
               grid: { display: false },
-              ticks: { color: '#888', font: { size: 10 } }
+              ticks: { color: '#8892B0', font: { size: 10 } }
             },
             y: {
-              grid: { color: 'rgba(255, 255, 255, 0.05)' },
-              ticks: { color: '#888', font: { size: 10 } }
+              grid: { color: 'rgba(37, 99, 235, 0.1)' },
+              ticks: { color: '#8892B0', font: { size: 10 } }
             }
           }
         }

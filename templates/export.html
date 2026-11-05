@@ -7,86 +7,103 @@
 
   <!-- Header -->
   <div class="text-center max-w-2xl mx-auto">
-    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#CCFF00]/10 border border-[#CCFF00]/30 text-[#CCFF00] text-xs font-black uppercase tracking-wider mb-2">
-      Module M8 • Data Portability Subsystem
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#E6D5B8]/15 border border-[#E6D5B8]/30 text-[#E6D5B8] text-xs font-black uppercase tracking-wider mb-2">
+      Data Portability Subsystem
     </div>
     <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">Full User-Owned Data Export</h1>
-    <p class="text-gray-400 text-sm mt-2">
-      Your fitness data belongs to you. Export your complete training sessions, nutritional history, and personal records with one click in standard, universally compatible .csv format.
+    <p class="text-slate-400 text-sm mt-2">
+      Your fitness data belongs strictly to you. Export your complete training sessions, nutritional history, daily pedometer activity, and personal records with one click in standard, universally compatible .csv format.
     </p>
   </div>
 
   <!-- Master Export Card (Download All .ZIP) -->
-  <div class="gt-card p-8 bg-gradient-to-r from-[#1E1E1E] via-[#222222] to-[#1E1E1E] border border-[#CCFF00]/50 shadow-2xl relative overflow-hidden text-center sm:text-left flex flex-col sm:flex-row sm:items-center justify-between gap-6">
+  <div class="gt-card p-8 bg-gradient-to-r from-[#101C3D] via-[#0D1836] to-[#0A1128] border border-[#E6D5B8]/40 shadow-2xl relative overflow-hidden text-center sm:text-left flex flex-col sm:flex-row sm:items-center justify-between gap-6">
     <div class="space-y-2">
       <div class="flex items-center justify-center sm:justify-start gap-2">
-        <span class="w-2.5 h-2.5 rounded-full bg-[#CCFF00] animate-pulse"></span>
-        <span class="text-xs uppercase font-black tracking-widest text-[#CCFF00]">Master Archive Bundle</span>
+        <span class="w-2.5 h-2.5 rounded-full bg-[#E6D5B8] animate-pulse"></span>
+        <span class="text-xs uppercase font-black tracking-widest text-[#E6D5B8]">Master Archive Bundle</span>
       </div>
       <h2 class="text-2xl font-black text-white">Complete Data Archive (.ZIP)</h2>
-      <p class="text-gray-400 text-xs max-w-lg">
-        Downloads a packaged ZIP archive containing <code>workouts.csv</code>, <code>nutrition.csv</code>, and <code>personal_records.csv</code> with zero data truncation.
+      <p class="text-slate-300 text-xs max-w-lg">
+        Downloads a packaged ZIP archive containing <code>workouts.csv</code>, <code>nutrition.csv</code>, <code>personal_records.csv</code>, and <code>daily_steps.csv</code> with zero data truncation.
       </p>
     </div>
 
     <div class="shrink-0">
-      <a href="{{ url_for('export_all_zip') }}" class="neon-btn px-6 py-3.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-[#CCFF00]/25">
+      <a href="{{ url_for('export_all_zip') }}" class="btn-beige px-6 py-3.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg">
         <span>📦</span>
         <span>DOWNLOAD ALL (.ZIP)</span>
       </a>
     </div>
   </div>
 
-  <!-- Individual CSV Export Grid -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+  <!-- Individual CSV Export Grid (4 Pillars) -->
+  <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
 
     <!-- Workouts CSV -->
-    <div class="tilt-card gt-card p-6 border border-gray-800 hover:border-[#CCFF00]/50 bg-[#1A1A1A] flex flex-col justify-between">
-      <div class="tilt-inner space-y-3 mb-6">
-        <div class="w-12 h-12 rounded-xl bg-[#CCFF00]/10 border border-[#CCFF00]/30 flex items-center justify-center text-2xl text-[#CCFF00]">
+    <div class="tilt-card gt-card p-5 border border-gray-800 hover:border-[#2563EB]/50 bg-[#101C3D] flex flex-col justify-between">
+      <div class="tilt-inner space-y-2.5 mb-5">
+        <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-xl text-blue-400">
           🏋️‍♂️
         </div>
-        <h3 class="text-lg font-black text-white">Workout Logs</h3>
-        <p class="text-xs text-gray-400 leading-relaxed">
-          Comprehensive log of all sessions: date, muscle group, exercises, set number, weight, reps, RPE, volume, and PR flags.
+        <h3 class="text-base font-black text-white">Workout Logs</h3>
+        <p class="text-[11px] text-slate-400 leading-relaxed">
+          Sessions: date, muscle group, exercises, sets, weight, reps, RPE, volume, and PR flags.
         </p>
       </div>
 
-      <a href="{{ url_for('export_workouts_csv') }}" class="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-[#1E1E1E] hover:bg-gray-800 text-[#CCFF00] border border-gray-700 hover:border-[#CCFF00]/40 transition text-center flex items-center justify-center gap-1.5">
+      <a href="{{ url_for('export_workouts_csv') }}" class="w-full py-2.5 px-3 rounded-xl font-bold text-xs bg-[#0A1128] hover:bg-[#1E3A8A]/40 text-[#E6D5B8] border border-gray-700 hover:border-[#E6D5B8]/40 transition text-center flex items-center justify-center gap-1.5">
         <span>💾</span> Export workouts.csv
       </a>
     </div>
 
-    <!-- Nutrition CSV -->
-    <div class="tilt-card gt-card p-6 border border-gray-800 hover:border-[#00E5FF]/50 bg-[#1A1A1A] flex flex-col justify-between">
-      <div class="tilt-inner space-y-3 mb-6">
-        <div class="w-12 h-12 rounded-xl bg-[#00E5FF]/10 border border-[#00E5FF]/30 flex items-center justify-center text-2xl text-[#00E5FF]">
-          🥗
+    <!-- Pedometer Steps CSV -->
+    <div class="tilt-card gt-card p-5 border border-gray-800 hover:border-[#E6D5B8]/50 bg-[#101C3D] flex flex-col justify-between">
+      <div class="tilt-inner space-y-2.5 mb-5">
+        <div class="w-10 h-10 rounded-xl bg-[#E6D5B8]/15 border border-[#E6D5B8]/30 flex items-center justify-center text-xl text-[#E6D5B8]">
+          👟
         </div>
-        <h3 class="text-lg font-black text-white">Nutrition & Macros</h3>
-        <p class="text-xs text-gray-400 leading-relaxed">
-          Itemized meal records: timestamp, meal category, food item, calories, and grams of protein, carbohydrates, and fat.
+        <h3 class="text-base font-black text-white">Pedometer Steps</h3>
+        <p class="text-[11px] text-slate-400 leading-relaxed">
+          Daily steps, calibrated distance (km), active calorie burn, active minutes, and target progress.
         </p>
       </div>
 
-      <a href="{{ url_for('export_nutrition_csv') }}" class="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-[#1E1E1E] hover:bg-gray-800 text-[#00E5FF] border border-gray-700 hover:border-[#00E5FF]/40 transition text-center flex items-center justify-center gap-1.5">
+      <a href="{{ url_for('export_steps_csv') }}" class="w-full py-2.5 px-3 rounded-xl font-bold text-xs bg-[#0A1128] hover:bg-[#1E3A8A]/40 text-[#E6D5B8] border border-gray-700 hover:border-[#E6D5B8]/40 transition text-center flex items-center justify-center gap-1.5">
+        <span>💾</span> Export steps.csv
+      </a>
+    </div>
+
+    <!-- Nutrition CSV -->
+    <div class="tilt-card gt-card p-5 border border-gray-800 hover:border-blue-500/50 bg-[#101C3D] flex flex-col justify-between">
+      <div class="tilt-inner space-y-2.5 mb-5">
+        <div class="w-10 h-10 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-xl text-blue-400">
+          🥗
+        </div>
+        <h3 class="text-base font-black text-white">Nutrition Logs</h3>
+        <p class="text-[11px] text-slate-400 leading-relaxed">
+          Itemized meals: timestamp, category, food item, calories, protein, carbs, and fat split.
+        </p>
+      </div>
+
+      <a href="{{ url_for('export_nutrition_csv') }}" class="w-full py-2.5 px-3 rounded-xl font-bold text-xs bg-[#0A1128] hover:bg-[#1E3A8A]/40 text-blue-400 border border-gray-700 hover:border-blue-500/40 transition text-center flex items-center justify-center gap-1.5">
         <span>💾</span> Export nutrition.csv
       </a>
     </div>
 
     <!-- Personal Records CSV -->
-    <div class="tilt-card gt-card p-6 border border-gray-800 hover:border-[#FFD700]/50 bg-[#1A1A1A] flex flex-col justify-between">
-      <div class="tilt-inner space-y-3 mb-6">
-        <div class="w-12 h-12 rounded-xl bg-[#FFD700]/10 border border-[#FFD700]/30 flex items-center justify-center text-2xl text-[#FFD700]">
+    <div class="tilt-card gt-card p-5 border border-gray-800 hover:border-[#E6D5B8]/50 bg-[#101C3D] flex flex-col justify-between">
+      <div class="tilt-inner space-y-2.5 mb-5">
+        <div class="w-10 h-10 rounded-xl bg-[#E6D5B8]/15 border border-[#E6D5B8]/30 flex items-center justify-center text-xl text-[#E6D5B8]">
           🏆
         </div>
-        <h3 class="text-lg font-black text-white">Personal Records</h3>
-        <p class="text-xs text-gray-400 leading-relaxed">
-          Historical all-time records across all exercises: maximum weight lifted, reps, Epley calculated 1RM, and date achieved.
+        <h3 class="text-base font-black text-white">Personal Records</h3>
+        <p class="text-[11px] text-slate-400 leading-relaxed">
+          Historical all-time records across all exercises: max weight, reps, Epley 1RM, and date.
         </p>
       </div>
 
-      <a href="{{ url_for('export_prs_csv') }}" class="w-full py-2.5 px-4 rounded-xl font-bold text-xs bg-[#1E1E1E] hover:bg-gray-800 text-[#FFD700] border border-gray-700 hover:border-[#FFD700]/40 transition text-center flex items-center justify-center gap-1.5">
+      <a href="{{ url_for('export_prs_csv') }}" class="w-full py-2.5 px-3 rounded-xl font-bold text-xs bg-[#0A1128] hover:bg-[#1E3A8A]/40 text-[#E6D5B8] border border-gray-700 hover:border-[#E6D5B8]/40 transition text-center flex items-center justify-center gap-1.5">
         <span>💾</span> Export prs.csv
       </a>
     </div>
@@ -94,12 +111,12 @@
   </div>
 
   <!-- Data Privacy & Sovereignty Guarantee -->
-  <div class="gt-card p-6 bg-[#161616] border border-gray-800 flex items-start gap-4">
-    <div class="text-2xl text-[#CCFF00]">🛡️</div>
-    <div class="text-xs space-y-1 text-gray-400">
+  <div class="gt-card p-6 bg-[#0A1128] border border-[#E6D5B8]/20 flex items-start gap-4">
+    <div class="text-2xl text-[#E6D5B8]">🛡️</div>
+    <div class="text-xs space-y-1 text-slate-400">
       <div class="font-bold text-white text-sm">Your Data Guarantee</div>
       <p class="leading-relaxed">
-        Gym Tracker Pro is engineered with offline sovereignty and transparent data practices. Your training history and nutritional analytics remain your property and can be exported into Excel, Google Sheets, or any Python/R data science pipeline at any time.
+        Gym Tracker Pro processes all calculations transparently without platform lock-in. Your data is stored locally in your dedicated user database and can be extracted at any time without restrictions.
       </p>
     </div>
   </div>

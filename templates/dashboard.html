@@ -6,72 +6,121 @@
 <div class="space-y-8">
 
   <!-- 1. Personalized Welcome Header & Daily Motivational Content Card -->
-  <section class="gt-card p-6 sm:p-8 bg-gradient-to-r from-[#1E1E1E] via-[#1A1A1A] to-[#171717] border border-gray-800 shadow-xl relative overflow-hidden">
-    <!-- Neon accent backlight -->
-    <div class="absolute -top-20 -right-20 w-64 h-64 bg-[#CCFF00]/10 rounded-full blur-3xl pointer-events-none"></div>
+  <section class="gt-card p-6 sm:p-8 bg-gradient-to-r from-[#101C3D] via-[#0E1733] to-[#0A1128] border border-[#E6D5B8]/25 shadow-xl relative overflow-hidden">
+    <!-- Royal Blue & Beige backlight -->
+    <div class="absolute -top-24 -right-24 w-72 h-72 bg-blue-600/15 rounded-full blur-3xl pointer-events-none"></div>
+    <div class="absolute -bottom-24 -left-24 w-72 h-72 bg-[#E6D5B8]/10 rounded-full blur-3xl pointer-events-none"></div>
 
     <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
       <div>
         <div class="flex items-center gap-2 mb-1">
-          <span class="text-xs uppercase font-black tracking-widest text-[#CCFF00]">Athlete Hub</span>
-          <span class="w-1.5 h-1.5 rounded-full bg-[#CCFF00]"></span>
-          <span class="text-xs font-semibold text-gray-400">Unit: {{ user.unit_preference | upper }}</span>
+          <span class="text-xs uppercase font-black tracking-widest text-[#E6D5B8]">Athlete Executive Hub</span>
+          <span class="w-1.5 h-1.5 rounded-full bg-[#E6D5B8]"></span>
+          <span class="text-xs font-semibold text-slate-400">Unit: {{ user.unit_preference | upper }}</span>
         </div>
         <h1 class="text-3xl sm:text-4xl font-black text-white tracking-tight">
-          Welcome back, <span class="text-[#CCFF00]">{{ user.display_name }}</span>! 💪
+          Welcome back, <span class="text-[#E6D5B8]">{{ user.display_name }}</span>! 💪
         </h1>
-        <p class="text-gray-400 text-sm mt-1">Ready to break new records and execute your training protocol today?</p>
+        <p class="text-slate-300 text-sm mt-1">Ready to break new records and execute your training protocol today?</p>
       </div>
 
       <!-- Quick Action Buttons -->
       <div class="flex items-center gap-2 sm:gap-3 shrink-0">
         <!-- Theme Toggle Button -->
-        <button type="button" class="btn-theme-toggle p-2.5 rounded-xl bg-[#141414] hover:bg-gray-800 text-gray-300 hover:text-white border border-gray-700 transition flex items-center gap-1.5 text-xs font-bold" title="Switch Dark / Light Theme">
+        <button type="button" class="btn-theme-toggle p-2.5 rounded-xl bg-[#0A1128] hover:bg-[#1E3A8A]/30 text-gray-300 hover:text-white border border-[#E6D5B8]/30 transition flex items-center gap-1.5 text-xs font-bold" title="Switch Dark / Light Theme">
           <span class="theme-icon">☀️</span> <span class="theme-label hidden sm:inline">Theme</span>
         </button>
-        <a href="{{ url_for('workouts') }}" class="neon-btn px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md">
+        <a href="{{ url_for('workouts') }}" class="btn-royal px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md">
           <span>🏋️‍♂️</span> Log Workout
         </a>
-        <a href="{{ url_for('nutrition') }}" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#171717] hover:bg-gray-800 text-white border border-gray-700 hover:border-gray-500 transition flex items-center gap-1.5">
+        <a href="{{ url_for('steps_tracker') }}" class="btn-beige px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-md">
+          <span>👟</span> Pedometer
+        </a>
+        <a href="{{ url_for('nutrition') }}" class="px-4 py-2.5 rounded-xl text-xs font-bold bg-[#0A1128] hover:bg-[#101C3D] text-white border border-gray-700 hover:border-[#E6D5B8]/50 transition flex items-center gap-1.5">
           <span>🥗</span> Track Meal
         </a>
       </div>
     </div>
 
     <!-- Dynamic Daily Motivational Quote Inside Header Card -->
-    <div class="mt-6 pt-5 border-t border-gray-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#141414]/70 p-3.5 rounded-xl border border-gray-800/50">
+    <div class="mt-6 pt-5 border-t border-gray-800/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#0A1128]/70 p-3.5 rounded-xl border border-[#E6D5B8]/15">
       <div class="flex items-center gap-3">
-        <span class="text-lg">⚡</span>
+        <span class="text-lg text-[#E6D5B8]">⚡</span>
         <div class="text-xs">
           <span id="motivational-quote-text" class="text-gray-200 italic font-medium">"The only bad workout is the one that didn't happen."</span>
-          <span id="motivational-quote-author" class="text-gray-500 ml-2 font-semibold">— Gym Proverb</span>
+          <span id="motivational-quote-author" class="text-slate-400 ml-2 font-semibold">— Gym Proverb</span>
         </div>
       </div>
-      <button type="button" id="btn-refresh-quote" class="text-[11px] font-bold text-gray-400 hover:text-[#CCFF00] flex items-center gap-1 transition self-end sm:self-auto">
+      <button type="button" id="btn-refresh-quote" class="text-[11px] font-bold text-slate-400 hover:text-[#E6D5B8] flex items-center gap-1 transition self-end sm:self-auto">
         <span>🔄</span> Refresh
       </button>
     </div>
   </section>
 
+  <!-- Daily Pedometer & Activity Stride Widget -->
+  <section class="gt-card p-6 bg-gradient-to-r from-[#101C3D] to-[#0D1836] border border-[#2563EB]/40 shadow-xl relative overflow-hidden">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+      
+      <div class="flex items-center gap-4">
+        <div class="w-14 h-14 rounded-2xl bg-[#2563EB]/20 border border-[#2563EB]/40 flex items-center justify-center text-3xl shrink-0 text-[#E6D5B8]">
+          👟
+        </div>
+        <div>
+          <div class="flex items-center gap-2 mb-0.5">
+            <span class="text-xs font-black uppercase tracking-wider text-[#E6D5B8]">Daily Pedometer & Stride</span>
+            <span class="text-[10px] font-bold px-2 py-0.2 rounded-full bg-[#2563EB]/20 text-blue-300 border border-[#2563EB]/30">Active</span>
+          </div>
+          <div class="text-2xl sm:text-3xl font-black text-white flex items-baseline gap-2">
+            <span>{{ "{:,}".format(today_steps.steps) }}</span>
+            <span class="text-xs font-bold text-slate-400">/ {{ "{:,}".format(today_steps.goal) }} steps ({{ today_steps.progress_pct }}%)</span>
+          </div>
+          <div class="w-full sm:w-80 bg-gray-900 rounded-full h-2 mt-2 overflow-hidden border border-gray-800">
+            <div class="h-full rounded-full bg-gradient-to-r from-[#2563EB] to-[#E6D5B8] transition-all duration-500" style="width: {{ today_steps.progress_pct }}%"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Metrics & Link to Cockpit -->
+      <div class="flex flex-wrap items-center gap-4 sm:gap-6 border-t md:border-t-0 md:border-l border-gray-800/80 pt-4 md:pt-0 md:pl-6">
+        <div>
+          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Distance</div>
+          <div class="text-base font-black text-white">{{ today_steps.display_distance }}</div>
+        </div>
+        <div>
+          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Active Burn</div>
+          <div class="text-base font-black text-amber-400">{{ today_steps.calories_burned }} kcal</div>
+        </div>
+        <div>
+          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Active Time</div>
+          <div class="text-base font-black text-emerald-400">{{ today_steps.active_minutes }} min</div>
+        </div>
+        <a href="{{ url_for('steps_tracker') }}" class="btn-royal px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider shadow-md shrink-0">
+          Open Pedometer →
+        </a>
+      </div>
+
+    </div>
+  </section>
+
   <!-- Personalized Fitness & Diet Plan Blueprint Banner -->
   {% if plan %}
-  <section class="gt-card p-6 bg-gradient-to-r from-[#171717] via-[#1C1C1C] to-[#171717] border border-[#CCFF00]/40 shadow-xl relative overflow-hidden">
+  <section class="gt-card p-6 bg-gradient-to-r from-[#101C3D] via-[#0D1836] to-[#101C3D] border border-[#E6D5B8]/30 shadow-xl relative overflow-hidden">
     <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
       <div class="space-y-2">
         <div class="flex items-center gap-2">
-          <span class="px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30">
+          <span class="px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-[#E6D5B8]/15 text-[#E6D5B8] border border-[#E6D5B8]/30">
             {{ plan.badge }}
           </span>
-          <span class="text-xs font-bold text-gray-400">BMI: <strong class="text-white">{{ plan.bmi }}</strong> ({{ plan.bmi_category }})</span>
-          <span class="text-xs text-gray-500">•</span>
-          <span class="text-xs font-bold text-gray-400">TDEE: <strong class="text-white">{{ plan.tdee }}</strong> kcal</span>
+          <span class="text-xs font-bold text-slate-300">BMI: <strong class="text-white">{{ plan.bmi }}</strong> ({{ plan.bmi_category }})</span>
+          <span class="text-xs text-slate-500">•</span>
+          <span class="text-xs font-bold text-slate-300">TDEE: <strong class="text-white">{{ plan.tdee }}</strong> kcal</span>
         </div>
         <h2 class="text-xl sm:text-2xl font-black text-white tracking-tight">
           {{ plan.title }}
         </h2>
-        <p class="text-xs text-gray-300 leading-relaxed max-w-2xl">
+        <p class="text-xs text-slate-300 leading-relaxed max-w-2xl">
           Protocol: <strong class="text-white">{{ plan.workout_split_name }}</strong>. 
-          Target Calories: <strong class="text-[#CCFF00]">{{ plan.targets.calories }} kcal</strong> 
+          Target Calories: <strong class="text-[#E6D5B8]">{{ plan.targets.calories }} kcal</strong> 
           (P: <strong class="text-blue-400">{{ plan.targets.protein }}g</strong> • 
           C: <strong class="text-amber-400">{{ plan.targets.carbs }}g</strong> • 
           F: <strong class="text-red-400">{{ plan.targets.fat }}g</strong>).
@@ -79,7 +128,7 @@
       </div>
 
       <div class="flex flex-wrap items-center gap-3 shrink-0">
-        <button type="button" id="btn-apply-plan-targets" class="px-4 py-2.5 rounded-xl bg-[#CCFF00] text-black font-black text-xs uppercase tracking-wider hover:bg-[#b8e600] transition shadow-md flex items-center gap-1.5">
+        <button type="button" id="btn-apply-plan-targets" class="btn-beige px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition shadow-md flex items-center gap-1.5">
           <span>⚡ Apply Plan Macros</span>
         </button>
         <button type="button" onclick="document.getElementById('plan-details-modal').classList.toggle('hidden')" class="px-4 py-2.5 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 border border-gray-700 text-xs font-bold transition flex items-center gap-1.5">
@@ -94,17 +143,17 @@
         
         <!-- Workout Schedule -->
         <div class="space-y-3">
-          <h3 class="text-xs font-black uppercase tracking-widest text-[#CCFF00] flex items-center gap-1.5">
+          <h3 class="text-xs font-black uppercase tracking-widest text-[#E6D5B8] flex items-center gap-1.5">
             <span>🏋️‍♂️</span> Recommended Training Schedule
           </h3>
           <div class="space-y-2">
-            {% for d in plan.workout_days %}
-              <div class="p-3 rounded-xl bg-[#121212] border border-gray-800 text-xs">
-                <div class="flex items-center justify-between mb-1">
-                  <span class="font-black text-[#CCFF00]">{{ d.day }}</span>
-                  <span class="font-bold text-gray-300">{{ d.focus }}</span>
+            {% for item in plan.split_schedule %}
+              <div class="p-3 rounded-xl bg-[#0A1128] border border-gray-800 flex items-center justify-between">
+                <div>
+                  <span class="text-xs font-bold text-white">{{ item.day }}</span>
+                  <div class="text-[11px] text-[#2563EB] font-semibold">{{ item.focus }}</div>
                 </div>
-                <div class="text-gray-400 text-[11px] leading-relaxed">{{ d.routine }}</div>
+                <span class="text-[10px] text-slate-400">{{ item.duration }}</span>
               </div>
             {% endfor %}
           </div>
@@ -112,21 +161,21 @@
 
         <!-- Nutrition Guidelines -->
         <div class="space-y-3">
-          <h3 class="text-xs font-black uppercase tracking-widest text-[#00E5FF] flex items-center gap-1.5">
-            <span>🥗</span> Core Nutritional Principles
+          <h3 class="text-xs font-black uppercase tracking-widest text-[#E6D5B8] flex items-center gap-1.5">
+            <span>🥗</span> Core Dietary Directives
           </h3>
-          <div class="p-4 rounded-xl bg-[#121212] border border-gray-800 space-y-3 text-xs">
+          <div class="space-y-2 text-xs">
             {% for r in plan.nutrition_rules %}
-              <div class="flex items-start gap-2.5 text-gray-300">
-                <span class="text-[#CCFF00] font-bold mt-0.5">✓</span>
+              <div class="flex items-start gap-2.5 text-slate-300">
+                <span class="text-[#E6D5B8] font-bold mt-0.5">✓</span>
                 <span class="leading-relaxed">{{ r }}</span>
               </div>
             {% endfor %}
           </div>
 
-          <div class="p-4 rounded-xl bg-[#141414] border border-gray-800/80 text-[11px] text-gray-400">
+          <div class="p-4 rounded-xl bg-[#0A1128] border border-gray-800 text-[11px] text-slate-400">
             Want to adjust your Height, Weight, or Goal? 
-            <a href="{{ url_for('profile') }}" class="text-[#CCFF00] font-bold hover:underline ml-1">
+            <a href="{{ url_for('profile') }}" class="text-[#E6D5B8] font-bold hover:underline ml-1">
               Edit in Profile Settings →
             </a>
           </div>
@@ -144,9 +193,9 @@
     <div class="tilt-card gt-card p-5 border border-gray-800">
       <div class="tilt-inner flex items-center justify-between">
         <div>
-          <div class="text-[11px] uppercase font-bold text-gray-500 tracking-wider">Total Workouts</div>
+          <div class="text-[11px] uppercase font-bold text-slate-400 tracking-wider">Total Workouts</div>
           <div class="text-2xl sm:text-3xl font-black text-white mt-1">{{ summary.total_workouts }}</div>
-          <div class="text-[11px] text-gray-400 mt-0.5">Sessions logged</div>
+          <div class="text-[11px] text-slate-400 mt-0.5">Sessions logged</div>
         </div>
         <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-xl text-blue-400">
           🏋️
@@ -158,11 +207,11 @@
     <div class="tilt-card gt-card p-5 border border-gray-800">
       <div class="tilt-inner flex items-center justify-between">
         <div>
-          <div class="text-[11px] uppercase font-bold text-gray-500 tracking-wider">Total Volume</div>
-          <div class="text-2xl sm:text-3xl font-black text-[#00E5FF] mt-1">{{ summary.total_volume | int }}</div>
-          <div class="text-[11px] text-gray-400 mt-0.5">{{ user.unit_preference }} lifted</div>
+          <div class="text-[11px] uppercase font-bold text-slate-400 tracking-wider">Total Volume</div>
+          <div class="text-2xl sm:text-3xl font-black text-blue-400 mt-1">{{ summary.total_volume | int }}</div>
+          <div class="text-[11px] text-slate-400 mt-0.5">{{ user.unit_preference }} lifted</div>
         </div>
-        <div class="w-12 h-12 rounded-xl bg-[#00E5FF]/10 border border-[#00E5FF]/30 flex items-center justify-center text-xl text-[#00E5FF]">
+        <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-xl text-blue-400">
           ⚡
         </div>
       </div>
@@ -172,11 +221,11 @@
     <div class="tilt-card gt-card p-5 border border-gray-800">
       <div class="tilt-inner flex items-center justify-between">
         <div>
-          <div class="text-[11px] uppercase font-bold text-gray-500 tracking-wider">Active PRs</div>
-          <div class="text-2xl sm:text-3xl font-black text-[#FFD700] mt-1">{{ summary.pr_count }}</div>
-          <div class="text-[11px] text-[#FFD700] mt-0.5 font-semibold">Records tracked</div>
+          <div class="text-[11px] uppercase font-bold text-slate-400 tracking-wider">Active PRs</div>
+          <div class="text-2xl sm:text-3xl font-black text-[#E6D5B8] mt-1">{{ summary.pr_count }}</div>
+          <div class="text-[11px] text-[#E6D5B8] mt-0.5 font-semibold">Records tracked</div>
         </div>
-        <div class="w-12 h-12 rounded-xl bg-[#FFD700]/10 border border-[#FFD700]/30 flex items-center justify-center text-xl text-[#FFD700]">
+        <div class="w-12 h-12 rounded-xl bg-[#E6D5B8]/15 border border-[#E6D5B8]/30 flex items-center justify-center text-xl text-[#E6D5B8]">
           🏆
         </div>
       </div>
@@ -186,16 +235,16 @@
     <div class="tilt-card gt-card p-5 border border-gray-800">
       <div class="tilt-inner">
         <div class="flex items-center justify-between mb-2">
-          <div class="text-[11px] uppercase font-bold text-gray-500 tracking-wider">Today's Calories</div>
-          <div class="text-xs font-bold text-[#CCFF00]">
+          <div class="text-[11px] uppercase font-bold text-slate-400 tracking-wider">Today's Calories</div>
+          <div class="text-xs font-bold text-[#E6D5B8]">
             {{ summary.today_nutrition.totals.calories | int }} / {{ user.daily_calorie_target }} kcal
           </div>
         </div>
-        <div class="w-full bg-gray-800 rounded-full h-2 overflow-hidden mb-2">
+        <div class="w-full bg-gray-900 rounded-full h-2 overflow-hidden mb-2 border border-gray-800">
           {% set cal_pct = (summary.today_nutrition.totals.calories / user.daily_calorie_target * 100) | round | int %}
-          <div class="h-full rounded-full {{ 'bg-red-500' if cal_pct > 100 else 'bg-[#CCFF00]' }}" style="width: {{ [cal_pct, 100] | min }}%"></div>
+          <div class="h-full rounded-full {{ 'bg-red-500' if cal_pct > 100 else 'bg-[#2563EB]' }}" style="width: {{ [cal_pct, 100] | min }}%"></div>
         </div>
-        <div class="flex items-center justify-between text-[11px] text-gray-400">
+        <div class="flex items-center justify-between text-[11px] text-slate-400">
           <span>P: {{ summary.today_nutrition.totals.protein | int }}g</span>
           <span>C: {{ summary.today_nutrition.totals.carbs | int }}g</span>
           <span>F: {{ summary.today_nutrition.totals.fat | int }}g</span>
@@ -205,132 +254,132 @@
 
   </section>
 
-  <!-- 3. Structured 3D Navigation Cards Portal (Single-Click Routing to All 5 Modules) -->
+  <!-- 3. Structured Navigation Cards Portal (Single-Click Routing to All 6 Modules) -->
   <section class="space-y-4">
     <div class="flex items-center justify-between">
       <h2 class="text-lg font-black uppercase tracking-wider text-white flex items-center gap-2">
-        <span class="text-[#CCFF00]">⚡</span> Core Operational Modules
+        <span class="text-[#E6D5B8]">⚡</span> Core Operational Modules
       </h2>
-      <span class="text-xs text-gray-500">Single-click direct portal routing</span>
+      <span class="text-xs text-slate-400">Single-click direct portal routing</span>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
 
       <!-- Navigation Card 1: Workout & Exercise Tracker -->
-      <a href="{{ url_for('workouts') }}" class="tilt-card gt-card p-6 border border-gray-800 hover:border-[#CCFF00] group block">
+      <a href="{{ url_for('workouts') }}" class="tilt-card gt-card p-6 border border-gray-800 hover:border-[#2563EB] group block">
         <div class="tilt-inner space-y-3">
           <div class="flex items-center justify-between">
-            <div class="w-12 h-12 rounded-xl bg-[#CCFF00]/10 border border-[#CCFF00]/30 flex items-center justify-center text-2xl text-[#CCFF00] group-hover:scale-110 transition">
+            <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-2xl text-blue-400 group-hover:scale-110 transition">
               🏋️‍♂️
             </div>
-            <span class="text-xs font-bold text-[#CCFF00] group-hover:translate-x-1 transition flex items-center gap-1">
+            <span class="text-xs font-bold text-blue-400 group-hover:translate-x-1 transition flex items-center gap-1">
               Launch →
             </span>
           </div>
           <div>
-            <h3 class="text-lg font-black text-white group-hover:text-[#CCFF00] transition">Workout & Exercise Logger</h3>
-            <p class="text-xs text-gray-400 mt-1 leading-relaxed">
+            <h3 class="text-lg font-black text-white group-hover:text-blue-400 transition">Workout & Exercise Logger</h3>
+            <p class="text-xs text-slate-400 mt-1 leading-relaxed">
               Log multi-set sessions with target muscle selection, reps, weight, RPE, live volume, and calendar filtering.
             </p>
           </div>
         </div>
       </a>
 
-      <!-- Navigation Card 2: Calorie & Macro Counter -->
-      <a href="{{ url_for('nutrition') }}" class="tilt-card gt-card p-6 border border-gray-800 hover:border-[#00E5FF] group block">
+      <!-- Navigation Card 2: Smart Pedometer & Daily Activity -->
+      <a href="{{ url_for('steps_tracker') }}" class="tilt-card gt-card p-6 border border-gray-800 hover:border-[#E6D5B8] group block">
         <div class="tilt-inner space-y-3">
           <div class="flex items-center justify-between">
-            <div class="w-12 h-12 rounded-xl bg-[#00E5FF]/10 border border-[#00E5FF]/30 flex items-center justify-center text-2xl text-[#00E5FF] group-hover:scale-110 transition">
-              🥗
+            <div class="w-12 h-12 rounded-xl bg-[#E6D5B8]/15 border border-[#E6D5B8]/30 flex items-center justify-center text-2xl text-[#E6D5B8] group-hover:scale-110 transition">
+              👟
             </div>
-            <span class="text-xs font-bold text-[#00E5FF] group-hover:translate-x-1 transition flex items-center gap-1">
+            <span class="text-xs font-bold text-[#E6D5B8] group-hover:translate-x-1 transition flex items-center gap-1">
               Launch →
             </span>
           </div>
           <div>
-            <h3 class="text-lg font-black text-white group-hover:text-[#00E5FF] transition">Calorie & Macro Counter</h3>
-            <p class="text-xs text-gray-400 mt-1 leading-relaxed">
-              Track daily meals, monitor protein, carbs, and fat split progress bars, and hit your nutrition targets.
+            <h3 class="text-lg font-black text-white group-hover:text-[#E6D5B8] transition">Smart Pedometer & Steps</h3>
+            <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+              Real-time accelerometer step sensing, calibrated distance, active walking calories, and 7-day stride charts.
             </p>
           </div>
         </div>
       </a>
 
-      <!-- Navigation Card 3: Max 1RM Calculator -->
-      <a href="{{ url_for('one_rep_max') }}" class="tilt-card gt-card p-6 border border-gray-800 hover:border-[#FFD700] group block">
+      <!-- Navigation Card 3: Calorie & Macro Counter -->
+      <a href="{{ url_for('nutrition') }}" class="tilt-card gt-card p-6 border border-gray-800 hover:border-[#2563EB] group block">
         <div class="tilt-inner space-y-3">
           <div class="flex items-center justify-between">
-            <div class="w-12 h-12 rounded-xl bg-[#FFD700]/10 border border-[#FFD700]/30 flex items-center justify-center text-2xl text-[#FFD700] group-hover:scale-110 transition">
-              🔢
+            <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-2xl text-blue-400 group-hover:scale-110 transition">
+              🥗
             </div>
-            <span class="text-xs font-bold text-[#FFD700] group-hover:translate-x-1 transition flex items-center gap-1">
+            <span class="text-xs font-bold text-blue-400 group-hover:translate-x-1 transition flex items-center gap-1">
               Launch →
             </span>
           </div>
           <div>
-            <h3 class="text-lg font-black text-white group-hover:text-[#FFD700] transition">Max 1RM Calculator</h3>
-            <p class="text-xs text-gray-400 mt-1 leading-relaxed">
+            <h3 class="text-lg font-black text-white group-hover:text-blue-400 transition">Calorie & Macro Counter</h3>
+            <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+              Track daily meals, monitor protein, carbs, and fat split progress bars, and AI camera food recognition.
+            </p>
+          </div>
+        </div>
+      </a>
+
+      <!-- Navigation Card 4: Max 1RM Calculator -->
+      <a href="{{ url_for('one_rep_max') }}" class="tilt-card gt-card p-6 border border-gray-800 hover:border-[#E6D5B8] group block">
+        <div class="tilt-inner space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="w-12 h-12 rounded-xl bg-[#E6D5B8]/15 border border-[#E6D5B8]/30 flex items-center justify-center text-2xl text-[#E6D5B8] group-hover:scale-110 transition">
+              🔢
+            </div>
+            <span class="text-xs font-bold text-[#E6D5B8] group-hover:translate-x-1 transition flex items-center gap-1">
+              Launch →
+            </span>
+          </div>
+          <div>
+            <h3 class="text-lg font-black text-white group-hover:text-[#E6D5B8] transition">Max 1RM Calculator</h3>
+            <p class="text-xs text-slate-400 mt-1 leading-relaxed">
               Epley standard formula engine with automatic 50%, 75%, 85%, 90% training zone generation and periodization.
             </p>
           </div>
         </div>
       </a>
 
-      <!-- Navigation Card 4: PRs & Historical Analytics -->
-      <a href="{{ url_for('analytics') }}" class="tilt-card gt-card p-6 border border-gray-800 hover:border-[#FFD700] group block">
+      <!-- Navigation Card 5: PRs & Historical Analytics -->
+      <a href="{{ url_for('analytics') }}" class="tilt-card gt-card p-6 border border-gray-800 hover:border-blue-400 group block">
         <div class="tilt-inner space-y-3">
           <div class="flex items-center justify-between">
-            <div class="w-12 h-12 rounded-xl bg-[#FFD700]/10 border border-[#FFD700]/30 flex items-center justify-center text-2xl text-[#FFD700] group-hover:scale-110 transition">
+            <div class="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-2xl text-blue-400 group-hover:scale-110 transition">
               🏆
             </div>
-            <span class="text-xs font-bold text-[#FFD700] group-hover:translate-x-1 transition flex items-center gap-1">
+            <span class="text-xs font-bold text-blue-400 group-hover:translate-x-1 transition flex items-center gap-1">
               Launch →
             </span>
           </div>
           <div>
-            <h3 class="text-lg font-black text-white group-hover:text-[#FFD700] transition">PRs & Historical Analytics</h3>
-            <p class="text-xs text-gray-400 mt-1 leading-relaxed">
+            <h3 class="text-lg font-black text-white group-hover:text-blue-400 transition">PRs & Historical Analytics</h3>
+            <p class="text-xs text-slate-400 mt-1 leading-relaxed">
               Key lift records (Bench, Squat, Deadlift), 1000-lb Club badges, and interactive Chart.js trend curves.
             </p>
           </div>
         </div>
       </a>
 
-      <!-- Navigation Card 5: Data Export Engine -->
-      <a href="{{ url_for('export_view') }}" class="tilt-card gt-card p-6 border border-gray-800 hover:border-[#CCFF00] group block">
+      <!-- Navigation Card 6: Data Export Engine -->
+      <a href="{{ url_for('export_view') }}" class="tilt-card gt-card p-6 border border-gray-800 hover:border-[#E6D5B8] group block">
         <div class="tilt-inner space-y-3">
           <div class="flex items-center justify-between">
-            <div class="w-12 h-12 rounded-xl bg-[#CCFF00]/10 border border-[#CCFF00]/30 flex items-center justify-center text-2xl text-[#CCFF00] group-hover:scale-110 transition">
+            <div class="w-12 h-12 rounded-xl bg-[#E6D5B8]/15 border border-[#E6D5B8]/30 flex items-center justify-center text-2xl text-[#E6D5B8] group-hover:scale-110 transition">
               💾
             </div>
-            <span class="text-xs font-bold text-[#CCFF00] group-hover:translate-x-1 transition flex items-center gap-1">
+            <span class="text-xs font-bold text-[#E6D5B8] group-hover:translate-x-1 transition flex items-center gap-1">
               Launch →
             </span>
           </div>
           <div>
-            <h3 class="text-lg font-black text-white group-hover:text-[#CCFF00] transition">Data Export Engine</h3>
-            <p class="text-xs text-gray-400 mt-1 leading-relaxed">
-              Export all your workouts, macros, and personal records into standard .csv files or complete ZIP package.
-            </p>
-          </div>
-        </div>
-      </a>
-
-      <!-- Navigation Card 6: Profile & Target Config -->
-      <a href="{{ url_for('profile') }}" class="tilt-card gt-card p-6 border border-gray-800 hover:border-gray-500 group block">
-        <div class="tilt-inner space-y-3">
-          <div class="flex items-center justify-between">
-            <div class="w-12 h-12 rounded-xl bg-gray-800 border border-gray-700 flex items-center justify-center text-2xl text-gray-300 group-hover:scale-110 transition">
-              ⚙️
-            </div>
-            <span class="text-xs font-bold text-gray-400 group-hover:translate-x-1 transition flex items-center gap-1">
-              Configure →
-            </span>
-          </div>
-          <div>
-            <h3 class="text-lg font-black text-white group-hover:text-white transition">Account & Macro Targets</h3>
-            <p class="text-xs text-gray-400 mt-1 leading-relaxed">
-              Update preferred units (kg/lbs), calorie goals, macro targets (protein/carbs/fat), and credentials.
+            <h3 class="text-lg font-black text-white group-hover:text-[#E6D5B8] transition">Data Export Engine</h3>
+            <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+              Export all your workouts, macros, pedometer steps, and personal records into standard .csv files or complete ZIP package.
             </p>
           </div>
         </div>
@@ -348,23 +397,23 @@
         <h3 class="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
           <span>🏆</span> Key Lifts PRs
         </h3>
-        <a href="{{ url_for('analytics') }}" class="text-xs font-bold text-[#FFD700] hover:underline">View All</a>
+        <a href="{{ url_for('analytics') }}" class="text-xs font-bold text-[#E6D5B8] hover:underline">View All</a>
       </div>
 
       <div class="space-y-3">
         {% for lift_name in ["Bench Press", "Back Squat", "Deadlift", "Overhead Press"] %}
           {% set lift = summary.key_prs[lift_name] %}
-          <div class="flex items-center justify-between p-2.5 rounded-xl bg-[#171717] border border-gray-800/80">
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-[#0A1128] border border-gray-800/80">
             <div>
               <div class="text-xs font-bold text-white">{{ lift_name }}</div>
-              <div class="text-[10px] text-gray-500">{{ lift.date }}</div>
+              <div class="text-[10px] text-slate-500">{{ lift.date }}</div>
             </div>
             <div class="text-right">
               {% if lift.weight > 0 %}
-                <div class="text-sm font-black text-[#FFD700]">{{ lift.weight }} <span class="text-[10px] font-bold text-gray-400">{{ user.unit_preference }}</span></div>
-                <div class="text-[10px] text-gray-400">1RM: {{ lift.estimated_1rm }}</div>
+                <div class="text-sm font-black text-[#E6D5B8]">{{ lift.weight }} <span class="text-[10px] font-bold text-slate-400">{{ user.unit_preference }}</span></div>
+                <div class="text-[10px] text-slate-400">1RM: {{ lift.estimated_1rm }}</div>
               {% else %}
-                <span class="text-xs text-gray-500 italic">No record</span>
+                <span class="text-xs text-slate-500 italic">No record</span>
               {% endif %}
             </div>
           </div>
@@ -378,36 +427,36 @@
         <h3 class="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
           <span>🏋️‍♂️</span> Recent Training Sessions
         </h3>
-        <a href="{{ url_for('workouts') }}" class="text-xs font-bold text-[#CCFF00] hover:underline">Full Log →</a>
+        <a href="{{ url_for('workouts') }}" class="text-xs font-bold text-[#E6D5B8] hover:underline">Full Log →</a>
       </div>
 
       {% if summary.recent_workouts | length == 0 %}
         <div class="text-center py-10">
           <div class="text-3xl mb-2">📋</div>
           <h4 class="text-sm font-bold text-white mb-1">No Workouts Recorded Yet</h4>
-          <p class="text-xs text-gray-400 mb-4">Start your training log today to build your streak and analytics.</p>
-          <a href="{{ url_for('workouts') }}" class="neon-btn inline-block px-4 py-2 rounded-xl text-xs font-black">
+          <p class="text-xs text-slate-400 mb-4">Start your training log today to build your streak and analytics.</p>
+          <a href="{{ url_for('workouts') }}" class="btn-royal inline-block px-4 py-2 rounded-xl text-xs font-black">
             Log First Workout
           </a>
         </div>
       {% else %}
         <div class="space-y-3">
           {% for session in summary.recent_workouts %}
-            <div class="p-3.5 rounded-xl bg-[#171717] border border-gray-800/80 hover:border-gray-700 transition flex items-center justify-between gap-3">
+            <div class="p-3.5 rounded-xl bg-[#0A1128] border border-gray-800/80 hover:border-gray-700 transition flex items-center justify-between gap-3">
               <div>
                 <div class="flex items-center gap-2">
                   <span class="text-sm font-bold text-white">{{ session.title }}</span>
                   {% if session.has_pr %}
-                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#FFD700]/20 text-[#FFD700] border border-[#FFD700]/30">🏆 PR</span>
+                    <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#E6D5B8]/20 text-[#E6D5B8] border border-[#E6D5B8]/30">🏆 PR</span>
                   {% endif %}
                 </div>
-                <div class="text-xs text-gray-400 mt-0.5">
+                <div class="text-xs text-slate-400 mt-0.5">
                   📅 {{ session.date }} • {{ session.total_sets }} sets • {{ session.exercises_summary | join(', ') }}
                 </div>
               </div>
               <div class="text-right shrink-0">
-                <div class="text-sm font-black text-[#CCFF00]">{{ session.total_volume | int }}</div>
-                <div class="text-[10px] uppercase font-bold text-gray-500">Vol ({{ user.unit_preference }})</div>
+                <div class="text-sm font-black text-[#2563EB]">{{ session.total_volume | int }}</div>
+                <div class="text-[10px] uppercase font-bold text-slate-500">Vol ({{ user.unit_preference }})</div>
               </div>
             </div>
           {% endfor %}

@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Smart Pedometer & Activity Tracker | Gym Tracker Pro{% endblock %}
+
+{% block extra_head %}
+<script>
+  window.INITIAL_STEPS = {{ today.steps }};
+  window.INITIAL_GOAL = {{ today.goal }};
+  window.USER_HEIGHT = {{ user.height }};
+  window.USER_WEIGHT = {{ user.weight }};
+  window.USER_UNIT = "{{ user.unit_preference }}";
+  window.STEP_HISTORY = {{ history | tojson }};
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+  <!-- Header Section -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E6D5B8]/20">
+    <div class="flex items-center gap-3">
+      <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#1E3A8A] to-[#0A1128] border border-[#E6D5B8]/40 flex items-center justify-center text-2xl text-[#E6D5B8] shadow-lg shadow-blue-900/30">
+        👟
+      </div>
+      <div>
+        <h1 class="text-xl sm:text-2xl font-black text-white tracking-wide flex items-center gap-2">
+          SMART PEDOMETER <span class="text-[#E6D5B8] text-xs font-bold uppercase tracking-widest px-2 py-0.5 rounded bg-[#1E3A8A]/50 border border-[#E6D5B8]/30">LIVE SENSOR</span>
+        </h1>
+        <p class="text-xs text-slate-400 mt-0.5">Biomechanical accelerometer step counting, calibrated distance & calorie expenditure.</p>
+      </div>
+    </div>
+
+    <!-- Live Motion Sensor Indicator -->
+    <div class="flex items-center gap-2">
+      <div id="pedometer-live-indicator" class="hidden items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-950/60 border border-emerald-500/40 text-emerald-400 text-xs font-bold animate-pulse">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+        <span>SENSING STEPS</span>
+      </div>
+      <button type="button" id="btn-toggle-pedometer" class="px-5 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-black text-xs uppercase tracking-wider transition shadow-lg shadow-blue-600/30 flex items-center gap-2">
+        <span id="pedometer-toggle-icon">▶</span>
+        <span id="pedometer-toggle-text">START LIVE SENSING</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- iOS Permission & Sensor Notice Banner -->
+  <div id="pedometer-permission-banner" class="hidden p-4 rounded-xl bg-[#101C3D] border border-[#E6D5B8]/30 text-[#FAF7F2] text-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+    <div class="flex items-center gap-2.5">
+      <span class="text-xl">📱</span>
+      <span><strong>iOS Motion Access:</strong> Apple Safari requires permission to read accelerometer motion for live step counting.</span>
+    </div>
+    <button type="button" id="btn-request-motion-permission" class="px-4 py-1.5 rounded-lg bg-[#E6D5B8] hover:bg-[#d9c3a5] text-[#0A1128] font-black text-xs transition shrink-0">
+      Enable Motion Access
+    </button>
+  </div>
+
+  <!-- Primary Pedometer Cockpit Grid -->
+  <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+    <!-- Left: Circular Progress Dial (5 cols) -->
+    <div class="lg:col-span-5 gt-card p-6 bg-[#101C3D] border border-[#E6D5B8]/20 flex flex-col items-center justify-center text-center relative overflow-hidden">
+      
+      <!-- Decorative ambient gradient -->
+      <div class="absolute -top-24 -left-24 w-52 h-52 bg-blue-600/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -bottom-24 -right-24 w-52 h-52 bg-[#E6D5B8]/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <!-- Live Step Pulse Ring -->
+      <div id="pedometer-step-pulse" class="absolute w-64 h-64 rounded-full border-2 border-[#E6D5B8] opacity-0 scale-90 transition-all duration-200 pointer-events-none"></div>
+
+      <!-- Circular SVG Gauge -->
+      <div class="relative w-56 h-56 flex items-center justify-center my-2">
+        <svg class="w-full h-full transform -rotate-90" viewBox="0 0 200 200">
+          <!-- Background track -->
+          <circle cx="100" cy="100" r="90" fill="none" stroke="rgba(255, 255, 255, 0.06)" stroke-width="12" />
+          <!-- Animated Progress Bar -->
+          <circle id="pedometer-progress-ring" cx="100" cy="100" r="90" fill="none" 
+                  stroke="url(#royalBeigeGrad)" stroke-width="12" stroke-linecap="round"
+                  stroke-dasharray="565.48" stroke-dashoffset="{{ 565.48 - (today.progress_pct / 100.0) * 565.48 }}"
+                  class="transition-all duration-700 ease-out" />
+          <defs>
+            <linearGradient id="royalBeigeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#2563EB" />
+              <stop offset="100%" stop-color="#E6D5B8" />
+            </linearGradient>
+          </defs>
+        </svg>
+
+        <!-- Center Counter Content -->
+        <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+          <span class="text-[10px] font-bold uppercase tracking-widest text-slate-400">TODAY'S STRIDE</span>
+          <div id="pedometer-step-count" class="text-4xl sm:text-5xl font-black text-white tracking-tight my-0.5">
+            {{ "{:,}".format(today.steps) }}
+          </div>
+          <div class="flex items-center gap-1.5 text-xs text-[#E6D5B8] font-bold">
+            <span>GOAL:</span>
+            <span id="pedometer-goal-count">{{ "{:,}".format(today.goal) }}</span>
+          </div>
+          <span id="pedometer-goal-pct" class="text-[11px] font-extrabold px-2.5 py-0.5 rounded-full bg-[#E6D5B8]/15 text-[#E6D5B8] border border-[#E6D5B8]/30 mt-1">
+            {{ today.progress_pct }}%
+          </span>
+        </div>
+      </div>
+
+      <!-- Sensitivity & Calibration Footer -->
+      <div class="w-full pt-4 mt-2 border-t border-gray-800/80 flex items-center justify-between text-xs text-slate-400">
+        <span>Motion Sensitivity:</span>
+        <select id="pedometer-sensitivity" class="bg-[#0A1128] border border-gray-700 rounded-lg text-xs font-semibold px-2 py-1 text-white focus:outline-none focus:border-[#2563EB]">
+          <option value="standard" selected>Standard (Pockets)</option>
+          <option value="high">High Sensitivity</option>
+          <option value="low">Low (Firm Grip)</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Right: 4 Metrics Grid + Quick Actions (7 cols) -->
+    <div class="lg:col-span-7 space-y-6">
+
+      <!-- 4 Live Biomechanical Stat Cards -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <!-- Distance Card -->
+        <div class="gt-card p-4 bg-[#101C3D] border border-gray-800/80">
+          <div class="text-xl mb-1 text-blue-400">📍</div>
+          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Distance</div>
+          <div id="pedometer-distance-val" class="text-lg font-black text-white mt-0.5">{{ today.display_distance }}</div>
+          <div class="text-[10px] text-slate-500 mt-0.5">Stride ~{{ today.stride_length_cm }}cm</div>
+        </div>
+
+        <!-- Calories Burned Card -->
+        <div class="gt-card p-4 bg-[#101C3D] border border-gray-800/80">
+          <div class="text-xl mb-1 text-amber-400">🔥</div>
+          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Active Burn</div>
+          <div id="pedometer-calories-val" class="text-lg font-black text-white mt-0.5">{{ today.calories_burned }} kcal</div>
+          <div class="text-[10px] text-slate-500 mt-0.5">MET 3.5 Calibrated</div>
+        </div>
+
+        <!-- Active Minutes Card -->
+        <div class="gt-card p-4 bg-[#101C3D] border border-gray-800/80">
+          <div class="text-xl mb-1 text-emerald-400">⏱️</div>
+          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Active Time</div>
+          <div id="pedometer-active-time-val" class="text-lg font-black text-white mt-0.5">{{ today.active_minutes }} min</div>
+          <div class="text-[10px] text-slate-500 mt-0.5">@ 105 steps/min</div>
+        </div>
+
+        <!-- Lifetime Total Card -->
+        <div class="gt-card p-4 bg-[#101C3D] border border-gray-800/80">
+          <div class="text-xl mb-1 text-[#E6D5B8]">🏆</div>
+          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Best Day</div>
+          <div class="text-lg font-black text-[#E6D5B8] mt-0.5">{{ "{:,}".format(stats.best_steps) }}</div>
+          <div class="text-[10px] text-slate-500 mt-0.5">{{ "{:,}".format(stats.total_steps) }} total</div>
+        </div>
+      </div>
+
+      <!-- Step Goal Quick Selector -->
+      <div class="gt-card p-4 bg-[#101C3D] border border-gray-800/80 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-black uppercase tracking-wider text-[#E6D5B8] flex items-center gap-1.5">
+            <span>🎯</span> Adjust Daily Target
+          </span>
+          <span class="text-[11px] text-slate-400">Select standard targets</span>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          {% for g in [6000, 8000, 10000, 12000, 15000] %}
+          <button type="button" data-goal="{{ g }}" 
+                  class="btn-set-step-goal px-3 py-1.5 rounded-lg text-xs font-bold border transition 
+                  {{ 'bg-[#E6D5B8] text-[#0A1128] border-[#E6D5B8]' if today.goal == g else 'bg-gray-800/80 text-gray-300 border-gray-700 hover:border-[#E6D5B8]/50' }}">
+            {{ "{:,}".format(g) }}
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Quick Adjust / Manual Step Logger -->
+      <div class="gt-card p-5 bg-[#101C3D] border border-[#2563EB]/30 space-y-3">
+        <div class="flex items-center justify-between pb-2 border-b border-gray-800">
+          <div class="flex items-center gap-2">
+            <span class="text-base text-blue-400">➕</span>
+            <h3 class="text-xs font-black text-white uppercase tracking-wider">Quick Step Adjuster (Treadmill / Outdoor Walks)</h3>
+          </div>
+          <span class="text-[10px] text-slate-400">One-tap incremental sync</span>
+        </div>
+
+        <!-- Preset Increment Pills -->
+        <div class="grid grid-cols-4 gap-2">
+          <button type="button" data-steps="500" class="btn-quick-add-steps py-2 px-3 rounded-xl bg-blue-950/60 hover:bg-blue-900 border border-blue-500/30 text-blue-300 font-bold text-xs transition">
+            +500
+          </button>
+          <button type="button" data-steps="1000" class="btn-quick-add-steps py-2 px-3 rounded-xl bg-blue-950/60 hover:bg-blue-900 border border-blue-500/30 text-blue-300 font-bold text-xs transition">
+            +1,000
+          </button>
+          <button type="button" data-steps="2500" class="btn-quick-add-steps py-2 px-3 rounded-xl bg-blue-950/60 hover:bg-blue-900 border border-blue-500/30 text-blue-300 font-bold text-xs transition">
+            +2,500
+          </button>
+          <button type="button" data-steps="5000" class="btn-quick-add-steps py-2 px-3 rounded-xl bg-[#E6D5B8]/15 hover:bg-[#E6D5B8]/25 border border-[#E6D5B8]/40 text-[#E6D5B8] font-bold text-xs transition">
+            +5,000
+          </button>
+        </div>
+
+        <!-- Custom Manual Input -->
+        <div class="flex gap-2 pt-1">
+          <input type="number" id="manual-steps-input" min="1" step="50" placeholder="Custom step count (e.g. 3200)" class="gt-input text-xs flex-1">
+          <button type="button" id="btn-submit-manual-steps" class="px-5 py-2 rounded-xl bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-black text-xs uppercase tracking-wider transition">
+            Add Steps
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- 7-Day Stride Trend Chart & Export -->
+  <div class="gt-card p-6 bg-[#101C3D] border border-gray-800 space-y-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-800">
+      <div>
+        <h3 class="text-sm font-black text-white flex items-center gap-2">
+          <span>📊</span> 7-Day Activity Progression
+        </h3>
+        <p class="text-[11px] text-slate-400">Daily step performance mapped against target threshold</p>
+      </div>
+      <div class="flex items-center gap-3">
+        <a href="{{ url_for('export_steps_csv') }}" class="px-3 py-1.5 rounded-lg bg-gray-800 hover:bg-gray-700 text-[#E6D5B8] border border-gray-700 hover:border-[#E6D5B8]/50 text-xs font-bold transition flex items-center gap-1.5">
+          <span>📥</span> Export Steps CSV
+        </a>
+      </div>
+    </div>
+
+    <!-- Chart Container -->
+    <div class="h-64 w-full">
+      <canvas id="pedometer-history-chart"></canvas>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="/static/js/pedometer.js"></script>
+{% endblock %}

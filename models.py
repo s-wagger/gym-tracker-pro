@@ -7,7 +7,7 @@ import bcrypt
 from datetime import datetime, timedelta
 from flask_login import UserMixin
 from database import get_db
-from formulas import calculate_epley_1rm, evaluate_milestones
+from formulas import calculate_epley_1rm, evaluate_milestones, calculate_step_metrics
 
 class User(UserMixin):
     def __init__(self, data: dict):
@@ -24,6 +24,7 @@ class User(UserMixin):
         self.height = float(data.get("height") or 175.0)
         self.weight = float(data.get("weight") or 75.0)
         self.fitness_goal = data.get("fitness_goal") or "gain_weight"
+        self.daily_step_goal = int(data.get("daily_step_goal") or 10000)
         self.gemini_api_key = data.get("gemini_api_key")
         self.created_at = data.get("created_at")
 
@@ -52,16 +53,16 @@ class User(UserMixin):
             return User(row) if row else None
 
     @staticmethod
-    def create(username: str, email: str, password: str, display_name: str = None, unit_preference: str = "kg", height: float = 175.0, weight: float = 75.0, fitness_goal: str = "gain_weight"):
+    def create(username: str, email: str, password: str, display_name: str = None, unit_preference: str = "kg", height: float = 175.0, weight: float = 75.0, fitness_goal: str = "gain_weight", daily_step_goal: int = 10000):
         salt = bcrypt.gensalt()
         pw_hash = bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
         user_id = None
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-            INSERT INTO users (username, email, password_hash, display_name, unit_preference, height, weight, fitness_goal)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (username.strip(), email.strip().lower(), pw_hash, (display_name or username).strip(), unit_preference, float(height), float(weight), fitness_goal))
+            INSERT INTO users (username, email, password_hash, display_name, unit_preference, height, weight, fitness_goal, daily_step_goal)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (username.strip(), email.strip().lower(), pw_hash, (display_name or username).strip(), unit_preference, float(height), float(weight), fitness_goal, int(daily_step_goal)))
             user_id = cursor.lastrowid
         return User.get_by_id(user_id)
 
@@ -77,17 +78,18 @@ class User(UserMixin):
             conn.execute("UPDATE users SET password_hash = ? WHERE id = ?", (pw_hash, self.id))
         self.password_hash = pw_hash
 
-    def update_profile(self, display_name: str, unit_preference: str, calorie_target: int, protein_target: int, carbs_target: int, fat_target: int, height: float = None, weight: float = None, fitness_goal: str = None):
+    def update_profile(self, display_name: str, unit_preference: str, calorie_target: int, protein_target: int, carbs_target: int, fat_target: int, height: float = None, weight: float = None, fitness_goal: str = None, daily_step_goal: int = None):
         h = float(height) if height is not None else self.height
         w = float(weight) if weight is not None else self.weight
         g = fitness_goal if fitness_goal is not None else self.fitness_goal
+        sg = int(daily_step_goal) if daily_step_goal is not None else self.daily_step_goal
         with get_db() as conn:
             conn.execute("""
             UPDATE users SET display_name = ?, unit_preference = ?, daily_calorie_target = ?, 
             daily_protein_target = ?, daily_carbs_target = ?, daily_fat_target = ?,
-            height = ?, weight = ?, fitness_goal = ?
+            height = ?, weight = ?, fitness_goal = ?, daily_step_goal = ?
             WHERE id = ?
-            """, (display_name.strip(), unit_preference, calorie_target, protein_target, carbs_target, fat_target, h, w, g, self.id))
+            """, (display_name.strip(), unit_preference, calorie_target, protein_target, carbs_target, fat_target, h, w, g, sg, self.id))
         self.display_name = display_name
         self.unit_preference = unit_preference
         self.daily_calorie_target = calorie_target
@@ -97,6 +99,13 @@ class User(UserMixin):
         self.height = h
         self.weight = w
         self.fitness_goal = g
+        self.daily_step_goal = sg
+
+    def update_step_goal(self, goal: int):
+        cleaned_goal = max(1000, min(100000, int(goal)))
+        with get_db() as conn:
+            conn.execute("UPDATE users SET daily_step_goal = ? WHERE id = ?", (cleaned_goal, self.id))
+        self.daily_step_goal = cleaned_goal
 
     def update_gemini_api_key(self, api_key: str):
         cleaned_key = api_key.strip() if api_key and api_key.strip() else None
@@ -437,6 +446,154 @@ class AnalyticsManager:
             }
 
 
+class StepManager:
+    @staticmethod
+    def get_daily_steps(user_id: int, date_str: str, user: User = None) -> dict:
+        """
+        Retrieves step count and calculated biomechanical metrics for a specific date.
+        If no entry exists, computes defaults with 0 steps.
+        """
+        if not user:
+            user = User.get_by_id(user_id)
+        
+        goal = user.daily_step_goal if user else 10000
+        height = user.height if user else 175.0
+        weight = user.weight if user else 75.0
+        unit = user.unit_preference if user else "kg"
+
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+            SELECT id, date, steps, distance_km, calories_burned, active_minutes, step_goal, updated_at
+            FROM daily_steps
+            WHERE user_id = ? AND date = ?
+            """, (user_id, date_str))
+            row = cursor.fetchone()
+
+        current_steps = row["steps"] if row else 0
+        current_goal = row["step_goal"] if row and row.get("step_goal") else goal
+
+        metrics = calculate_step_metrics(
+            steps=current_steps,
+            height_cm=height,
+            weight_val=weight,
+            unit=unit,
+            step_goal=current_goal
+        )
+        metrics["id"] = row["id"] if row else None
+        metrics["date"] = date_str
+        metrics["updated_at"] = row["updated_at"] if row else None
+        return metrics
+
+    @staticmethod
+    def log_or_update_steps(user_id: int, date_str: str, steps: int, user: User = None, is_delta: bool = False) -> dict:
+        """
+        Updates step count for user on date_str.
+        If is_delta=True, adds steps to existing count; otherwise sets total steps.
+        """
+        if not user:
+            user = User.get_by_id(user_id)
+        
+        goal = user.daily_step_goal if user else 10000
+        height = user.height if user else 175.0
+        weight = user.weight if user else 75.0
+        unit = user.unit_preference if user else "kg"
+
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT steps, step_goal FROM daily_steps WHERE user_id = ? AND date = ?", (user_id, date_str))
+            existing = cursor.fetchone()
+
+            if existing:
+                new_steps = max(0, existing["steps"] + steps if is_delta else steps)
+                active_goal = existing["step_goal"] or goal
+            else:
+                new_steps = max(0, steps)
+                active_goal = goal
+
+            metrics = calculate_step_metrics(new_steps, height, weight, unit, active_goal)
+
+            cursor.execute("""
+            INSERT INTO daily_steps (user_id, date, steps, distance_km, calories_burned, active_minutes, step_goal, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(user_id, date) DO UPDATE SET
+                steps = excluded.steps,
+                distance_km = excluded.distance_km,
+                calories_burned = excluded.calories_burned,
+                active_minutes = excluded.active_minutes,
+                step_goal = excluded.step_goal,
+                updated_at = CURRENT_TIMESTAMP
+            """, (user_id, date_str, new_steps, metrics["distance_km"], metrics["calories_burned"], metrics["active_minutes"], active_goal))
+
+        return StepManager.get_daily_steps(user_id, date_str, user)
+
+    @staticmethod
+    def get_step_history(user_id: int, days: int = 7) -> list:
+        """
+        Returns the last `days` days of step history including dates with 0 steps.
+        """
+        user = User.get_by_id(user_id)
+        height = user.height if user else 175.0
+        weight = user.weight if user else 75.0
+        unit = user.unit_preference if user else "kg"
+        goal = user.daily_step_goal if user else 10000
+
+        today = datetime.now().date()
+        date_list = [(today - timedelta(days=i)).strftime("%Y-%m-%d") for i in range(days - 1, -1, -1)]
+
+        with get_db() as conn:
+            cursor = conn.cursor()
+            placeholders = ",".join(["?"] * len(date_list))
+            cursor.execute(f"""
+            SELECT date, steps, distance_km, calories_burned, active_minutes, step_goal
+            FROM daily_steps
+            WHERE user_id = ? AND date IN ({placeholders})
+            ORDER BY date ASC
+            """, [user_id] + date_list)
+            rows = {r["date"]: r for r in cursor.fetchall()}
+
+        history = []
+        for d in date_list:
+            if d in rows:
+                r = rows[d]
+                m = calculate_step_metrics(r["steps"], height, weight, unit, r["step_goal"] or goal)
+                m["date"] = d
+                m["day_name"] = datetime.strptime(d, "%Y-%m-%d").strftime("%a")
+                history.append(m)
+            else:
+                m = calculate_step_metrics(0, height, weight, unit, goal)
+                m["date"] = d
+                m["day_name"] = datetime.strptime(d, "%Y-%m-%d").strftime("%a")
+                history.append(m)
+
+        return history
+
+    @staticmethod
+    def get_step_stats(user_id: int) -> dict:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+            SELECT 
+                COUNT(*) as days_logged,
+                COALESCE(SUM(steps), 0) as total_steps,
+                COALESCE(AVG(steps), 0) as avg_steps,
+                COALESCE(MAX(steps), 0) as best_steps,
+                COALESCE(SUM(distance_km), 0) as total_distance_km,
+                COALESCE(SUM(calories_burned), 0) as total_calories_burned
+            FROM daily_steps
+            WHERE user_id = ? AND steps > 0
+            """, (user_id,))
+            row = cursor.fetchone() or {}
+            return {
+                "days_logged": row.get("days_logged", 0),
+                "total_steps": int(row.get("total_steps", 0)),
+                "avg_steps": int(round(row.get("avg_steps", 0))),
+                "best_steps": int(row.get("best_steps", 0)),
+                "total_distance_km": round(float(row.get("total_distance_km", 0.0)), 1),
+                "total_calories_burned": int(round(float(row.get("total_calories_burned", 0.0))))
+            }
+
+
 class ExportManager:
     @staticmethod
     def get_workouts_csv_data(user_id: int) -> list:
@@ -477,5 +634,18 @@ class ExportManager:
             FROM personal_records
             WHERE user_id = ?
             ORDER BY max_weight DESC
+            """, (user_id,))
+            return cursor.fetchall()
+
+    @staticmethod
+    def get_steps_csv_data(user_id: int) -> list:
+        """Returns daily steps history for CSV export."""
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+            SELECT date, steps, distance_km, calories_burned, active_minutes, step_goal, updated_at
+            FROM daily_steps
+            WHERE user_id = ?
+            ORDER BY date DESC
             """, (user_id,))
             return cursor.fetchall()

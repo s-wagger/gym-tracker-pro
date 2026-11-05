@@ -50,6 +50,7 @@ def init_db():
             weight REAL DEFAULT 75.0,
             fitness_goal TEXT DEFAULT 'gain_weight',
             gemini_api_key TEXT DEFAULT NULL,
+            daily_step_goal INTEGER DEFAULT 10000,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """)
@@ -65,6 +66,8 @@ def init_db():
             cursor.execute("ALTER TABLE users ADD COLUMN fitness_goal TEXT DEFAULT 'gain_weight';")
         if "gemini_api_key" not in existing_cols:
             cursor.execute("ALTER TABLE users ADD COLUMN gemini_api_key TEXT DEFAULT NULL;")
+        if "daily_step_goal" not in existing_cols:
+            cursor.execute("ALTER TABLE users ADD COLUMN daily_step_goal INTEGER DEFAULT 10000;")
 
         # Workout Sessions table
         cursor.execute("""
@@ -129,11 +132,29 @@ def init_db():
         );
         """)
 
+        # Daily Steps & Pedometer table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS daily_steps (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            date TEXT NOT NULL,
+            steps INTEGER DEFAULT 0,
+            distance_km REAL DEFAULT 0.0,
+            calories_burned REAL DEFAULT 0.0,
+            active_minutes INTEGER DEFAULT 0,
+            step_goal INTEGER DEFAULT 10000,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, date)
+        );
+        """)
+
         # Performance Indexes
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user_date ON workout_sessions(user_id, date);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_sets_user_exercise ON workout_sets(user_id, exercise_name);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_nutrition_user_date ON nutrition_entries(user_id, date);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_prs_user_exercise ON personal_records(user_id, exercise_name);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_steps_user_date ON daily_steps(user_id, date);")
 
         print("Gym Tracker Pro database initialized successfully.")
 

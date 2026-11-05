@@ -29,12 +29,12 @@ from config import Config
 from database import init_db
 from models import (
     User, WorkoutManager, NutritionManager,
-    AnalyticsManager, ExportManager
+    AnalyticsManager, ExportManager, StepManager
 )
 from formulas import (
     calculate_epley_1rm, calculate_brzycki_1rm,
     calculate_lombardi_1rm, get_training_zones, evaluate_milestones,
-    calculate_user_fitness_plan
+    calculate_user_fitness_plan, calculate_step_metrics
 )
 
 app = Flask(__name__)
@@ -209,9 +209,10 @@ def profile():
             height = float(request.form.get("height") or current_user.height)
             weight = float(request.form.get("weight") or current_user.weight)
             fitness_goal = request.form.get("fitness_goal") or current_user.fitness_goal
+            step_goal = int(request.form.get("daily_step_goal") or current_user.daily_step_goal)
 
-            current_user.update_profile(display_name, unit_pref, calories, protein, carbs, fat, height, weight, fitness_goal)
-            flash("Profile preferences, biometrics, and nutrition targets updated successfully!", "success")
+            current_user.update_profile(display_name, unit_pref, calories, protein, carbs, fat, height, weight, fitness_goal, step_goal)
+            flash("Profile preferences, biometrics, and activity targets updated successfully!", "success")
 
         elif action == "change_password":
             current_pw = request.form.get("current_password", "")
@@ -246,7 +247,9 @@ def profile():
 def dashboard():
     summary = AnalyticsManager.get_dashboard_summary(current_user)
     plan = calculate_user_fitness_plan(current_user.height, current_user.weight, current_user.unit_preference, current_user.fitness_goal)
-    return render_template("dashboard.html", user=current_user, summary=summary, plan=plan)
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    today_steps = StepManager.get_daily_steps(current_user.id, today_str, current_user)
+    return render_template("dashboard.html", user=current_user, summary=summary, plan=plan, today_steps=today_steps)
 
 @app.route("/api/plan/apply-targets", methods=["POST"])
 @login_required
@@ -531,6 +534,61 @@ def api_delete_nutrition(entry_id):
     return jsonify({"success": success})
 
 # -------------------------------------------------------------
+# Module 5.5: Smart Pedometer & Daily Activity
+# -------------------------------------------------------------
+@app.route("/steps")
+@login_required
+def steps_tracker():
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    today_steps = StepManager.get_daily_steps(current_user.id, today_str, current_user)
+    history = StepManager.get_step_history(current_user.id, days=7)
+    stats = StepManager.get_step_stats(current_user.id)
+    return render_template("steps.html", user=current_user, today=today_steps, history=history, stats=stats)
+
+@app.route("/api/steps/today", methods=["GET"])
+@login_required
+def api_get_today_steps():
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    steps_data = StepManager.get_daily_steps(current_user.id, today_str, current_user)
+    return jsonify({"success": True, "data": steps_data})
+
+@app.route("/api/steps/sync", methods=["POST"])
+@login_required
+def api_sync_steps():
+    data = request.get_json() or {}
+    steps = int(data.get("steps") or 0)
+    is_delta = bool(data.get("is_delta", False))
+    date_str = data.get("date") or datetime.now().strftime("%Y-%m-%d")
+    updated = StepManager.log_or_update_steps(current_user.id, date_str, steps, current_user, is_delta=is_delta)
+    return jsonify({"success": True, "data": updated})
+
+@app.route("/api/steps/add", methods=["POST"])
+@login_required
+def api_add_steps():
+    data = request.get_json() or {}
+    delta = int(data.get("steps") or data.get("delta") or 0)
+    date_str = data.get("date") or datetime.now().strftime("%Y-%m-%d")
+    updated = StepManager.log_or_update_steps(current_user.id, date_str, delta, current_user, is_delta=True)
+    return jsonify({"success": True, "data": updated})
+
+@app.route("/api/steps/goal", methods=["POST"])
+@login_required
+def api_update_step_goal():
+    data = request.get_json() or {}
+    goal = int(data.get("goal") or 10000)
+    current_user.update_step_goal(goal)
+    today_str = datetime.now().strftime("%Y-%m-%d")
+    updated = StepManager.get_daily_steps(current_user.id, today_str, current_user)
+    return jsonify({"success": True, "data": updated, "goal": goal})
+
+@app.route("/api/steps/history", methods=["GET"])
+@login_required
+def api_get_step_history():
+    days = int(request.args.get("days", 7))
+    history = StepManager.get_step_history(current_user.id, days=days)
+    return jsonify({"success": True, "history": history})
+
+# -------------------------------------------------------------
 # Module 6: 1RM Analytical Engine
 # -------------------------------------------------------------
 @app.route("/one-rep-max")
@@ -744,10 +802,38 @@ def export_prs_csv():
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
 
+@app.route("/export/steps/csv")
+@login_required
+def export_steps_csv():
+    data = ExportManager.get_steps_csv_data(current_user.id)
+    output = io.StringIO()
+    writer = csv.writer(output)
+
+    writer.writerow(["Date", "Steps", "Distance (km)", "Calories Burned", "Active Minutes", "Step Goal", "Last Updated"])
+
+    for row in data:
+        writer.writerow([
+            row["date"],
+            row["steps"],
+            row["distance_km"],
+            row["calories_burned"],
+            row["active_minutes"],
+            row["step_goal"],
+            row["updated_at"]
+        ])
+
+    output.seek(0)
+    filename = f"gym_tracker_daily_steps_{current_user.username}_{datetime.now().strftime('%Y%m%d')}.csv"
+    return Response(
+        output.getvalue(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
+
 @app.route("/export/all")
 @login_required
 def export_all_zip():
-    """Generates an in-memory ZIP package containing all 3 exported CSV datasets."""
+    """Generates an in-memory ZIP package containing all exported CSV datasets."""
     zip_buffer = io.BytesIO()
 
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -786,6 +872,15 @@ def export_all_zip():
         for r in prs_data:
             p_writer.writerow([r["exercise_name"], r["max_weight"], r["reps"], r["estimated_1rm"], r["date_achieved"], r["updated_at"]])
         zf.writestr("personal_records.csv", p_io.getvalue().encode("utf-8"))
+
+        # 4. Steps
+        steps_data = ExportManager.get_steps_csv_data(current_user.id)
+        s_io = io.StringIO()
+        s_writer = csv.writer(s_io)
+        s_writer.writerow(["Date", "Steps", "Distance (km)", "Calories Burned", "Active Minutes", "Step Goal", "Last Updated"])
+        for r in steps_data:
+            s_writer.writerow([r["date"], r["steps"], r["distance_km"], r["calories_burned"], r["active_minutes"], r["step_goal"], r["updated_at"]])
+        zf.writestr("daily_steps.csv", s_io.getvalue().encode("utf-8"))
 
     zip_buffer.seek(0)
     zip_filename = f"gym_tracker_complete_data_{current_user.username}_{datetime.now().strftime('%Y%m%d')}.zip"

@@ -246,6 +246,50 @@ def evaluate_milestones(stats: dict, unit: str = "kg") -> list:
 
     return milestones
 
+def calculate_step_metrics(steps: int, height_cm: float = 175.0, weight_val: float = 75.0, unit: str = "kg", step_goal: int = 10000) -> dict:
+    """
+    Calculates distance, calories burned, and active walking time from step count.
+    - Stride length: approx 0.414 * height_cm (in meters).
+    - Distance: (steps * stride_length_m) / 1000 in km (or converted to miles if unit is lbs).
+    - Calories: standard MET walking formula approx 0.045 kcal/step adjusted by body weight.
+    - Active time: brisk walking averages ~105 steps/min.
+    """
+    steps = max(0, int(steps or 0))
+    height_cm = float(height_cm or 175.0)
+    
+    # Weight in kg for calorie physics
+    weight_kg = float(weight_val or 75.0)
+    if unit == "lbs":
+        weight_kg = weight_kg / 2.20462
+
+    # Stride length in meters
+    stride_m = max(0.5, min(1.0, (height_cm * 0.414) / 100.0))
+    distance_km = round((steps * stride_m) / 1000.0, 2)
+    distance_miles = round(distance_km * 0.621371, 2)
+
+    # Calorie calculation: walking burns roughly 0.045 kcal/step for a 75kg person
+    calorie_multiplier = 0.045 * (weight_kg / 75.0)
+    calories_burned = round(steps * calorie_multiplier, 1)
+
+    # Active minutes: 105 steps per minute average walking pace
+    active_minutes = int(round(steps / 105.0))
+
+    # Goal percentage
+    goal = max(1000, int(step_goal or 10000))
+    progress_pct = min(100, int(round((steps / goal) * 100)))
+
+    return {
+        "steps": steps,
+        "goal": goal,
+        "progress_pct": progress_pct,
+        "distance_km": distance_km,
+        "distance_miles": distance_miles,
+        "display_distance": f"{distance_km} km" if unit == "kg" else f"{distance_miles} mi",
+        "calories_burned": calories_burned,
+        "active_minutes": active_minutes,
+        "stride_length_cm": round(stride_m * 100, 1)
+    }
+
 def calculate_user_fitness_plan(height_cm: float, weight_val: float, unit: str = "kg", goal: str = "gain_weight") -> dict:
     """
     Computes BMR, TDEE, optimal macro splits, and customized training & dietary plans

@@ -1,39 +1,49 @@
-/* Gym Tracker Pro - Core Visual Styling */
+/* Gym Tracker Pro - Executive Royal Blue & Warm Beige Visual Styling */
 :root {
-  --bg-dark: #121212;
-  --card-dark: #1E1E1E;
-  --card-border: #2A2A2A;
-  --accent-lime: #CCFF00;
-  --accent-gold: #FFD700;
-  --accent-cyan: #00E5FF;
-  --text-muted: #9CA3AF;
+  --bg-dark: #0A1128;
+  --bg-dark-alt: #070D1E;
+  --card-dark: #101C3D;
+  --card-border: rgba(230, 213, 184, 0.18);
+  --royal-blue: #1E3A8A;
+  --royal-accent: #2563EB;
+  --royal-light: #3B82F6;
+  --warm-beige: #E6D5B8;
+  --warm-beige-light: #F5EBE0;
+  --warm-beige-dark: #C5A880;
+  --text-main: #FAF7F2;
+  --text-muted: #94A3B8;
+
+  /* Backward Compatibility mapping */
+  --accent-lime: #2563EB;
+  --accent-gold: #E6D5B8;
+  --accent-cyan: #3B82F6;
 }
 
 body {
   background-color: var(--bg-dark);
-  color: #FFFFFF;
+  color: var(--text-main);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar - Royal Blue & Dark Navy */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 ::-webkit-scrollbar-track {
-  background: #121212;
+  background: #0A1128;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2E2E2E;
+  background: #1E3A8A;
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--accent-lime);
+  background: #2563EB;
 }
 
-/* High-Contrast Card Base */
+/* High-End Executive Card Base */
 .gt-card {
   background-color: var(--card-dark);
   border: 1px solid var(--card-border);
@@ -44,8 +54,8 @@ body {
 }
 
 .gt-card:hover {
-  border-color: rgba(204, 255, 0, 0.4);
-  box-shadow: 0 10px 30px -10px rgba(204, 255, 0, 0.15);
+  border-color: rgba(37, 99, 235, 0.5);
+  box-shadow: 0 10px 30px -10px rgba(37, 99, 235, 0.25);
 }
 
 /* 3D Tilt Card Container */
@@ -61,52 +71,84 @@ body {
   transform-style: preserve-3d;
 }
 
-/* Neon Glow Accents */
+/* Royal & Beige Glow Accents */
+.royal-glow {
+  text-shadow: 0 0 15px rgba(37, 99, 235, 0.6);
+}
+
+.beige-glow {
+  text-shadow: 0 0 15px rgba(230, 213, 184, 0.6);
+}
+
 .neon-glow-lime {
-  text-shadow: 0 0 12px rgba(204, 255, 0, 0.6);
+  text-shadow: 0 0 12px rgba(37, 99, 235, 0.5);
+  color: #E6D5B8 !important;
 }
 
 .neon-glow-gold {
-  text-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
+  text-shadow: 0 0 12px rgba(230, 213, 184, 0.5);
+  color: #E6D5B8 !important;
 }
 
 .neon-border-lime {
-  box-shadow: 0 0 20px -3px rgba(204, 255, 0, 0.35);
-  border-color: var(--accent-lime);
+  box-shadow: 0 0 20px -3px rgba(37, 99, 235, 0.4);
+  border-color: #2563EB;
 }
 
-.neon-btn {
-  background-color: var(--accent-lime);
-  color: #000000;
+/* Buttons */
+.neon-btn,
+.btn-royal {
+  background: linear-gradient(135deg, #2563EB, #1D4ED8);
+  color: #FAF7F2;
   font-weight: 800;
+  border: 1px solid rgba(230, 213, 184, 0.3);
   transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
 }
 
-.neon-btn:hover {
-  background-color: #bdf700;
-  box-shadow: 0 0 25px rgba(204, 255, 0, 0.5);
+.neon-btn:hover,
+.btn-royal:hover {
+  background: linear-gradient(135deg, #3B82F6, #2563EB);
+  box-shadow: 0 6px 25px rgba(37, 99, 235, 0.5);
   transform: translateY(-2px);
+  color: #FFFFFF;
 }
 
-.neon-btn:active {
+.neon-btn:active,
+.btn-royal:active {
   transform: translateY(1px);
 }
 
-/* PR Gold Badge Glow */
-.pr-badge {
-  background: linear-gradient(135deg, rgba(255, 215, 0, 0.2), rgba(255, 170, 0, 0.1));
-  border: 1px solid rgba(255, 215, 0, 0.5);
-  color: #FFD700;
-  box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+.btn-beige {
+  background: linear-gradient(135deg, #E6D5B8, #D4B996);
+  color: #0A1128;
+  font-weight: 800;
+  border: 1px solid rgba(230, 213, 184, 0.6);
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 15px rgba(230, 213, 184, 0.25);
 }
 
-/* Pulse animation for active streak */
+.btn-beige:hover {
+  background: linear-gradient(135deg, #FAF7F2, #E6D5B8);
+  box-shadow: 0 6px 20px rgba(230, 213, 184, 0.4);
+  transform: translateY(-2px);
+}
+
+/* PR Gold / Warm Beige Badge */
+.pr-badge {
+  background: linear-gradient(135deg, rgba(230, 213, 184, 0.2), rgba(37, 99, 235, 0.15));
+  border: 1px solid rgba(230, 213, 184, 0.6);
+  color: #E6D5B8;
+  box-shadow: 0 0 15px rgba(230, 213, 184, 0.25);
+}
+
+/* Pulse animation for active streak / sensors */
 @keyframes pulseGlow {
   0%, 100% {
-    box-shadow: 0 0 15px rgba(204, 255, 0, 0.3);
+    box-shadow: 0 0 15px rgba(37, 99, 235, 0.3);
   }
   50% {
-    box-shadow: 0 0 28px rgba(204, 255, 0, 0.7);
+    box-shadow: 0 0 28px rgba(37, 99, 235, 0.7);
   }
 }
 
@@ -118,8 +160,9 @@ body {
 .set-row {
   transition: background-color 0.2s ease, transform 0.15s ease;
 }
+
 .set-row:hover {
-  background-color: rgba(255, 255, 255, 0.03);
+  background-color: rgba(37, 99, 235, 0.08);
 }
 
 /* Toast Notification Floating Container */
@@ -140,10 +183,10 @@ body {
   max-width: 420px;
   padding: 1rem 1.25rem;
   border-radius: 0.75rem;
-  background-color: #1E1E1E;
-  border: 1px solid #333;
-  color: #fff;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  background-color: #101C3D;
+  border: 1px solid rgba(230, 213, 184, 0.3);
+  color: #FAF7F2;
+  box-shadow: 0 10px 30px rgba(10, 17, 40, 0.6);
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -164,16 +207,16 @@ body {
 
 /* Mobile Bottom Navigation Bar for PWA */
 .mobile-nav-bar {
-  background-color: rgba(18, 18, 18, 0.95);
-  backdrop-filter: blur(12px);
-  border-top: 1px solid #222222;
+  background-color: rgba(10, 17, 40, 0.95);
+  backdrop-filter: blur(14px);
+  border-top: 1px solid rgba(230, 213, 184, 0.15);
 }
 
 /* Form Inputs Styling */
 .gt-input {
-  background-color: #121212;
-  border: 1px solid #2E2E2E;
-  color: #FFFFFF;
+  background-color: #0A1128;
+  border: 1px solid rgba(230, 213, 184, 0.22);
+  color: #FAF7F2;
   border-radius: 0.625rem;
   padding: 0.625rem 0.875rem;
   font-size: 0.925rem;
@@ -182,8 +225,8 @@ body {
 
 .gt-input:focus {
   outline: none;
-  border-color: var(--accent-lime);
-  box-shadow: 0 0 0 2px rgba(204, 255, 0, 0.2);
+  border-color: #2563EB;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.3);
 }
 
 /* Training Zone Progress Bars */
@@ -191,47 +234,57 @@ body {
   transition: width 0.8s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Light Theme Overrides */
+/* ============================================================
+   LIGHT THEME OVERRIDES (Warm Sand Beige Linen & Royal Blue)
+   ============================================================ */
 html.light {
-  --bg-dark: #F8FAFC;
+  --bg-dark: #FAF7F2;
+  --bg-dark-alt: #F5EBE0;
   --card-dark: #FFFFFF;
-  --card-border: #E2E8F0;
-  --accent-lime: #65A30D;
-  --accent-gold: #D97706;
+  --card-border: #E6D5B8;
+  --royal-blue: #1E3A8A;
+  --royal-accent: #1D4ED8;
+  --royal-light: #2563EB;
+  --warm-beige: #1E3A8A; /* High-contrast accent for light mode */
+  --warm-beige-light: #FAF7F2;
+  --text-main: #0F172A;
+  --text-muted: #475569;
+
+  --accent-lime: #1D4ED8;
+  --accent-gold: #B45309;
   --accent-cyan: #0284C7;
-  --text-muted: #64748B;
 }
 
 html.light body {
-  background-color: #F8FAFC !important;
+  background-color: #FAF7F2 !important;
   color: #0F172A !important;
 }
 
 html.light header {
-  background-color: rgba(255, 255, 255, 0.95) !important;
-  border-bottom-color: #E2E8F0 !important;
+  background-color: rgba(250, 247, 242, 0.96) !important;
+  border-bottom-color: #E6D5B8 !important;
 }
 
 html.light .gt-card {
   background-color: #FFFFFF !important;
-  border-color: #E2E8F0 !important;
-  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.06) !important;
+  border-color: #E6D5B8 !important;
+  box-shadow: 0 4px 20px -2px rgba(30, 58, 138, 0.06) !important;
 }
 
 html.light .gt-card:hover {
-  border-color: #84CC16 !important;
-  box-shadow: 0 10px 25px -5px rgba(101, 163, 13, 0.15) !important;
+  border-color: #2563EB !important;
+  box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.15) !important;
 }
 
 html.light .gt-input {
-  background-color: #F8FAFC !important;
-  border-color: #CBD5E1 !important;
+  background-color: #FAF7F2 !important;
+  border-color: #E6D5B8 !important;
   color: #0F172A !important;
 }
 
 html.light .gt-input:focus {
-  border-color: #65A30D !important;
-  box-shadow: 0 0 0 2px rgba(101, 163, 13, 0.2) !important;
+  border-color: #1D4ED8 !important;
+  box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.2) !important;
 }
 
 html.light .text-white {
@@ -250,82 +303,76 @@ html.light .text-gray-300 {
   color: #475569 !important;
 }
 
-html.light .text-gray-400 {
+html.light .text-gray-400,
+html.light .text-slate-400 {
   color: #64748B !important;
 }
 
-html.light .bg-\[\#121212\] {
-  background-color: #F8FAFC !important;
+html.light .bg-\[\#121212\],
+html.light .bg-\[\#0A1128\] {
+  background-color: #FAF7F2 !important;
 }
 
-html.light .bg-\[\#1E1E1E\] {
+html.light .bg-\[\#1E1E1E\],
+html.light .bg-\[\#1A1A1A\],
+html.light .bg-\[\#101C3D\] {
   background-color: #FFFFFF !important;
 }
 
-html.light .bg-\[\#1A1A1A\] {
-  background-color: #FFFFFF !important;
-}
-
-html.light .bg-\[\#181818\] {
-  background-color: #F8FAFC !important;
-}
-
-html.light .bg-\[\#171717\] {
-  background-color: #F1F5F9 !important;
-}
-
-html.light .bg-\[\#161616\] {
-  background-color: #FFFFFF !important;
-}
-
+html.light .bg-\[\#181818\],
+html.light .bg-\[\#171717\],
 html.light .bg-\[\#141414\] {
-  background-color: #F8FAFC !important;
+  background-color: #F5EBE0 !important;
 }
 
-html.light .border-gray-800 {
-  border-color: #E2E8F0 !important;
-}
-
+html.light .border-gray-800,
 html.light .border-gray-700 {
-  border-color: #CBD5E1 !important;
+  border-color: #E6D5B8 !important;
 }
 
 html.light .mobile-nav-bar {
-  background-color: rgba(255, 255, 255, 0.95) !important;
-  border-top-color: #E2E8F0 !important;
+  background-color: rgba(250, 247, 242, 0.96) !important;
+  border-top-color: #E6D5B8 !important;
 }
 
-html.light .neon-btn {
-  background-color: #65A30D !important;
-  color: #FFFFFF !important;
+html.light .neon-btn,
+html.light .btn-royal {
+  background: linear-gradient(135deg, #1E3A8A, #1D4ED8) !important;
+  color: #FAF7F2 !important;
+  border-color: #E6D5B8 !important;
 }
 
-html.light .neon-btn:hover {
-  background-color: #4D7C0F !important;
-  box-shadow: 0 0 20px rgba(101, 163, 13, 0.4) !important;
+html.light .neon-btn:hover,
+html.light .btn-royal:hover {
+  background: linear-gradient(135deg, #2563EB, #1E3A8A) !important;
+  box-shadow: 0 6px 20px rgba(30, 58, 138, 0.3) !important;
 }
 
-html.light .neon-glow-lime {
-  text-shadow: 0 0 10px rgba(101, 163, 13, 0.4) !important;
-  color: #65A30D !important;
+html.light .btn-beige {
+  background: linear-gradient(135deg, #E6D5B8, #D4B996) !important;
+  color: #0A1128 !important;
 }
 
-html.light .text-\[\#CCFF00\] {
-  color: #4D7C0F !important;
+html.light .text-\[\#CCFF00\],
+html.light .text-\[\#E6D5B8\] {
+  color: #1E3A8A !important;
 }
 
-html.light .bg-\[\#CCFF00\]\/10 {
-  background-color: rgba(101, 163, 13, 0.12) !important;
+html.light .bg-\[\#CCFF00\]\/10,
+html.light .bg-\[\#E6D5B8\]\/15 {
+  background-color: rgba(30, 58, 138, 0.08) !important;
 }
 
 html.light .border-\[\#CCFF00\]\/30,
-html.light .border-\[\#CCFF00\]\/40 {
-  border-color: rgba(101, 163, 13, 0.35) !important;
+html.light .border-\[\#CCFF00\]\/40,
+html.light .border-\[\#E6D5B8\]\/20,
+html.light .border-\[\#E6D5B8\]\/30 {
+  border-color: rgba(30, 58, 138, 0.25) !important;
 }
 
 html.light .toast {
   background-color: #FFFFFF !important;
   color: #0F172A !important;
-  border-color: #E2E8F0 !important;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1) !important;
+  border-color: #E6D5B8 !important;
+  box-shadow: 0 10px 30px rgba(30, 58, 138, 0.1) !important;
 }

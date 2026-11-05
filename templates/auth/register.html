@@ -4,16 +4,18 @@
 
 {% block content %}
 <div class="max-w-lg mx-auto py-8">
-  <div class="gt-card p-8 bg-[#1E1E1E] border border-gray-800 shadow-2xl relative overflow-hidden">
-    <!-- Top accent strip -->
-    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#CCFF00] via-[#FFD700] to-[#CCFF00]"></div>
+  <div class="gt-card p-8 bg-[#101C3D] border border-[#E6D5B8]/30 shadow-2xl relative overflow-hidden">
+    <!-- Top accent strip in Royal Blue & Beige -->
+    <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#2563EB] via-[#E6D5B8] to-[#2563EB]"></div>
 
     <div class="text-center mb-6">
-      <div class="w-12 h-12 mx-auto mb-3 rounded-2xl bg-[#CCFF00]/10 border border-[#CCFF00]/30 flex items-center justify-center text-xl text-[#CCFF00]">
-        ⚡
+      <div class="w-12 h-12 mx-auto mb-3 rounded-2xl bg-[#E6D5B8]/15 border border-[#E6D5B8]/30 flex items-center justify-center text-xl text-[#E6D5B8] shadow-lg shadow-blue-900/30">
+        <svg class="w-6 h-6 text-[#E6D5B8]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M6 5v14M18 5v14M2 9v6M22 9v6M6 12h12"/>
+        </svg>
       </div>
       <h1 class="text-2xl font-black text-white">Join Gym Tracker Pro</h1>
-      <p class="text-gray-400 text-xs mt-1">Start tracking workouts, 1RM analytics, and macros today</p>
+      <p class="text-slate-400 text-xs mt-1">Start tracking workouts, pedometer strides, and macros today</p>
     </div>
 
     <form method="POST" action="{{ url_for('register') }}" class="space-y-4">
@@ -38,12 +40,12 @@
         <div>
           <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Height (cm) *</label>
           <input type="number" name="height" required min="100" max="250" step="0.5" value="175" placeholder="e.g. 178" class="gt-input w-full font-bold">
-          <span class="text-[10px] text-gray-500 mt-0.5 block">e.g. 5'10" ≈ 178 cm</span>
+          <span class="text-[10px] text-slate-500 mt-0.5 block">e.g. 5'10" ≈ 178 cm</span>
         </div>
         <div>
           <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Current Body Weight *</label>
           <input type="number" name="weight" required min="30" max="300" step="0.5" value="75" placeholder="e.g. 75" class="gt-input w-full font-bold">
-          <span class="text-[10px] text-gray-500 mt-0.5 block">in your chosen unit (kg or lbs)</span>
+          <span class="text-[10px] text-slate-500 mt-0.5 block">in your chosen unit (kg or lbs)</span>
         </div>
       </div>
 
@@ -51,36 +53,36 @@
       <div>
         <label class="block text-xs font-bold text-gray-300 uppercase mb-2">Primary Goal of Using the App *</label>
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-          <label class="p-3 rounded-xl border border-gray-800 bg-[#141414] hover:border-[#CCFF00]/50 cursor-pointer flex flex-col justify-between transition">
+          <label class="p-3 rounded-xl border border-gray-800 bg-[#0A1128] hover:border-[#E6D5B8]/50 cursor-pointer flex flex-col justify-between transition has-[:checked]:border-[#E6D5B8]">
             <div class="flex items-center justify-between mb-1">
               <span class="text-base">🥩</span>
-              <input type="radio" name="fitness_goal" value="gain_weight" checked class="accent-[#CCFF00]">
+              <input type="radio" name="fitness_goal" value="gain_weight" checked class="accent-[#2563EB]">
             </div>
             <div>
               <div class="text-xs font-black text-white">1. Gain Weight</div>
-              <div class="text-[10px] text-gray-400 mt-0.5">Muscle hypertrophy & clean bulk surplus</div>
+              <div class="text-[10px] text-slate-400 mt-0.5">Muscle hypertrophy & clean bulk surplus</div>
             </div>
           </label>
 
-          <label class="p-3 rounded-xl border border-gray-800 bg-[#141414] hover:border-[#FF3366]/50 cursor-pointer flex flex-col justify-between transition">
+          <label class="p-3 rounded-xl border border-gray-800 bg-[#0A1128] hover:border-[#E6D5B8]/50 cursor-pointer flex flex-col justify-between transition has-[:checked]:border-[#E6D5B8]">
             <div class="flex items-center justify-between mb-1">
               <span class="text-base">🔥</span>
-              <input type="radio" name="fitness_goal" value="lose_weight" class="accent-[#FF3366]">
+              <input type="radio" name="fitness_goal" value="lose_weight" class="accent-[#2563EB]">
             </div>
             <div>
               <div class="text-xs font-black text-white">2. Lose Weight</div>
-              <div class="text-[10px] text-gray-400 mt-0.5">Fat loss deficit & lean muscle retention</div>
+              <div class="text-[10px] text-slate-400 mt-0.5">Fat loss deficit & lean muscle retention</div>
             </div>
           </label>
 
-          <label class="p-3 rounded-xl border border-gray-800 bg-[#141414] hover:border-[#00E5FF]/50 cursor-pointer flex flex-col justify-between transition">
+          <label class="p-3 rounded-xl border border-gray-800 bg-[#0A1128] hover:border-[#E6D5B8]/50 cursor-pointer flex flex-col justify-between transition has-[:checked]:border-[#E6D5B8]">
             <div class="flex items-center justify-between mb-1">
               <span class="text-base">⚖️</span>
-              <input type="radio" name="fitness_goal" value="maintain_weight" class="accent-[#00E5FF]">
+              <input type="radio" name="fitness_goal" value="maintain_weight" class="accent-[#2563EB]">
             </div>
             <div>
               <div class="text-xs font-black text-white">3. Maintain Weight</div>
-              <div class="text-[10px] text-gray-400 mt-0.5">Maintain body weight with good diet</div>
+              <div class="text-[10px] text-slate-400 mt-0.5">Maintain body weight with good diet</div>
             </div>
           </label>
         </div>
@@ -89,12 +91,12 @@
       <div>
         <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Preferred Weight Unit</label>
         <div class="grid grid-cols-2 gap-3">
-          <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-gray-800 bg-[#141414] cursor-pointer hover:border-gray-700">
-            <input type="radio" name="unit_preference" value="kg" checked class="accent-[#CCFF00]">
+          <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-gray-800 bg-[#0A1128] cursor-pointer hover:border-gray-700 has-[:checked]:border-[#E6D5B8]">
+            <input type="radio" name="unit_preference" value="kg" checked class="accent-[#2563EB]">
             <span class="text-xs font-bold text-white">Kilograms (kg)</span>
           </label>
-          <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-gray-800 bg-[#141414] cursor-pointer hover:border-gray-700">
-            <input type="radio" name="unit_preference" value="lbs" class="accent-[#CCFF00]">
+          <label class="flex items-center justify-center gap-2 p-2.5 rounded-xl border border-gray-800 bg-[#0A1128] cursor-pointer hover:border-gray-700 has-[:checked]:border-[#E6D5B8]">
+            <input type="radio" name="unit_preference" value="lbs" class="accent-[#2563EB]">
             <span class="text-xs font-bold text-white">Pounds (lbs)</span>
           </label>
         </div>
@@ -111,19 +113,19 @@
         </div>
       </div>
 
-      <div class="p-3 bg-[#171717] rounded-xl border border-gray-800 text-[11px] text-gray-400 flex items-center gap-2">
+      <div class="p-3 bg-[#0A1128] rounded-xl border border-gray-800 text-[11px] text-slate-400 flex items-center gap-2">
         <span class="text-xs">🔒</span>
         <span>Passwords are securely salted and hashed with industry-standard bcrypt encryption.</span>
       </div>
 
-      <button type="submit" class="neon-btn w-full py-3 px-4 rounded-xl font-black text-sm uppercase tracking-wider shadow-lg shadow-[#CCFF00]/20">
+      <button type="submit" class="btn-royal w-full py-3.5 px-4 rounded-xl font-black text-sm uppercase tracking-wider shadow-lg shadow-blue-600/30">
         Create Athlete Account
       </button>
     </form>
 
-    <div class="mt-6 pt-6 border-t border-gray-800 text-center text-xs text-gray-400">
+    <div class="mt-6 pt-6 border-t border-gray-800 text-center text-xs text-slate-400">
       Already have an account? 
-      <a href="{{ url_for('login') }}" class="text-[#CCFF00] font-bold hover:underline ml-1">
+      <a href="{{ url_for('login') }}" class="text-[#E6D5B8] font-bold hover:underline ml-1">
         Sign in here
       </a>
     </div>

@@ -132,7 +132,7 @@ function updateNutritionUI(data) {
   if (calBarElem) {
     const calPct = Math.min(100, Math.round((totals.calories / targets.calories) * 100));
     calBarElem.style.width = `${calPct}%`;
-    calBarElem.className = `h-3 rounded-full transition-all duration-700 ${calPct > 100 ? 'bg-red-500' : 'bg-[#CCFF00]'}`;
+    calBarElem.className = `h-3 rounded-full transition-all duration-700 ${calPct > 100 ? 'bg-red-500' : 'bg-gradient-to-r from-[#1E3A8A] to-[#2563EB]'}`;
   }
 
   // 2. Protein Bar
@@ -181,20 +181,20 @@ function renderMealItems(grouped) {
     const catCals = items.reduce((acc, i) => acc + i.calories, 0);
 
     html += `
-      <div class="gt-card p-4 mb-4 border border-gray-800">
-        <div class="flex items-center justify-between pb-2 mb-2 border-b border-gray-800/80">
+      <div class="gt-card p-4 mb-4 border border-blue-900/40 bg-[#101C3D] shadow-md">
+        <div class="flex items-center justify-between pb-2 mb-2 border-b border-blue-900/40">
           <div class="flex items-center gap-2">
             <span class="text-base">${getMealCategoryIcon(cat)}</span>
             <h4 class="font-bold text-white text-sm">${cat}</h4>
             <span class="text-xs text-gray-400">(${items.length} items)</span>
           </div>
-          <div class="text-xs font-bold text-[#CCFF00]">${catCals.toLocaleString()} kcal</div>
+          <div class="text-xs font-bold text-[#E6D5B8]">${catCals.toLocaleString()} kcal</div>
         </div>
 
         ${items.length === 0 ? `
-          <div class="text-xs text-gray-500 italic py-2 text-center">No foods logged for ${cat}.</div>
+          <div class="text-xs text-gray-400 italic py-2 text-center">No foods logged for ${cat}.</div>
         ` : `
-          <div class="divide-y divide-gray-800/40">
+          <div class="divide-y divide-blue-900/30">
             ${items.map((item) => `
               <div class="flex items-center justify-between py-2 text-xs">
                 <div>
@@ -202,12 +202,12 @@ function renderMealItems(grouped) {
                   <div class="text-[11px] text-gray-400 mt-0.5">
                     P: <span class="text-blue-400 font-medium">${item.protein}g</span> • 
                     C: <span class="text-amber-400 font-medium">${item.carbs}g</span> • 
-                    F: <span class="text-red-400 font-medium">${item.fat}g</span>
+                    F: <span class="text-rose-400 font-medium">${item.fat}g</span>
                   </div>
                 </div>
                 <div class="flex items-center gap-3">
                   <span class="font-bold text-white">${item.calories} kcal</span>
-                  <button onclick="deleteMealItem(${item.id})" class="text-gray-500 hover:text-red-400 p-1 transition" title="Delete entry">
+                  <button onclick="deleteMealItem(${item.id})" class="text-gray-400 hover:text-red-400 p-1 transition" title="Delete entry">
                     ✕
                   </button>
                 </div>
@@ -221,7 +221,7 @@ function renderMealItems(grouped) {
 
   if (totalEntries === 0) {
     container.innerHTML = `
-      <div class="text-center py-10 bg-[#1E1E1E] border border-gray-800 rounded-2xl p-6">
+      <div class="text-center py-10 bg-[#101C3D] border border-blue-900/40 rounded-2xl p-6 shadow-md">
         <div class="text-4xl mb-2">🥗</div>
         <h4 class="font-bold text-white text-base mb-1">No Meals Logged Today</h4>
         <p class="text-gray-400 text-xs">Use the quick logging form to track your calories and macros.</p>
@@ -455,7 +455,7 @@ function initAiCameraScanner() {
     const breakdownContainer = document.getElementById('detected-breakdown-list');
     if (breakdownContainer && analysis.breakdown) {
       breakdownContainer.innerHTML = analysis.breakdown.map((item) => `
-        <div class="flex items-center justify-between p-1.5 rounded-lg bg-[#181818] border border-gray-800">
+        <div class="flex items-center justify-between p-1.5 rounded-lg bg-[#101C3D] border border-blue-900/40">
           <span>${item.item} (${item.portion})</span>
           <span class="font-bold text-white">${Math.round(item.calories)} kcal • P: ${Math.round(item.protein)}g</span>
         </div>

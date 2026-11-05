@@ -8,23 +8,23 @@
   <!-- Header -->
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
     <div>
-      <div class="flex items-center gap-2 text-xs uppercase font-black tracking-widest text-[#00E5FF]">
-        <span>Module M5</span> • <span>Macro Balance</span>
+      <div class="flex items-center gap-2 text-xs uppercase font-black tracking-widest text-[#E6D5B8]">
+        <span>Module M5</span> • <span>Macro & Caloric Balance</span>
       </div>
       <h1 class="text-3xl font-black text-white tracking-tight mt-1">Calorie & Macro Tracker</h1>
       <p class="text-gray-400 text-xs">Itemized meal logging with live caloric budget progress and macronutrient splits.</p>
     </div>
 
     <!-- Date Navigator -->
-    <div class="flex items-center gap-2 bg-[#1E1E1E] border border-gray-800 p-1.5 rounded-xl">
-      <button type="button" id="btn-prev-day" class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition" title="Previous Day">
+    <div class="flex items-center gap-2 bg-[#101C3D] border border-blue-900/40 p-1.5 rounded-xl shadow-md">
+      <button type="button" id="btn-prev-day" class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-blue-900/30 transition" title="Previous Day">
         ◀
       </button>
       <input type="date" id="nutrition-active-date" value="{{ today }}" class="bg-transparent text-white font-bold text-xs py-1 px-2 border-none focus:outline-none">
-      <button type="button" id="btn-next-day" class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition" title="Next Day">
+      <button type="button" id="btn-next-day" class="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-blue-900/30 transition" title="Next Day">
         ▶
       </button>
-      <button type="button" id="btn-today" class="px-2.5 py-1 rounded-lg bg-gray-800 hover:bg-gray-700 text-[11px] font-bold text-[#CCFF00] transition">
+      <button type="button" id="btn-today" class="px-2.5 py-1 rounded-lg bg-[#2563EB] hover:bg-[#1d4ed8] text-[11px] font-black text-white transition shadow-sm">
         Today
       </button>
     </div>
@@ -33,8 +33,8 @@
   <!-- Caloric Budget & Macro Progress Overview -->
   <section class="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
-    <!-- Total Caloric Budget Card (Spans 4 on mobile, 1 on desktop or featured) -->
-    <div class="gt-card p-6 bg-gradient-to-b from-[#1E1E1E] to-[#171717] border border-gray-800 flex flex-col justify-between">
+    <!-- Total Caloric Budget Card -->
+    <div class="gt-card p-6 bg-gradient-to-b from-[#101C3D] to-[#0A1128] border border-blue-900/40 flex flex-col justify-between shadow-xl">
       <div>
         <div class="flex items-center justify-between text-xs text-gray-400 uppercase font-black tracking-wider mb-2">
           <span>Daily Caloric Budget</span>
@@ -42,9 +42,9 @@
         </div>
         <div class="text-3xl font-black text-white">
           <span id="cal-consumed">{{ nutrition.totals.calories | int }}</span>
-          <span class="text-sm font-semibold text-gray-500">/ <span id="cal-target">{{ targets.calories }}</span> kcal</span>
+          <span class="text-sm font-semibold text-gray-400">/ <span id="cal-target">{{ targets.calories }}</span> kcal</span>
         </div>
-        <div class="text-xs font-bold text-[#CCFF00] mt-1" id="cal-remaining">
+        <div class="text-xs font-bold text-[#E6D5B8] mt-1" id="cal-remaining">
           {{ [0, targets.calories - nutrition.totals.calories] | max | int }} kcal left
         </div>
       </div>
@@ -52,60 +52,60 @@
       <!-- Calorie Progress Bar -->
       <div class="mt-4">
         {% set cal_pct = (nutrition.totals.calories / targets.calories * 100) | round | int %}
-        <div class="w-full bg-gray-800 rounded-full h-3 overflow-hidden">
-          <div id="cal-progress-bar" class="h-full rounded-full transition-all duration-700 {{ 'bg-red-500' if cal_pct > 100 else 'bg-[#CCFF00]' }}" style="width: {{ [cal_pct, 100] | min }}%"></div>
+        <div class="w-full bg-[#0A1128] border border-blue-900/30 rounded-full h-3 overflow-hidden">
+          <div id="cal-progress-bar" class="h-full rounded-full transition-all duration-700 {{ 'bg-red-500' if cal_pct > 100 else 'bg-gradient-to-r from-[#1E3A8A] to-[#2563EB]' }}" style="width: {{ [cal_pct, 100] | min }}%"></div>
         </div>
-        <div class="text-right text-[11px] text-gray-500 font-semibold mt-1">
+        <div class="text-right text-[11px] text-gray-400 font-semibold mt-1">
           {{ cal_pct }}% of daily target
         </div>
       </div>
     </div>
 
     <!-- Protein Progress Card -->
-    <div class="gt-card p-5 border border-gray-800 bg-[#1A1A1A]">
+    <div class="gt-card p-5 border border-blue-900/40 bg-[#101C3D] shadow-md">
       <div class="flex items-center justify-between mb-2">
         <span class="text-xs font-black uppercase tracking-wider text-blue-400">🥩 Protein</span>
         <span class="text-xs font-bold text-white" id="protein-val">{{ nutrition.totals.protein | int }} / {{ targets.protein }}g</span>
       </div>
-      <div class="w-full bg-gray-800 rounded-full h-2 overflow-hidden mb-2">
+      <div class="w-full bg-[#0A1128] border border-blue-900/30 rounded-full h-2 overflow-hidden mb-2">
         {% set p_pct = (nutrition.totals.protein / targets.protein * 100) | round | int %}
-        <div id="protein-progress-bar" class="h-full rounded-full bg-blue-500 transition-all duration-700" style="width: {{ [p_pct, 100] | min }}%"></div>
+        <div id="protein-progress-bar" class="h-full rounded-full bg-[#2563EB] transition-all duration-700" style="width: {{ [p_pct, 100] | min }}%"></div>
       </div>
-      <div class="flex items-center justify-between text-[11px] text-gray-500">
+      <div class="flex items-center justify-between text-[11px] text-gray-400">
         <span>4 kcal / gram</span>
         <span class="text-blue-400 font-semibold">{{ (nutrition.totals.protein * 4) | int }} kcal</span>
       </div>
     </div>
 
     <!-- Carbohydrates Progress Card -->
-    <div class="gt-card p-5 border border-gray-800 bg-[#1A1A1A]">
+    <div class="gt-card p-5 border border-blue-900/40 bg-[#101C3D] shadow-md">
       <div class="flex items-center justify-between mb-2">
         <span class="text-xs font-black uppercase tracking-wider text-amber-400">🍚 Carbs</span>
         <span class="text-xs font-bold text-white" id="carbs-val">{{ nutrition.totals.carbs | int }} / {{ targets.carbs }}g</span>
       </div>
-      <div class="w-full bg-gray-800 rounded-full h-2 overflow-hidden mb-2">
+      <div class="w-full bg-[#0A1128] border border-blue-900/30 rounded-full h-2 overflow-hidden mb-2">
         {% set c_pct = (nutrition.totals.carbs / targets.carbs * 100) | round | int %}
         <div id="carbs-progress-bar" class="h-full rounded-full bg-amber-400 transition-all duration-700" style="width: {{ [c_pct, 100] | min }}%"></div>
       </div>
-      <div class="flex items-center justify-between text-[11px] text-gray-500">
+      <div class="flex items-center justify-between text-[11px] text-gray-400">
         <span>4 kcal / gram</span>
         <span class="text-amber-400 font-semibold">{{ (nutrition.totals.carbs * 4) | int }} kcal</span>
       </div>
     </div>
 
     <!-- Fat Progress Card -->
-    <div class="gt-card p-5 border border-gray-800 bg-[#1A1A1A]">
+    <div class="gt-card p-5 border border-blue-900/40 bg-[#101C3D] shadow-md">
       <div class="flex items-center justify-between mb-2">
-        <span class="text-xs font-black uppercase tracking-wider text-red-400">🥑 Fats</span>
+        <span class="text-xs font-black uppercase tracking-wider text-rose-400">🥑 Fats</span>
         <span class="text-xs font-bold text-white" id="fat-val">{{ nutrition.totals.fat | int }} / {{ targets.fat }}g</span>
       </div>
-      <div class="w-full bg-gray-800 rounded-full h-2 overflow-hidden mb-2">
+      <div class="w-full bg-[#0A1128] border border-blue-900/30 rounded-full h-2 overflow-hidden mb-2">
         {% set f_pct = (nutrition.totals.fat / targets.fat * 100) | round | int %}
-        <div id="fat-progress-bar" class="h-full rounded-full bg-red-500 transition-all duration-700" style="width: {{ [f_pct, 100] | min }}%"></div>
+        <div id="fat-progress-bar" class="h-full rounded-full bg-rose-500 transition-all duration-700" style="width: {{ [f_pct, 100] | min }}%"></div>
       </div>
-      <div class="flex items-center justify-between text-[11px] text-gray-500">
+      <div class="flex items-center justify-between text-[11px] text-gray-400">
         <span>9 kcal / gram</span>
-        <span class="text-red-400 font-semibold">{{ (nutrition.totals.fat * 9) | int }} kcal</span>
+        <span class="text-rose-400 font-semibold">{{ (nutrition.totals.fat * 9) | int }} kcal</span>
       </div>
     </div>
 
@@ -117,27 +117,27 @@
     <!-- Meal Log Column -->
     <div class="space-y-4">
       <!-- AI Camera Quick Scan Button -->
-      <div class="gt-card p-4 bg-gradient-to-r from-[#1E1E1E] via-[#222222] to-[#1E1E1E] border border-[#CCFF00]/40 shadow-xl">
-        <div class="flex items-center gap-3 mb-2">
-          <div class="w-10 h-10 rounded-xl bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/40 flex items-center justify-center text-xl shrink-0">
+      <div class="gt-card p-5 bg-gradient-to-r from-[#101C3D] via-[#16254F] to-[#101C3D] border border-[#2563EB]/40 shadow-xl rounded-2xl">
+        <div class="flex items-center gap-3 mb-3">
+          <div class="w-10 h-10 rounded-xl bg-[#2563EB]/20 text-[#E6D5B8] border border-[#2563EB]/40 flex items-center justify-center text-xl shrink-0">
             📸
           </div>
           <div>
             <h3 class="text-sm font-black text-white">Smart Food Camera Scanner</h3>
-            <p class="text-[10px] text-gray-400">Snap a photo — AI calculates exact calories & macros</p>
+            <p class="text-[10px] text-gray-300">Snap a photo — AI calculates exact calories & macros</p>
           </div>
         </div>
 
-        <button type="button" id="btn-open-camera-modal" class="neon-btn w-full py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-[#CCFF00]/20">
+        <button type="button" id="btn-open-camera-modal" class="btn-royal w-full py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg shadow-blue-900/30">
           <span>📷</span>
           <span>TAKE PHOTO OF MEAL</span>
         </button>
       </div>
 
       <!-- Manual Log Form -->
-      <div class="gt-card p-6 bg-[#1A1A1A] border border-gray-800 h-fit">
-        <div class="flex items-center gap-3 pb-3 mb-4 border-b border-gray-800">
-          <div class="w-9 h-9 rounded-xl bg-[#00E5FF]/10 border border-[#00E5FF]/30 flex items-center justify-center text-lg text-[#00E5FF]">
+      <div class="gt-card p-6 bg-[#101C3D] border border-blue-900/40 h-fit rounded-2xl shadow-xl">
+        <div class="flex items-center gap-3 pb-3 mb-4 border-b border-blue-900/40">
+          <div class="w-9 h-9 rounded-xl bg-[#2563EB]/15 border border-[#2563EB]/40 flex items-center justify-center text-lg text-[#E6D5B8]">
             ✏️
           </div>
           <div>
@@ -149,7 +149,7 @@
       <form id="nutrition-log-form" class="space-y-4">
         <div>
           <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Meal Category</label>
-          <select id="meal-type" class="gt-input w-full bg-[#121212] text-xs font-semibold">
+          <select id="meal-type" class="gt-input w-full bg-[#0A1128] text-xs font-semibold">
             <option value="Breakfast">🍳 Breakfast</option>
             <option value="Lunch">🥗 Lunch</option>
             <option value="Dinner">🥩 Dinner</option>
@@ -160,7 +160,7 @@
 
         <div>
           <label class="block text-xs font-bold text-gray-300 uppercase mb-1">Food / Meal Name *</label>
-          <input type="text" id="food-name" required placeholder="e.g. 200g Chicken Breast & Rice" class="gt-input w-full text-xs font-semibold">
+          <input type="text" id="food-name" required placeholder="e.g. 200g Grilled Chicken & Rice" class="gt-input w-full text-xs font-semibold">
         </div>
 
         <div class="grid grid-cols-2 gap-3">
@@ -180,12 +180,12 @@
             <input type="number" id="meal-carbs" min="0" step="0.5" placeholder="50" class="gt-input w-full text-xs font-bold">
           </div>
           <div>
-            <label class="block text-xs font-bold text-red-400 uppercase mb-1">Fat (g)</label>
+            <label class="block text-xs font-bold text-rose-400 uppercase mb-1">Fat (g)</label>
             <input type="number" id="meal-fat" min="0" step="0.5" placeholder="10" class="gt-input w-full text-xs font-bold">
           </div>
         </div>
 
-        <button type="submit" class="w-full py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider bg-[#00E5FF] hover:bg-[#00cce6] text-black transition shadow-lg shadow-[#00E5FF]/20 flex items-center justify-center gap-1.5">
+        <button type="submit" class="w-full py-3 px-4 rounded-xl font-black text-xs uppercase tracking-wider bg-[#2563EB] hover:bg-[#1d4ed8] text-white transition shadow-lg shadow-blue-900/30 flex items-center justify-center gap-1.5">
           <span>ADD TO MEAL LOG</span>
         </button>
       </form>
@@ -194,27 +194,27 @@
 
   <!-- AI Camera Scanner Modal -->
   <div id="ai-camera-modal" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-    <div class="gt-card p-6 max-w-lg w-full bg-[#1A1A1A] border border-[#CCFF00]/50 rounded-2xl shadow-2xl relative space-y-4 my-8">
+    <div class="gt-card p-6 max-w-lg w-full bg-[#101C3D] border border-[#2563EB]/50 rounded-2xl shadow-2xl relative space-y-4 my-8">
       
       <!-- Modal Header -->
-      <div class="flex items-center justify-between pb-3 border-b border-gray-800">
+      <div class="flex items-center justify-between pb-3 border-b border-blue-900/40">
         <div class="flex items-center gap-2">
           <span class="text-xl">📸</span>
           <h3 class="text-base font-black text-white">Smart Nutrition Camera</h3>
         </div>
         <div class="flex items-center gap-2">
-          <button type="button" id="btn-toggle-key-settings" class="text-xs text-gray-400 hover:text-[#CCFF00] transition" title="AI Key Settings">🔑 API Key</button>
-          <button type="button" id="btn-close-camera-modal" class="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-gray-800 text-lg transition">✕</button>
+          <button type="button" id="btn-toggle-key-settings" class="text-xs text-[#E6D5B8] hover:underline transition" title="AI Key Settings">🔑 API Key</button>
+          <button type="button" id="btn-close-camera-modal" class="text-gray-400 hover:text-white p-1 rounded-lg hover:bg-blue-900/30 text-lg transition">✕</button>
         </div>
       </div>
 
       <!-- Gemini API Key Setup Box (Collapsible / Triggered if missing) -->
-      <div id="camera-api-key-box" class="{% if not current_user.gemini_api_key %}block{% else %}hidden{% endif %} p-4 rounded-xl bg-gray-900 border border-[#CCFF00]/40 space-y-2.5">
+      <div id="camera-api-key-box" class="{% if not current_user.gemini_api_key %}block{% else %}hidden{% endif %} p-4 rounded-xl bg-[#0A1128] border border-[#2563EB]/40 space-y-2.5">
         <div class="flex items-center justify-between">
-          <div class="flex items-center gap-1.5 text-xs font-black uppercase text-[#CCFF00]">
-            <span>⚡</span> Real Google Gemini Vision Setup
+          <div class="flex items-center gap-1.5 text-xs font-black uppercase text-[#E6D5B8]">
+            <span>⚡</span> Google Gemini 3.8 Flash Vision Setup
           </div>
-          <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="text-[11px] font-bold text-[#00E5FF] hover:underline flex items-center gap-1">
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="text-[11px] font-bold text-[#93C5FD] hover:underline flex items-center gap-1">
             Get Free Key ↗
           </a>
         </div>
@@ -223,7 +223,7 @@
         </p>
         <div class="flex gap-2">
           <input type="password" id="camera-gemini-key-input" value="{{ current_user.gemini_api_key or '' }}" placeholder="Paste AIzaSy... key here" class="gt-input text-xs flex-1">
-          <button type="button" id="btn-save-camera-key" class="px-4 py-2 bg-[#CCFF00] hover:bg-[#b8e600] text-black font-black text-xs rounded-xl transition">
+          <button type="button" id="btn-save-camera-key" class="px-4 py-2 bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-black text-xs rounded-xl transition shadow-md">
             SAVE
           </button>
         </div>
@@ -244,7 +244,7 @@
       <!-- Meal Period Selection for Scanned Item -->
       <div>
         <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Meal Period</label>
-        <select id="camera-meal-type" class="gt-input w-full bg-[#121212] text-xs font-semibold">
+        <select id="camera-meal-type" class="gt-input w-full bg-[#0A1128] text-xs font-semibold">
           <option value="Breakfast">🍳 Breakfast</option>
           <option value="Lunch" selected>🥗 Lunch</option>
           <option value="Dinner">🥩 Dinner</option>
@@ -254,7 +254,7 @@
       </div>
 
       <!-- Camera Capture Zone -->
-      <div id="camera-upload-zone" class="border-2 border-dashed border-gray-700 hover:border-[#CCFF00] rounded-2xl p-8 text-center cursor-pointer transition bg-[#141414] hover:bg-gray-800/40">
+      <div id="camera-upload-zone" class="border-2 border-dashed border-blue-900/60 hover:border-[#E6D5B8] rounded-2xl p-8 text-center cursor-pointer transition bg-[#0A1128] hover:bg-blue-950/40">
         <!-- Hidden file input that triggers native mobile camera -->
         <input type="file" id="camera-file-input" accept="image/*" capture="environment" class="hidden">
         <div class="text-5xl mb-3">📷</div>
@@ -266,64 +266,64 @@
 
       <!-- Image Preview & Scanning Indicator -->
       <div id="camera-preview-zone" class="hidden space-y-3">
-        <div class="relative rounded-xl overflow-hidden max-h-64 bg-black flex items-center justify-center border border-gray-800">
+        <div class="relative rounded-xl overflow-hidden max-h-64 bg-black flex items-center justify-center border border-blue-900/40">
           <img id="scanned-image-preview" src="" alt="Meal preview" class="w-full h-auto object-cover max-h-64">
-          <div id="scanning-indicator" class="hidden absolute inset-0 bg-black/75 flex flex-col items-center justify-center text-center p-4">
-            <div class="w-12 h-12 border-4 border-[#CCFF00] border-t-transparent rounded-full animate-spin mb-3"></div>
-            <div class="text-xs font-black uppercase tracking-wider text-[#CCFF00] animate-pulse">AI Analyzing Food Items & Portion Weight...</div>
-            <div class="text-[10px] text-gray-400 mt-1">Calculating calories, protein, carbs & fats</div>
+          <div id="scanning-indicator" class="hidden absolute inset-0 bg-[#0A1128]/85 flex flex-col items-center justify-center text-center p-4">
+            <div class="w-12 h-12 border-4 border-[#2563EB] border-t-transparent rounded-full animate-spin mb-3"></div>
+            <div class="text-xs font-black uppercase tracking-wider text-[#E6D5B8] animate-pulse">AI Analyzing Food Items & Portion Weight...</div>
+            <div class="text-[10px] text-gray-300 mt-1">Calculating calories, protein, carbs & fats with Gemini 3.8 Flash</div>
           </div>
         </div>
       </div>
 
       <!-- Recognized Results Card -->
-      <div id="scan-results-zone" class="hidden space-y-4 p-4 rounded-xl bg-[#121212] border border-[#CCFF00]/40">
+      <div id="scan-results-zone" class="hidden space-y-4 p-4 rounded-xl bg-[#0A1128] border border-blue-900/50">
         <div class="flex items-start justify-between gap-2">
           <div>
             <h4 id="detected-food-name" class="text-base font-black text-white">Grilled Chicken & Jasmine Rice</h4>
             <div id="detected-food-desc" class="text-xs text-gray-400 mt-0.5">Estimated portion ~420g total</div>
           </div>
-          <span id="detected-confidence" class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#CCFF00]/15 text-[#CCFF00] border border-[#CCFF00]/30 shrink-0">
+          <span id="detected-confidence" class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#2563EB]/20 text-[#E6D5B8] border border-[#2563EB]/40 shrink-0">
             AI Verified
           </span>
         </div>
 
         <!-- Macro Split Badges -->
-        <div class="grid grid-cols-4 gap-2 text-center pt-2 border-t border-gray-800">
-          <div class="p-2.5 rounded-xl bg-[#181818] border border-gray-800">
+        <div class="grid grid-cols-4 gap-2 text-center pt-2 border-t border-blue-900/40">
+          <div class="p-2.5 rounded-xl bg-[#101C3D] border border-blue-900/40">
             <div class="text-[10px] uppercase font-bold text-gray-400">Calories</div>
             <div id="detected-cals" class="text-lg font-black text-white">540</div>
-            <div class="text-[9px] text-gray-500">kcal</div>
+            <div class="text-[9px] text-gray-400">kcal</div>
           </div>
-          <div class="p-2.5 rounded-xl bg-[#181818] border border-gray-800">
+          <div class="p-2.5 rounded-xl bg-[#101C3D] border border-blue-900/40">
             <div class="text-[10px] uppercase font-bold text-blue-400">Protein</div>
             <div id="detected-protein" class="text-lg font-black text-blue-400">48g</div>
-            <div class="text-[9px] text-gray-500">4 kcal/g</div>
+            <div class="text-[9px] text-gray-400">4 kcal/g</div>
           </div>
-          <div class="p-2.5 rounded-xl bg-[#181818] border border-gray-800">
+          <div class="p-2.5 rounded-xl bg-[#101C3D] border border-blue-900/40">
             <div class="text-[10px] uppercase font-bold text-amber-400">Carbs</div>
             <div id="detected-carbs" class="text-lg font-black text-amber-400">62g</div>
-            <div class="text-[9px] text-gray-500">4 kcal/g</div>
+            <div class="text-[9px] text-gray-400">4 kcal/g</div>
           </div>
-          <div class="p-2.5 rounded-xl bg-[#181818] border border-gray-800">
-            <div class="text-[10px] uppercase font-bold text-red-400">Fat</div>
-            <div id="detected-fat" class="text-lg font-black text-red-400">8g</div>
-            <div class="text-[9px] text-gray-500">9 kcal/g</div>
+          <div class="p-2.5 rounded-xl bg-[#101C3D] border border-blue-900/40">
+            <div class="text-[10px] uppercase font-bold text-rose-400">Fat</div>
+            <div id="detected-fat" class="text-lg font-black text-rose-400">8g</div>
+            <div class="text-[9px] text-gray-400">9 kcal/g</div>
           </div>
         </div>
 
         <!-- Itemized Breakdown List -->
         <div>
-          <div class="text-[10px] uppercase font-bold text-gray-500 mb-1">Identified Plate Components:</div>
+          <div class="text-[10px] uppercase font-bold text-gray-400 mb-1">Identified Plate Components:</div>
           <div id="detected-breakdown-list" class="space-y-1.5 text-xs text-gray-300"></div>
         </div>
 
         <!-- Action Buttons -->
-        <div class="flex items-center gap-2 pt-2 border-t border-gray-800">
-          <button type="button" id="btn-confirm-scanned-meal" class="flex-1 py-3 px-4 rounded-xl bg-[#CCFF00] hover:bg-[#b8e600] text-black font-black text-xs uppercase tracking-wider transition shadow-lg shadow-[#CCFF00]/25 flex items-center justify-center gap-1.5">
+        <div class="flex items-center gap-2 pt-2 border-t border-blue-900/40">
+          <button type="button" id="btn-confirm-scanned-meal" class="flex-1 py-3 px-4 rounded-xl bg-[#2563EB] hover:bg-[#1d4ed8] text-white font-black text-xs uppercase tracking-wider transition shadow-lg shadow-blue-900/30 flex items-center justify-center gap-1.5">
             <span>✓</span> <span>Log This Meal to My Day</span>
           </button>
-          <button type="button" id="btn-retake-camera" class="py-3 px-4 rounded-xl bg-gray-800 hover:bg-gray-700 text-gray-200 font-bold text-xs transition">
+          <button type="button" id="btn-retake-camera" class="py-3 px-4 rounded-xl bg-[#1A284F] hover:bg-[#22356B] text-[#E6D5B8] font-bold text-xs transition">
             Retake Photo
           </button>
         </div>
@@ -334,19 +334,19 @@
 
     <!-- Itemized Meal Entries Grouped by Category -->
     <div class="lg:col-span-2 space-y-4">
-      <div class="flex items-center justify-between pb-2 border-b border-gray-800">
+      <div class="flex items-center justify-between pb-2 border-b border-blue-900/40">
         <h3 class="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
           <span>📋</span> Today's Itemized Food Intake
         </h3>
-        <span class="text-xs text-gray-500">Grouped by meal period</span>
+        <span class="text-xs text-gray-400">Grouped by meal period</span>
       </div>
 
       <div id="meal-items-container">
         <!-- Rendered dynamically by nutrition.js -->
         {% for cat in ["Breakfast", "Lunch", "Dinner", "Snack", "Post-Workout"] %}
           {% set items = nutrition.grouped[cat] %}
-          <div class="gt-card p-4 mb-4 border border-gray-800">
-            <div class="flex items-center justify-between pb-2 mb-2 border-b border-gray-800/80">
+          <div class="gt-card p-4 mb-4 border border-blue-900/40 bg-[#101C3D] shadow-md">
+            <div class="flex items-center justify-between pb-2 mb-2 border-b border-blue-900/40">
               <div class="flex items-center gap-2">
                 <span class="text-base">
                   {% if cat == 'Breakfast' %}🍳{% elif cat == 'Lunch' %}🥗{% elif cat == 'Dinner' %}🥩{% elif cat == 'Snack' %}🍎{% else %}🥤{% endif %}
@@ -354,16 +354,16 @@
                 <h4 class="font-bold text-white text-sm">{{ cat }}</h4>
                 <span class="text-xs text-gray-400">({{ items | length }} items)</span>
               </div>
-              <div class="text-xs font-bold text-[#CCFF00]">
+              <div class="text-xs font-bold text-[#E6D5B8]">
                 {% set cat_cals = items | sum(attribute='calories') %}
                 {{ cat_cals | int }} kcal
               </div>
             </div>
 
             {% if items | length == 0 %}
-              <div class="text-xs text-gray-500 italic py-2 text-center">No foods logged for {{ cat }}.</div>
+              <div class="text-xs text-gray-400 italic py-2 text-center">No foods logged for {{ cat }}.</div>
             {% else %}
-              <div class="divide-y divide-gray-800/40">
+              <div class="divide-y divide-blue-900/30">
                 {% for item in items %}
                   <div class="flex items-center justify-between py-2 text-xs">
                     <div>
@@ -371,12 +371,12 @@
                       <div class="text-[11px] text-gray-400 mt-0.5">
                         P: <span class="text-blue-400 font-medium">{{ item.protein }}g</span> • 
                         C: <span class="text-amber-400 font-medium">{{ item.carbs }}g</span> • 
-                        F: <span class="text-red-400 font-medium">{{ item.fat }}g</span>
+                        F: <span class="text-rose-400 font-medium">{{ item.fat }}g</span>
                       </div>
                     </div>
                     <div class="flex items-center gap-3">
                       <span class="font-bold text-white">{{ item.calories | int }} kcal</span>
-                      <button onclick="deleteMealItem({{ item.id }})" class="text-gray-500 hover:text-red-400 p-1 transition" title="Delete entry">
+                      <button onclick="deleteMealItem({{ item.id }})" class="text-gray-400 hover:text-red-400 p-1 transition" title="Delete entry">
                         ✕
                       </button>
                     </div>

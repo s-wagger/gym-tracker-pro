@@ -101,24 +101,24 @@ function renderTrainingZones(oneRM, unit) {
   if (!container) return;
 
   const zones = [
-    { pct: 100, label: "Absolute 1RM", reps: "1 Rep", desc: "Max Effort / Testing", color: "#FF3366", highlight: false },
-    { pct: 95, label: "Peak Power", reps: "1 - 2 Reps", desc: "Neural recruitment", color: "#FF5722", highlight: false },
-    { pct: 90, label: "Heavy Strength", reps: "3 - 4 Reps", desc: "Maximum Strength", color: "#FFD700", highlight: true }, // Requested in brief
-    { pct: 85, label: "Strength Hypertrophy", reps: "5 - 6 Reps", desc: "Myofibrillar building", color: "#CCFF00", highlight: true }, // Requested in brief
-    { pct: 80, label: "Hypertrophy", reps: "7 - 8 Reps", desc: "Optimal Muscle Growth", color: "#00E5FF", highlight: false },
-    { pct: 75, label: "Work Capacity", reps: "9 - 10 Reps", desc: "Hypertrophy & Volume", color: "#00FF88", highlight: true }, // Requested in brief
-    { pct: 70, label: "Muscular Endurance", reps: "11 - 12 Reps", desc: "Conditioning & Density", color: "#76FF03", highlight: false },
-    { pct: 60, label: "Dynamic Speed", reps: "12 - 15 Reps", desc: "Explosive bar speed", color: "#64B5F6", highlight: false },
-    { pct: 50, label: "Recovery / Deload", reps: "15 - 20 Reps", desc: "Technique & Blood Flow", color: "#B0BEC5", highlight: true } // Requested in brief
+    { pct: 100, label: "Absolute 1RM", reps: "1 Rep", desc: "Max Effort / Testing", color: "#F43F5E", highlight: false },
+    { pct: 95, label: "Peak Power", reps: "1 - 2 Reps", desc: "Neural recruitment", color: "#FB923C", highlight: false },
+    { pct: 90, label: "Heavy Strength", reps: "3 - 4 Reps", desc: "Maximum Strength", color: "#E6D5B8", highlight: true },
+    { pct: 85, label: "Strength Hypertrophy", reps: "5 - 6 Reps", desc: "Myofibrillar building", color: "#60A5FA", highlight: true },
+    { pct: 80, label: "Hypertrophy", reps: "7 - 8 Reps", desc: "Optimal Muscle Growth", color: "#38BDF8", highlight: false },
+    { pct: 75, label: "Work Capacity", reps: "9 - 10 Reps", desc: "Hypertrophy & Volume", color: "#2563EB", highlight: true },
+    { pct: 70, label: "Muscular Endurance", reps: "11 - 12 Reps", desc: "Conditioning & Density", color: "#818CF8", highlight: false },
+    { pct: 60, label: "Dynamic Speed", reps: "12 - 15 Reps", desc: "Explosive bar speed", color: "#A78BFA", highlight: false },
+    { pct: 50, label: "Recovery / Deload", reps: "15 - 20 Reps", desc: "Technique & Blood Flow", color: "#CBD5E1", highlight: true }
   ];
 
   container.innerHTML = zones.map((z) => {
     const targetWeight = Math.round(oneRM * (z.pct / 100.0) * 10) / 10;
     return `
-      <div class="gt-card p-4 border ${z.highlight ? 'border-[#CCFF00]/50 bg-[#1E1E1E]' : 'border-gray-800 bg-[#171717]'} transition hover:border-[#CCFF00]/60">
+      <div class="gt-card p-4 rounded-xl border ${z.highlight ? 'border-[#2563EB]/60 bg-[#101C3D] shadow-md' : 'border-blue-900/30 bg-[#0A1128]'} transition hover:border-[#E6D5B8]/60">
         <div class="flex items-center justify-between mb-2">
           <div class="flex items-center gap-2">
-            <span class="text-xs font-black px-2 py-0.5 rounded-full" style="background-color: ${z.color}20; color: ${z.color}; border: 1px solid ${z.color}40;">
+            <span class="text-xs font-black px-2 py-0.5 rounded-full" style="background-color: ${z.color}25; color: ${z.color}; border: 1px solid ${z.color}50;">
               ${z.pct}%
             </span>
             <span class="text-sm font-bold text-white">${z.label}</span>
@@ -129,7 +129,7 @@ function renderTrainingZones(oneRM, unit) {
           </div>
         </div>
 
-        <div class="w-full bg-gray-800 rounded-full h-1.5 mb-2 overflow-hidden">
+        <div class="w-full bg-[#0A1128] border border-blue-900/30 rounded-full h-1.5 mb-2 overflow-hidden">
           <div class="h-full rounded-full" style="width: ${z.pct}%; background-color: ${z.color}"></div>
         </div>
 

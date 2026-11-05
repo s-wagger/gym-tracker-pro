@@ -1,83 +1,124 @@
 """
-Gym Tracker Pro - Icon Generator
-Generates high-resolution adaptive PNG and SVG icons for PWA compliance.
+Gym Tracker Pro - Luxury Icon Generator
+Generates high-resolution adaptive PNG and SVG icons in Executive Royal Blue & Warm Beige.
 """
 from PIL import Image, ImageDraw, ImageFont
 import os
 
 def create_icon(size, is_maskable=False):
-    # Base image with high-contrast dark slate background
-    img = Image.new("RGBA", (size, size), color=(18, 18, 18, 255))
+    # Deep Royal Navy background #0A1128
+    img = Image.new("RGBA", (size, size), color=(10, 17, 40, 255))
     draw = ImageDraw.Draw(img)
 
     # Padding calculation
-    padding = size * 0.15 if is_maskable else size * 0.08
+    padding = size * 0.14 if is_maskable else size * 0.07
     center = size / 2
 
-    # Outer decorative glow ring
-    ring_radius = (size / 2) - padding
+    # Outer decorative luxury ring in Warm Beige #E6D5B8
+    outer_ring_radius = (size / 2) - padding
     draw.ellipse(
-        [center - ring_radius, center - ring_radius, center + ring_radius, center + ring_radius],
-        outline=(204, 255, 0, 180),  # #CCFF00 with alpha
-        width=max(2, int(size * 0.025))
+        [center - outer_ring_radius, center - outer_ring_radius, 
+         center + outer_ring_radius, center + outer_ring_radius],
+        outline=(230, 213, 184, 240),  # Warm Beige #E6D5B8
+        width=max(2, int(size * 0.024))
     )
 
-    # Stylized Dumbbell / Hex weights in Neon Lime #CCFF00
-    bar_thickness = max(4, int(size * 0.06))
-    bar_length = size * 0.52
+    # Inner concentric accent ring in Vibrant Royal Blue #2563EB
+    inner_ring_radius = outer_ring_radius - size * 0.04
+    draw.ellipse(
+        [center - inner_ring_radius, center - inner_ring_radius, 
+         center + inner_ring_radius, center + inner_ring_radius],
+        outline=(37, 99, 235, 220),  # Royal Blue #2563EB
+        width=max(1, int(size * 0.015))
+    )
+
+    # Central Athletic Shield in Deep Royal Blue with Warm Beige border
+    shield_w = size * 0.44
+    shield_top = center - size * 0.26
+    shield_bottom = center + size * 0.28
+    shield_mid_y = center + size * 0.08
+
+    shield_points = [
+        (center - shield_w / 2, shield_top),
+        (center + shield_w / 2, shield_top),
+        (center + shield_w / 2, shield_mid_y),
+        (center, shield_bottom),
+        (center - shield_w / 2, shield_mid_y),
+    ]
+    # Draw Shield body
+    draw.polygon(shield_points, fill=(16, 28, 61, 245), outline=(230, 213, 184, 255))
+
+    # Barbell & Plates in Royal Blue and Warm Beige
+    bar_thickness = max(3, int(size * 0.045))
+    bar_length = size * 0.54
     
-    # Central barbell
+    # Central barbell line in Warm Porcelain Beige
     draw.line(
         [center - bar_length / 2, center, center + bar_length / 2, center],
-        fill=(255, 255, 255, 240),
+        fill=(245, 235, 224, 255),
         width=bar_thickness
     )
 
     # Weights / plates on left and right
-    plate_width = size * 0.08
-    plate_height_large = size * 0.38
-    plate_height_small = size * 0.26
+    plate_width = size * 0.075
+    plate_height_large = size * 0.34
+    plate_height_small = size * 0.24
 
-    # Left outer plate
+    # Left outer plate (Warm Beige #E6D5B8)
     draw.rounded_rectangle(
         [center - bar_length / 2, center - plate_height_small / 2, 
          center - bar_length / 2 + plate_width, center + plate_height_small / 2],
         radius=max(2, int(size * 0.02)),
-        fill=(255, 215, 0, 255) # Gold accent #FFD700
+        fill=(230, 213, 184, 255)
     )
-    # Left inner plate (Large)
+    # Left inner plate (Vibrant Royal Blue #2563EB with Beige rim)
     draw.rounded_rectangle(
-        [center - bar_length / 2 + plate_width * 1.2, center - plate_height_large / 2, 
-         center - bar_length / 2 + plate_width * 2.2, center + plate_height_large / 2],
+        [center - bar_length / 2 + plate_width * 1.25, center - plate_height_large / 2, 
+         center - bar_length / 2 + plate_width * 2.35, center + plate_height_large / 2],
         radius=max(3, int(size * 0.025)),
-        fill=(204, 255, 0, 255) # Neon Lime #CCFF00
+        fill=(37, 99, 235, 255),
+        outline=(245, 235, 224, 230),
+        width=max(1, int(size * 0.01))
     )
 
-    # Right inner plate (Large)
+    # Right inner plate (Vibrant Royal Blue #2563EB with Beige rim)
     draw.rounded_rectangle(
-        [center + bar_length / 2 - plate_width * 2.2, center - plate_height_large / 2, 
-         center + bar_length / 2 - plate_width * 1.2, center + plate_height_large / 2],
+        [center + bar_length / 2 - plate_width * 2.35, center - plate_height_large / 2, 
+         center + bar_length / 2 - plate_width * 1.25, center + plate_height_large / 2],
         radius=max(3, int(size * 0.025)),
-        fill=(204, 255, 0, 255) # Neon Lime #CCFF00
+        fill=(37, 99, 235, 255),
+        outline=(245, 235, 224, 230),
+        width=max(1, int(size * 0.01))
     )
-    # Right outer plate
+    # Right outer plate (Warm Beige #E6D5B8)
     draw.rounded_rectangle(
         [center + bar_length / 2 - plate_width, center - plate_height_small / 2, 
          center + bar_length / 2, center + plate_height_small / 2],
         radius=max(2, int(size * 0.02)),
-        fill=(255, 215, 0, 255) # Gold accent #FFD700
+        fill=(230, 213, 184, 255)
     )
 
-    # Central energetic lightning bolt
-    bolt_points = [
-        (center + size * 0.03, center - size * 0.22),
-        (center - size * 0.09, center + size * 0.02),
-        (center - size * 0.01, center + size * 0.02),
-        (center - size * 0.04, center + size * 0.22),
-        (center + size * 0.09, center - size * 0.02),
-        (center + size * 0.01, center - size * 0.02),
+    # Central Crest: Polished Chevron & Star in Warm Cream Beige
+    crest_pts = [
+        (center, center - size * 0.20),
+        (center + size * 0.10, center - size * 0.06),
+        (center + size * 0.05, center - size * 0.06),
+        (center, center - size * 0.12),
+        (center - size * 0.05, center - size * 0.06),
+        (center - size * 0.10, center - size * 0.06),
     ]
-    draw.polygon(bolt_points, fill=(204, 255, 0, 255), outline=(18, 18, 18, 255))
+    draw.polygon(crest_pts, fill=(245, 235, 224, 255), outline=(37, 99, 235, 200))
+
+    # Bottom chevron / banner
+    lower_pts = [
+        (center - size * 0.08, center + size * 0.08),
+        (center, center + size * 0.20),
+        (center + size * 0.08, center + size * 0.08),
+        (center + size * 0.05, center + size * 0.08),
+        (center, center + size * 0.15),
+        (center - size * 0.05, center + size * 0.08),
+    ]
+    draw.polygon(lower_pts, fill=(230, 213, 184, 255))
 
     return img
 

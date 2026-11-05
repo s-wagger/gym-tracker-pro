@@ -15,11 +15,11 @@ import sqlite3
 os.environ["SECRET_KEY"] = "test-secret-key-12345"
 from app import app
 from database import init_db, get_db
-from models import User, WorkoutManager, NutritionManager, AnalyticsManager, ExportManager
+from models import User, WorkoutManager, NutritionManager, AnalyticsManager, ExportManager, StepManager
 from formulas import (
     calculate_epley_1rm, calculate_brzycki_1rm,
     calculate_lombardi_1rm, get_training_zones, evaluate_milestones,
-    calculate_user_fitness_plan
+    calculate_user_fitness_plan, calculate_step_metrics
 )
 
 class GymTrackerTestCase(unittest.TestCase):
@@ -34,6 +34,7 @@ class GymTrackerTestCase(unittest.TestCase):
 
         # Clean database before each test
         with get_db() as conn:
+            conn.execute("DELETE FROM daily_steps")
             conn.execute("DELETE FROM workout_sets")
             conn.execute("DELETE FROM workout_sessions")
             conn.execute("DELETE FROM nutrition_entries")
@@ -242,7 +243,8 @@ class GymTrackerTestCase(unittest.TestCase):
         self.assertEqual(data["name"], "Gym Tracker Pro")
         self.assertEqual(data["short_name"], "GymTracker")
         self.assertEqual(data["display"], "standalone")
-        self.assertEqual(data["background_color"], "#121212")
+        self.assertEqual(data["background_color"], "#0A1128")
+        self.assertEqual(data["theme_color"], "#0A1128")
         self.assertGreaterEqual(len(data["icons"]), 2)
 
     def test_pwa_service_worker(self):
@@ -291,6 +293,91 @@ class GymTrackerTestCase(unittest.TestCase):
         self.assertIn("calories", data["analysis"])
         self.assertIn("protein", data["analysis"])
         self.assertGreater(data["analysis"]["calories"], 0)
+
+    # ---------------------------------------------------------
+    # 8. Pedometer & Step Counter Subsystem Tests
+    # ---------------------------------------------------------
+    def test_step_metrics_formula(self):
+        """Verify biomechanical calculation of stride, distance, MET calories, and active minutes."""
+        metrics = calculate_step_metrics(
+            steps=10000,
+            height_cm=175.0,
+            weight_val=75.0,
+            unit="kg",
+            step_goal=10000
+        )
+        self.assertEqual(metrics["steps"], 10000)
+        self.assertGreater(metrics["distance_km"], 6.5)
+        self.assertLess(metrics["distance_km"], 8.5)
+        self.assertGreater(metrics["calories_burned"], 300)
+        self.assertGreater(metrics["active_minutes"], 70)
+        self.assertEqual(metrics["progress_pct"], 100)
+
+    def test_step_manager_and_endpoints(self):
+        """Verify logging steps, updating daily totals, retrieving history, and CSV export."""
+        user = User.create("stepper", "step@test.com", "pass1234")
+        with self.client.session_transaction() as sess:
+            sess["_user_id"] = str(user.id)
+            sess["_fresh"] = True
+
+        from datetime import datetime
+        today_str = datetime.now().strftime("%Y-%m-%d")
+
+        # 1. Access /steps page
+        res_page = self.client.get("/steps")
+        self.assertEqual(res_page.status_code, 200)
+        self.assertIn(b"Smart Pedometer", res_page.data)
+
+        # 2. Sync steps via POST /api/steps/sync
+        res_sync = self.client.post("/api/steps/sync", json={
+            "steps": 4500,
+            "date": today_str
+        })
+        self.assertEqual(res_sync.status_code, 200)
+        sync_data = json.loads(res_sync.data)
+        self.assertTrue(sync_data["success"])
+        self.assertEqual(sync_data["data"]["steps"], 4500)
+        self.assertGreater(sync_data["data"]["distance_km"], 2.0)
+
+        # 3. Add incremental steps via POST /api/steps/add
+        res_add = self.client.post("/api/steps/add", json={
+            "delta": 1000,
+            "date": today_str
+        })
+        self.assertEqual(res_add.status_code, 200)
+        add_data = json.loads(res_add.data)
+        self.assertTrue(add_data["success"])
+        self.assertEqual(add_data["data"]["steps"], 5500)
+
+        # 4. Fetch today's steps via GET /api/steps/today
+        res_today = self.client.get("/api/steps/today")
+        self.assertEqual(res_today.status_code, 200)
+        today_data = json.loads(res_today.data)
+        self.assertEqual(today_data["data"]["steps"], 5500)
+
+        # 5. Update daily step goal via POST /api/steps/goal
+        res_goal = self.client.post("/api/steps/goal", json={"goal": 12000})
+        self.assertEqual(res_goal.status_code, 200)
+        goal_data = json.loads(res_goal.data)
+        self.assertTrue(goal_data["success"])
+        self.assertEqual(goal_data["goal"], 12000)
+
+        # 6. Verify 7-day history via GET /api/steps/history
+        res_hist = self.client.get("/api/steps/history")
+        self.assertEqual(res_hist.status_code, 200)
+        hist_data = json.loads(res_hist.data)
+        self.assertEqual(len(hist_data["history"]), 7)
+
+        # 7. Verify Steps CSV export
+        res_csv = self.client.get("/export/steps/csv")
+        self.assertEqual(res_csv.status_code, 200)
+        self.assertIn(b"Steps,Distance (km)", res_csv.data)
+        self.assertIn(b"5500", res_csv.data)
+
+        # 8. Verify Steps in ExportManager
+        steps_csv_data = ExportManager.get_steps_csv_data(user.id)
+        self.assertEqual(len(steps_csv_data), 1)
+        self.assertEqual(steps_csv_data[0]["steps"], 5500)
 
 if __name__ == "__main__":
     unittest.main()
