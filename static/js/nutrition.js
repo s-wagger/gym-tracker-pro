@@ -370,6 +370,13 @@ function initAiCameraScanner() {
           renderScanResults(data.analysis);
           resultsZone.classList.remove('hidden');
           errorBanner?.classList.add('hidden');
+        } else if (data.is_pro_required) {
+          const errorTitle = document.getElementById('camera-error-title');
+          if (errorTitle) errorTitle.textContent = "Pro Feature Required";
+          if (errorMessage) errorMessage.textContent = data.error;
+          errorBanner?.classList.remove('hidden');
+          showToast(data.error, 'warning');
+          setTimeout(() => { window.location.href = '/subscription?required=camera'; }, 2500);
         } else if (data.needs_api_key) {
           apiKeyBox?.classList.remove('hidden');
           apiKeyInput?.focus();

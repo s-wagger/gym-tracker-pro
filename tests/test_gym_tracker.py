@@ -15,7 +15,7 @@ import sqlite3
 os.environ["SECRET_KEY"] = "test-secret-key-12345"
 from app import app
 from database import init_db, get_db
-from models import User, WorkoutManager, NutritionManager, AnalyticsManager, ExportManager, StepManager
+from models import User, WorkoutManager, NutritionManager, AnalyticsManager, ExportManager, StepManager, SubscriptionManager
 from formulas import (
     calculate_epley_1rm, calculate_brzycki_1rm,
     calculate_lombardi_1rm, get_training_zones, evaluate_milestones,
@@ -34,6 +34,7 @@ class GymTrackerTestCase(unittest.TestCase):
 
         # Clean database before each test
         with get_db() as conn:
+            conn.execute("DELETE FROM subscription_requests")
             conn.execute("DELETE FROM daily_steps")
             conn.execute("DELETE FROM workout_sets")
             conn.execute("DELETE FROM workout_sessions")
@@ -378,6 +379,123 @@ class GymTrackerTestCase(unittest.TestCase):
         steps_csv_data = ExportManager.get_steps_csv_data(user.id)
         self.assertEqual(len(steps_csv_data), 1)
         self.assertEqual(steps_csv_data[0]["steps"], 5500)
+
+    # ---------------------------------------------------------
+    # 9. Subscription, 30-Day Free Trial & Paywall Subsystem Tests
+    # ---------------------------------------------------------
+    def test_30_day_free_trial_and_paywall(self):
+        """
+        Verify:
+        - New user starts with 30-day free trial and full Pro feature access.
+        - When trial expires, pro features (AI Camera, 1RM, CSV Exports) are gated.
+        - Core features (Workout logging, pedometer, manual nutrition, PRs) remain 100% accessible.
+        - Direct Bank Transfer (UBL IBAN) payment submission & owner approval activates Pro.
+        - Owner has permanent lifetime VIP access.
+        """
+        # 1. New user registration check
+        user = User.create("subscriber", "sub@test.com", "pass1234")
+        self.assertEqual(user.subscription_status, "trial")
+        self.assertGreaterEqual(user.trial_days_left, 29)
+        self.assertTrue(user.has_pro_access)
+
+        with self.client.session_transaction() as sess:
+            sess["_user_id"] = str(user.id)
+            sess["_fresh"] = True
+
+        # During free trial: /1rm and /export are accessible
+        res_1rm = self.client.get("/1rm")
+        self.assertEqual(res_1rm.status_code, 200)
+
+        res_export = self.client.get("/export")
+        self.assertEqual(res_export.status_code, 200)
+
+        # 2. Simulate 30-day Free Trial Expiration
+        user.set_subscription("trial", days=-1) # Expired
+        self.assertEqual(user.trial_days_left, 0)
+        self.assertFalse(user.has_pro_access)
+
+        # Pro feature 1: AI Camera Scanner -> Expect 403 Forbidden
+        dummy_b64 = "data:image/jpeg;base64," + "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==" * 5
+        res_scan = self.client.post("/api/nutrition/scan-meal", json={"image_data": dummy_b64})
+        self.assertEqual(res_scan.status_code, 403)
+        scan_data = json.loads(res_scan.data)
+        self.assertTrue(scan_data["is_pro_required"])
+
+        # Pro feature 2: 1RM Engine -> Redirects to /subscription
+        res_1rm_locked = self.client.get("/1rm")
+        self.assertEqual(res_1rm_locked.status_code, 302)
+        self.assertIn("/subscription", res_1rm_locked.headers["Location"])
+
+        # Pro feature 3: CSV Export -> Redirects to /subscription
+        res_export_locked = self.client.get("/export")
+        self.assertEqual(res_export_locked.status_code, 302)
+        self.assertIn("/subscription", res_export_locked.headers["Location"])
+
+        # 3. VERIFY CORE FREE FEATURES REMAIN 100% ACCESSIBLE AFTER TRIAL EXPIRES
+        # Core 1: Workout Logging
+        res_workout = self.client.post("/api/workouts/log", json={
+            "title": "Leg Day",
+            "date": "2026-11-05",
+            "notes": "Good squats",
+            "sets": [{"muscle_group": "Legs", "exercise_name": "Back Squat", "weight": 120, "reps": 8, "rpe": 8, "is_warmup": False}]
+        })
+        self.assertEqual(res_workout.status_code, 200)
+
+        # Core 2: Pedometer & Steps
+        res_step = self.client.post("/api/steps/sync", json={"steps": 3000, "date": "2026-11-05"})
+        self.assertEqual(res_step.status_code, 200)
+
+        # Core 3: Manual Nutrition Logging
+        res_diet = self.client.post("/api/nutrition/log", json={
+            "date": "2026-11-05",
+            "meal_type": "Lunch",
+            "food_name": "Chicken and Rice",
+            "calories": 500,
+            "protein": 40,
+            "carbs": 60,
+            "fat": 10
+        })
+        self.assertEqual(res_diet.status_code, 200)
+
+        # Core 4: PRs & Analytics
+        res_analytics = self.client.get("/analytics")
+        self.assertEqual(res_analytics.status_code, 200)
+
+        # 4. Bank Transfer Payment Verification Request (UBL IBAN)
+        res_sub_submit = self.client.post("/api/subscription/submit", json={
+            "sender_name": "Hamza Ali",
+            "transaction_ref": "UBL-TXN-984210",
+            "plan_name": "Pro Monthly",
+            "amount_paid": 1500,
+            "notes": "Paid via UBL Netbanking to PK58UNIL0109000321329705"
+        })
+        self.assertEqual(res_sub_submit.status_code, 200)
+        sub_resp = json.loads(res_sub_submit.data)
+        self.assertTrue(sub_resp["success"])
+        req_id = sub_resp["request_id"]
+
+        # 5. Owner Approval Process
+        # Non-owner cannot approve
+        res_unauth_approve = self.client.post("/api/admin/subscription/approve", json={"request_id": req_id})
+        self.assertEqual(res_unauth_approve.status_code, 403)
+
+        # Create Owner and claim VIP status
+        owner = User.create("app_owner", "owner@gymtracker.com", "ownerpass")
+        owner.grant_owner()
+        self.assertTrue(owner.is_owner_user)
+        self.assertTrue(owner.has_pro_access)
+
+        with self.client.session_transaction() as sess:
+            sess["_user_id"] = str(owner.id)
+
+        # Owner approves the subscriber's payment request
+        res_approve = self.client.post("/api/admin/subscription/approve", json={"request_id": req_id})
+        self.assertEqual(res_approve.status_code, 200)
+
+        # Verify subscriber is now Pro and features are unlocked
+        refreshed_user = User.get_by_id(user.id)
+        self.assertEqual(refreshed_user.subscription_status, "pro")
+        self.assertTrue(refreshed_user.has_pro_access)
 
 if __name__ == "__main__":
     unittest.main()

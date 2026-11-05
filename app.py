@@ -29,7 +29,7 @@ from config import Config
 from database import init_db
 from models import (
     User, WorkoutManager, NutritionManager,
-    AnalyticsManager, ExportManager, StepManager
+    AnalyticsManager, ExportManager, StepManager, SubscriptionManager
 )
 from formulas import (
     calculate_epley_1rm, calculate_brzycki_1rm,
@@ -385,6 +385,13 @@ def api_scan_meal():
     Accepts meal camera photos or file uploads and uses Vision AI / Gemini
     to determine the meal title, estimated portion, and exact calories, protein, carbs, and fat.
     """
+    if not current_user.has_pro_access:
+        return jsonify({
+            "success": False,
+            "is_pro_required": True,
+            "error": "The AI Food Camera Scanner is a Pro feature. Your 30-day free trial has expired. Upgrade to Gym Tracker Pro to unlock unlimited photo meal scanning."
+        }), 403
+
     image_bytes = None
     content_type = "image/jpeg"
 
@@ -592,8 +599,13 @@ def api_get_step_history():
 # Module 6: 1RM Analytical Engine
 # -------------------------------------------------------------
 @app.route("/one-rep-max")
+@app.route("/1rm")
 @login_required
 def one_rep_max():
+    if not current_user.has_pro_access:
+        flash("The 1-Rep Max Analytical Engine & Periodization is a Pro feature. Your 30-day free trial has expired. Upgrade to Gym Tracker Pro to access.", "warning")
+        return redirect(url_for("subscription", required="1rm"))
+
     distinct_exercises = AnalyticsManager.get_distinct_exercises(current_user.id)
     if not distinct_exercises:
         distinct_exercises = ["Bench Press", "Back Squat", "Deadlift", "Overhead Press"]
@@ -705,11 +717,18 @@ def api_analytics_volume():
 @app.route("/export")
 @login_required
 def export_view():
+    if not current_user.has_pro_access:
+        flash("Workout & Data CSV Export is a Pro feature. Your 30-day free trial has expired. Upgrade to Gym Tracker Pro to export your archives.", "warning")
+        return redirect(url_for("subscription", required="export"))
     return render_template("export.html", user=current_user)
 
 @app.route("/export/workouts.csv")
+@app.route("/export/workouts/csv")
 @login_required
 def export_workouts_csv():
+    if not current_user.has_pro_access:
+        flash("Workout CSV Export is a Pro feature. Please upgrade to Pro.", "warning")
+        return redirect(url_for("subscription", required="export"))
     data = ExportManager.get_workouts_csv_data(current_user.id)
     output = io.StringIO()
     writer = csv.writer(output)
@@ -749,6 +768,9 @@ def export_workouts_csv():
 @app.route("/export/nutrition.csv")
 @login_required
 def export_nutrition_csv():
+    if not current_user.has_pro_access:
+        flash("Nutrition CSV Export is a Pro feature. Please upgrade to Pro.", "warning")
+        return redirect(url_for("subscription", required="export"))
     data = ExportManager.get_nutrition_csv_data(current_user.id)
     output = io.StringIO()
     writer = csv.writer(output)
@@ -778,6 +800,9 @@ def export_nutrition_csv():
 @app.route("/export/prs.csv")
 @login_required
 def export_prs_csv():
+    if not current_user.has_pro_access:
+        flash("PRs CSV Export is a Pro feature. Please upgrade to Pro.", "warning")
+        return redirect(url_for("subscription", required="export"))
     data = ExportManager.get_prs_csv_data(current_user.id)
     output = io.StringIO()
     writer = csv.writer(output)
@@ -805,6 +830,9 @@ def export_prs_csv():
 @app.route("/export/steps/csv")
 @login_required
 def export_steps_csv():
+    if not current_user.has_pro_access:
+        flash("Steps CSV Export is a Pro feature. Please upgrade to Pro.", "warning")
+        return redirect(url_for("subscription", required="export"))
     data = ExportManager.get_steps_csv_data(current_user.id)
     output = io.StringIO()
     writer = csv.writer(output)
@@ -834,6 +862,9 @@ def export_steps_csv():
 @login_required
 def export_all_zip():
     """Generates an in-memory ZIP package containing all exported CSV datasets."""
+    if not current_user.has_pro_access:
+        flash("Master Data Export is a Pro feature. Please upgrade to Pro.", "warning")
+        return redirect(url_for("subscription", required="export"))
     zip_buffer = io.BytesIO()
 
     with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zf:
@@ -890,6 +921,103 @@ def export_all_zip():
         as_attachment=True,
         download_name=zip_filename
     )
+
+# -------------------------------------------------------------
+# Module 9: Subscription & Membership Subsystem
+# -------------------------------------------------------------
+@app.route("/subscription")
+@login_required
+def subscription():
+    required_feature = request.args.get("required")
+    user_requests = SubscriptionManager.get_user_requests(current_user.id)
+    all_requests = SubscriptionManager.get_all_requests() if current_user.is_owner_user else []
+    return render_template(
+        "subscription.html",
+        user=current_user,
+        bank_name=SubscriptionManager.BANK_NAME,
+        iban_number=SubscriptionManager.BANK_IBAN,
+        user_requests=user_requests,
+        all_requests=all_requests,
+        required_feature=required_feature
+    )
+
+@app.route("/api/subscription/submit", methods=["POST"])
+@login_required
+def api_submit_subscription():
+    data = request.get_json() or {}
+    sender_name = (data.get("sender_name") or "").strip()
+    transaction_ref = (data.get("transaction_ref") or "").strip()
+    plan_name = (data.get("plan_name") or "Pro Monthly").strip()
+    amount_paid = float(data.get("amount_paid") or 0.0)
+    notes = (data.get("notes") or "").strip()
+
+    if not sender_name or not transaction_ref:
+        return jsonify({"success": False, "error": "Please provide your Account/Sender Name and Bank Transaction Reference ID."}), 400
+
+    req_id = SubscriptionManager.create_request(
+        user_id=current_user.id,
+        sender_name=sender_name,
+        transaction_ref=transaction_ref,
+        plan_name=plan_name,
+        amount_paid=amount_paid,
+        notes=notes
+    )
+    return jsonify({
+        "success": True,
+        "request_id": req_id,
+        "message": "Payment verification submitted successfully! Your Pro membership will be activated upon bank receipt verification."
+    })
+
+@app.route("/api/admin/subscription/approve", methods=["POST"])
+@login_required
+def api_admin_approve_sub():
+    if not current_user.is_owner_user:
+        return jsonify({"success": False, "error": "Unauthorized. Only the app owner can approve subscriptions."}), 403
+    data = request.get_json() or {}
+    request_id = int(data.get("request_id") or 0)
+    success = SubscriptionManager.approve_request(request_id)
+    if success:
+        return jsonify({"success": True, "message": "Subscription approved and Pro status activated!"})
+    return jsonify({"success": False, "error": "Could not find subscription request."}), 404
+
+@app.route("/api/admin/subscription/reject", methods=["POST"])
+@login_required
+def api_admin_reject_sub():
+    if not current_user.is_owner_user:
+        return jsonify({"success": False, "error": "Unauthorized. Only the app owner can reject subscriptions."}), 403
+    data = request.get_json() or {}
+    request_id = int(data.get("request_id") or 0)
+    reason = (data.get("reason") or "Payment not verified").strip()
+    success = SubscriptionManager.reject_request(request_id, reason=reason)
+    return jsonify({"success": success})
+
+@app.route("/api/admin/grant-pro", methods=["POST"])
+@login_required
+def api_admin_grant_pro():
+    if not current_user.is_owner_user:
+        return jsonify({"success": False, "error": "Unauthorized. Only the app owner can grant Pro status."}), 403
+    data = request.get_json() or {}
+    user_ident = (data.get("username_or_email") or "").strip()
+    is_owner_flag = bool(data.get("is_owner", False))
+    if not user_ident:
+        return jsonify({"success": False, "error": "Please provide a username or email."}), 400
+    success = SubscriptionManager.grant_user_pro(user_ident, is_owner=is_owner_flag)
+    if success:
+        return jsonify({"success": True, "message": f"Successfully upgraded {user_ident} to {'Lifetime Owner' if is_owner_flag else 'Pro Member'}!"})
+    return jsonify({"success": False, "error": f"User '{user_ident}' not found in database."}), 404
+
+@app.route("/claim-owner", methods=["GET", "POST"])
+@login_required
+def claim_owner():
+    """
+    Allows the owner to easily claim lifetime VIP owner status on their account.
+    """
+    if request.method == "POST":
+        current_user.grant_owner()
+        flash("Congratulations! Your account has been permanently verified as the Primary App Owner with Lifetime VIP Pro Access.", "success")
+        return redirect(url_for("dashboard"))
+    return render_template("claim_owner.html", user=current_user)
+
 
 # -------------------------------------------------------------
 # Application Initializer

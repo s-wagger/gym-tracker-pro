@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+
+{% block title %}Verify Primary App Owner | Gym Tracker Pro{% endblock %}
+
+{% block content %}
+<div class="max-w-md mx-auto my-12 space-y-6">
+
+  <div class="gt-card p-8 bg-gradient-to-br from-[#101C3D] via-[#16254F] to-[#0A1128] border-2 border-[#E6D5B8] rounded-2xl shadow-2xl text-center space-y-5">
+    <div class="w-20 h-20 mx-auto rounded-3xl bg-[#2563EB]/25 border-2 border-[#E6D5B8] flex items-center justify-center text-4xl shadow-lg shadow-blue-900/40">
+      👑
+    </div>
+
+    <div>
+      <span class="text-xs uppercase font-black tracking-widest text-[#E6D5B8]">Exclusive Master Verification</span>
+      <h1 class="text-2xl font-black text-white mt-1">Claim App Owner Access</h1>
+      <p class="text-xs text-gray-300 mt-2 leading-relaxed">
+        You are verifying your account as the master creator and owner of Gym Tracker Pro. This permanently grants 100% free lifetime access to all Pro features, administrative approval powers, and overrides all paywalls.
+      </p>
+    </div>
+
+    <div class="p-3.5 rounded-xl bg-[#0A1128] border border-blue-900/60 text-xs text-left space-y-1">
+      <div class="flex items-center justify-between text-gray-400">
+        <span>Logged In As:</span>
+        <strong class="text-white">{{ user.username }}</strong>
+      </div>
+      <div class="flex items-center justify-between text-gray-400">
+        <span>Email:</span>
+        <strong class="text-[#E6D5B8]">{{ user.email }}</strong>
+      </div>
+      <div class="flex items-center justify-between text-gray-400">
+        <span>Owner Status:</span>
+        <span class="font-bold {{ 'text-emerald-400' if user.is_owner_user else 'text-amber-400' }}">
+          {{ 'Already Master Owner' if user.is_owner_user else 'Ready to Claim' }}
+        </span>
+      </div>
+    </div>
+
+    {% if user.is_owner_user %}
+      <div class="p-3 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-bold">
+        ✓ Your account is already verified as the Primary App Owner!
+      </div>
+      <a href="{{ url_for('dashboard') }}" class="btn-royal block w-full py-3 px-4 rounded-xl text-xs font-black uppercase tracking-wider">
+        Return to Dashboard
+      </a>
+    {% else %}
+      <form method="POST" action="{{ url_for('claim_owner') }}">
+        <button type="submit" class="btn-beige w-full py-3.5 px-6 rounded-xl font-black text-xs uppercase tracking-wider shadow-lg shadow-[#E6D5B8]/20 flex items-center justify-center gap-2">
+          <span>👑</span> <span>Activate Lifetime Owner VIP</span>
+        </button>
+      </form>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

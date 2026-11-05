@@ -25,8 +25,116 @@ class User(UserMixin):
         self.weight = float(data.get("weight") or 75.0)
         self.fitness_goal = data.get("fitness_goal") or "gain_weight"
         self.daily_step_goal = int(data.get("daily_step_goal") or 10000)
+        self.subscription_status = data.get("subscription_status") or "trial"
+        self.trial_ends_at = data.get("trial_ends_at")
+        self.is_owner = bool(data.get("is_owner") or 0)
         self.gemini_api_key = data.get("gemini_api_key")
         self.created_at = data.get("created_at")
+
+    @property
+    def is_owner_user(self) -> bool:
+        """Determines if this account is the permanent master owner (free lifetime VIP)."""
+        import os
+        if self.is_owner:
+            return True
+        owner_emails = [e.strip().lower() for e in os.environ.get("OWNER_EMAILS", "").split(",") if e.strip()]
+        owner_usernames = [u.strip().lower() for u in os.environ.get("OWNER_USERNAMES", "").split(",") if u.strip()]
+        if self.email and self.email.lower() in owner_emails:
+            return True
+        if self.username and self.username.lower() in owner_usernames:
+            return True
+        return False
+
+    @property
+    def trial_days_left(self) -> int:
+        """Calculates days remaining in the 30-day free trial."""
+        if self.is_owner_user or self.subscription_status in ["pro", "active", "lifetime_owner"]:
+            return 999
+        if not self.trial_ends_at:
+            return 0
+        try:
+            end_str = str(self.trial_ends_at).split(".")[0]
+            end_dt = datetime.strptime(end_str, "%Y-%m-%d %H:%M:%S")
+        except Exception:
+            try:
+                end_dt = datetime.strptime(str(self.trial_ends_at)[:10], "%Y-%m-%d")
+            except Exception:
+                return 0
+        delta = (end_dt - datetime.now()).total_seconds()
+        days = int(delta // 86400)
+        return max(0, days)
+
+    @property
+    def has_pro_access(self) -> bool:
+        """
+        Determines if user has access to Pro features (AI camera, 1RM, exports).
+        Owner always has full access.
+        New users get 30 days full trial.
+        After 30 days, pro features lock until subscription is active.
+        """
+        if self.is_owner_user:
+            return True
+        if self.subscription_status in ["pro", "active", "lifetime_owner"]:
+            return True
+        if self.subscription_status == "trial" and self.trial_days_left > 0:
+            return True
+        return False
+
+    @property
+    def subscription_badge(self) -> dict:
+        """Returns structured metadata for displaying membership / trial status."""
+        if self.is_owner_user:
+            return {
+                "type": "owner",
+                "label": "👑 Owner • Lifetime VIP",
+                "short_label": "Owner",
+                "days_left": None,
+                "is_pro": True
+            }
+        if self.subscription_status in ["pro", "active", "lifetime_owner"]:
+            return {
+                "type": "pro",
+                "label": "⭐ Pro Member",
+                "short_label": "Pro",
+                "days_left": None,
+                "is_pro": True
+            }
+        days = self.trial_days_left
+        if days > 0:
+            return {
+                "type": "trial",
+                "label": f"⚡ Free Trial ({days}d left)",
+                "short_label": f"{days}d Trial",
+                "days_left": days,
+                "is_pro": True
+            }
+        return {
+            "type": "expired",
+            "label": "🔒 Trial Expired",
+            "short_label": "Expired",
+            "days_left": 0,
+            "is_pro": False
+        }
+
+    def grant_owner(self):
+        with get_db() as conn:
+            conn.execute("UPDATE users SET is_owner = 1, subscription_status = 'lifetime_owner' WHERE id = ?", (self.id,))
+        self.is_owner = True
+        self.subscription_status = "lifetime_owner"
+
+    def set_subscription(self, status: str, days: int = 30):
+        with get_db() as conn:
+            if status == 'pro':
+                conn.execute("UPDATE users SET subscription_status = 'pro' WHERE id = ?", (self.id,))
+                self.subscription_status = 'pro'
+            elif status == 'trial':
+                new_end = (datetime.now() + timedelta(days=days)).strftime("%Y-%m-%d %H:%M:%S")
+                conn.execute("UPDATE users SET subscription_status = 'trial', trial_ends_at = ? WHERE id = ?", (new_end, self.id))
+                self.subscription_status = 'trial'
+                self.trial_ends_at = new_end
+            else:
+                conn.execute("UPDATE users SET subscription_status = ? WHERE id = ?", (status, self.id))
+                self.subscription_status = status
 
     @staticmethod
     def get_by_id(user_id: int):
@@ -54,15 +162,26 @@ class User(UserMixin):
 
     @staticmethod
     def create(username: str, email: str, password: str, display_name: str = None, unit_preference: str = "kg", height: float = 175.0, weight: float = 75.0, fitness_goal: str = "gain_weight", daily_step_goal: int = 10000):
+        import os
         salt = bcrypt.gensalt()
         pw_hash = bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
         user_id = None
+        
+        # 30-Day Free Trial initialized for every new user
+        trial_end = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
+        
+        # Check if this user matches owner credentials from environment
+        owner_emails = [e.strip().lower() for e in os.environ.get("OWNER_EMAILS", "").split(",") if e.strip()]
+        owner_usernames = [u.strip().lower() for u in os.environ.get("OWNER_USERNAMES", "").split(",") if u.strip()]
+        is_owner = 1 if (email.strip().lower() in owner_emails or username.strip().lower() in owner_usernames) else 0
+        sub_status = "lifetime_owner" if is_owner else "trial"
+
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-            INSERT INTO users (username, email, password_hash, display_name, unit_preference, height, weight, fitness_goal, daily_step_goal)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (username.strip(), email.strip().lower(), pw_hash, (display_name or username).strip(), unit_preference, float(height), float(weight), fitness_goal, int(daily_step_goal)))
+            INSERT INTO users (username, email, password_hash, display_name, unit_preference, height, weight, fitness_goal, daily_step_goal, subscription_status, trial_ends_at, is_owner)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (username.strip(), email.strip().lower(), pw_hash, (display_name or username).strip(), unit_preference, float(height), float(weight), fitness_goal, int(daily_step_goal), sub_status, trial_end, is_owner))
             user_id = cursor.lastrowid
         return User.get_by_id(user_id)
 
@@ -649,3 +768,101 @@ class ExportManager:
             ORDER BY date DESC
             """, (user_id,))
             return cursor.fetchall()
+
+
+class SubscriptionManager:
+    """
+    Manages Pro subscriptions, bank transfer verification requests,
+    and owner administrative approvals.
+    """
+    BANK_NAME = "UNITED BANK LIMITED"
+    BANK_IBAN = "PK58UNIL0109000321329705"
+
+    @staticmethod
+    def create_request(user_id: int, sender_name: str, transaction_ref: str, plan_name: str = "Pro Monthly", amount_paid: float = 0.0, notes: str = ""):
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+            INSERT INTO subscription_requests (user_id, bank_name, iban_number, transaction_ref, sender_name, amount_paid, plan_name, status, notes)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
+            """, (
+                user_id,
+                SubscriptionManager.BANK_NAME,
+                SubscriptionManager.BANK_IBAN,
+                transaction_ref.strip(),
+                sender_name.strip(),
+                float(amount_paid or 0.0),
+                plan_name.strip(),
+                notes.strip()
+            ))
+            return cursor.lastrowid
+
+    @staticmethod
+    def get_user_requests(user_id: int) -> list:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+            SELECT * FROM subscription_requests 
+            WHERE user_id = ? 
+            ORDER BY created_at DESC
+            """, (user_id,))
+            return cursor.fetchall()
+
+    @staticmethod
+    def get_all_requests() -> list:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+            SELECT sr.*, u.username, u.email, u.display_name 
+            FROM subscription_requests sr
+            JOIN users u ON sr.user_id = u.id
+            ORDER BY sr.created_at DESC
+            """)
+            return cursor.fetchall()
+
+    @staticmethod
+    def approve_request(request_id: int) -> bool:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT user_id FROM subscription_requests WHERE id = ?", (request_id,))
+            row = cursor.fetchone()
+            if not row:
+                return False
+            user_id = row["user_id"]
+            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            cursor.execute("UPDATE subscription_requests SET status = 'approved', reviewed_at = ? WHERE id = ?", (now_str, request_id))
+            cursor.execute("UPDATE users SET subscription_status = 'pro' WHERE id = ?", (user_id,))
+            return True
+
+    @staticmethod
+    def reject_request(request_id: int, reason: str = "") -> bool:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            now_str = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            note_addition = f" [Rejected: {reason}]" if reason else " [Rejected]"
+            cursor.execute("""
+            UPDATE subscription_requests 
+            SET status = 'rejected', notes = COALESCE(notes, '') || ?, reviewed_at = ? 
+            WHERE id = ?
+            """, (note_addition, now_str, request_id))
+            return True
+
+    @staticmethod
+    def grant_user_pro(user_identifier: str, is_owner: bool = False) -> bool:
+        """Finds user by username or email and upgrades their status."""
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+            SELECT id FROM users 
+            WHERE LOWER(username) = LOWER(?) OR LOWER(email) = LOWER(?)
+            """, (user_identifier.strip(), user_identifier.strip()))
+            row = cursor.fetchone()
+            if not row:
+                return False
+            uid = row["id"]
+            if is_owner:
+                cursor.execute("UPDATE users SET is_owner = 1, subscription_status = 'lifetime_owner' WHERE id = ?", (uid,))
+            else:
+                cursor.execute("UPDATE users SET subscription_status = 'pro' WHERE id = ?", (uid,))
+            return True
+

@@ -102,11 +102,23 @@
         <a href="{{ url_for('export_view') }}" class="px-3 py-2 rounded-lg hover:text-[#E6D5B8] hover:bg-blue-950/40 transition {{ 'text-[#E6D5B8] bg-[#101C3D] border border-[#E6D5B8]/30' if request.endpoint == 'export_view' else 'text-gray-300' }}">
           Export
         </a>
+        <a href="{{ url_for('subscription') }}" class="ml-2 px-2.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1 transition shadow-sm {{ 'bg-[#E6D5B8] text-[#0A1128]' if current_user.is_owner_user else 'bg-[#2563EB] text-white' if current_user.subscription_status in ['pro', 'active', 'lifetime_owner'] else 'bg-[#2563EB]/25 text-[#E6D5B8] border border-[#2563EB]/50' if current_user.trial_days_left > 0 else 'bg-rose-950/70 text-rose-300 border border-rose-500/40' }}" title="Subscription & Membership">
+          <span>{{ '👑' if current_user.is_owner_user else '⭐' if current_user.subscription_status in ['pro', 'active', 'lifetime_owner'] else '⚡' if current_user.trial_days_left > 0 else '🔒' }}</span>
+          <span>{{ current_user.subscription_badge.short_label }}</span>
+        </a>
       </nav>
       {% endif %}
 
       <!-- Right Controls: Theme Toggle + PWA Install + Profile / Auth -->
       <div class="flex items-center gap-2 sm:gap-3">
+        <!-- Mobile Trial / Pro Pill -->
+        {% if current_user.is_authenticated %}
+        <a href="{{ url_for('subscription') }}" class="md:hidden px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 {{ 'bg-[#E6D5B8] text-[#0A1128]' if current_user.is_owner_user else 'bg-[#2563EB] text-white' if current_user.subscription_status in ['pro', 'active', 'lifetime_owner'] else 'bg-[#2563EB]/20 text-[#E6D5B8] border border-[#2563EB]/40' if current_user.trial_days_left > 0 else 'bg-rose-950/70 text-rose-300' }}">
+          <span>{{ '👑' if current_user.is_owner_user else '⭐' if current_user.subscription_status in ['pro', 'active', 'lifetime_owner'] else '⚡' if current_user.trial_days_left > 0 else '🔒' }}</span>
+          <span>{{ current_user.subscription_badge.short_label }}</span>
+        </a>
+        {% endif %}
+
         <!-- Theme Switcher Button -->
         <button type="button" class="btn-theme-toggle p-2 rounded-xl bg-[#101C3D] border border-[#E6D5B8]/30 hover:border-[#E6D5B8] text-gray-300 hover:text-white transition flex items-center gap-1.5 shadow-sm text-xs font-bold" title="Toggle Dark / White Theme">
           <span class="theme-icon text-sm">☀️</span>

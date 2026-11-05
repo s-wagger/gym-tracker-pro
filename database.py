@@ -51,6 +51,9 @@ def init_db():
             fitness_goal TEXT DEFAULT 'gain_weight',
             gemini_api_key TEXT DEFAULT NULL,
             daily_step_goal INTEGER DEFAULT 10000,
+            subscription_status TEXT DEFAULT 'trial',
+            trial_ends_at TIMESTAMP,
+            is_owner INTEGER DEFAULT 0,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """)
@@ -68,6 +71,19 @@ def init_db():
             cursor.execute("ALTER TABLE users ADD COLUMN gemini_api_key TEXT DEFAULT NULL;")
         if "daily_step_goal" not in existing_cols:
             cursor.execute("ALTER TABLE users ADD COLUMN daily_step_goal INTEGER DEFAULT 10000;")
+        if "subscription_status" not in existing_cols:
+            cursor.execute("ALTER TABLE users ADD COLUMN subscription_status TEXT DEFAULT 'trial';")
+        if "trial_ends_at" not in existing_cols:
+            cursor.execute("ALTER TABLE users ADD COLUMN trial_ends_at TIMESTAMP;")
+        if "is_owner" not in existing_cols:
+            cursor.execute("ALTER TABLE users ADD COLUMN is_owner INTEGER DEFAULT 0;")
+
+        # Initialize trial_ends_at for existing users if NULL (30 days from creation)
+        cursor.execute("""
+        UPDATE users 
+        SET trial_ends_at = datetime(created_at, '+30 days')
+        WHERE trial_ends_at IS NULL;
+        """)
 
         # Workout Sessions table
         cursor.execute("""
@@ -149,12 +165,31 @@ def init_db():
         );
         """)
 
+        # Subscription payment verification requests table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS subscription_requests (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            bank_name TEXT NOT NULL,
+            iban_number TEXT NOT NULL,
+            transaction_ref TEXT NOT NULL,
+            sender_name TEXT,
+            amount_paid REAL DEFAULT 0.0,
+            plan_name TEXT DEFAULT 'Pro Monthly',
+            status TEXT DEFAULT 'pending', -- 'pending', 'approved', 'rejected'
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            reviewed_at TIMESTAMP
+        );
+        """)
+
         # Performance Indexes
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user_date ON workout_sessions(user_id, date);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_sets_user_exercise ON workout_sets(user_id, exercise_name);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_nutrition_user_date ON nutrition_entries(user_id, date);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_prs_user_exercise ON personal_records(user_id, exercise_name);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_steps_user_date ON daily_steps(user_id, date);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_sub_requests_user ON subscription_requests(user_id);")
 
         print("Gym Tracker Pro database initialized successfully.")
 
