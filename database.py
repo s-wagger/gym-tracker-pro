@@ -191,6 +191,17 @@ def init_db():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_steps_user_date ON daily_steps(user_id, date);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_sub_requests_user ON subscription_requests(user_id);")
 
+        # Ensure permanent Master Owner account exists
+        cursor.execute("SELECT id FROM users WHERE LOWER(username) = 'swagger' OR LOWER(email) = 'ghost.5abdullah@gmail.com';")
+        if not cursor.fetchone():
+            import bcrypt
+            salt = bcrypt.gensalt()
+            pw_hash = bcrypt.hashpw(b"Swagger.5", salt).decode("utf-8")
+            cursor.execute("""
+            INSERT INTO users (username, email, password_hash, display_name, unit_preference, height, weight, fitness_goal, daily_step_goal, subscription_status, is_owner)
+            VALUES ('swagger', 'ghost.5abdullah@gmail.com', ?, 'Swagger', 'kg', 175.0, 75.0, 'gain_weight', 10000, 'lifetime_owner', 1);
+            """, (pw_hash,))
+
         print("Gym Tracker Pro database initialized successfully.")
 
 if __name__ == "__main__":
