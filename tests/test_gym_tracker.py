@@ -381,21 +381,22 @@ class GymTrackerTestCase(unittest.TestCase):
         self.assertEqual(steps_csv_data[0]["steps"], 5500)
 
     # ---------------------------------------------------------
-    # 9. Subscription, 30-Day Free Trial & Paywall Subsystem Tests
+    # 9. Subscription, 7-Day Free Trial & Paywall Subsystem Tests
     # ---------------------------------------------------------
-    def test_30_day_free_trial_and_paywall(self):
+    def test_7_day_free_trial_and_paywall(self):
         """
         Verify:
-        - New user starts with 30-day free trial and full Pro feature access.
+        - New user starts with 7-day free trial (1 week) and full Pro feature access.
         - When trial expires, pro features (AI Camera, 1RM, CSV Exports) are gated.
         - Core features (Workout logging, pedometer, manual nutrition, PRs) remain 100% accessible.
-        - Direct Bank Transfer (UBL IBAN) payment submission & owner approval activates Pro.
+        - Direct Bank Transfer (UBL IBAN) payment submission (Rs. 500/mo) & owner approval activates Pro.
         - Owner has permanent lifetime VIP access.
         """
         # 1. New user registration check
         user = User.create("subscriber", "sub@test.com", "pass1234")
         self.assertEqual(user.subscription_status, "trial")
-        self.assertGreaterEqual(user.trial_days_left, 29)
+        self.assertGreaterEqual(user.trial_days_left, 6)
+        self.assertLessEqual(user.trial_days_left, 7)
         self.assertTrue(user.has_pro_access)
 
         with self.client.session_transaction() as sess:
@@ -409,7 +410,7 @@ class GymTrackerTestCase(unittest.TestCase):
         res_export = self.client.get("/export")
         self.assertEqual(res_export.status_code, 200)
 
-        # 2. Simulate 30-day Free Trial Expiration
+        # 2. Simulate 7-day Free Trial Expiration
         user.set_subscription("trial", days=-1) # Expired
         self.assertEqual(user.trial_days_left, 0)
         self.assertFalse(user.has_pro_access)
@@ -461,12 +462,12 @@ class GymTrackerTestCase(unittest.TestCase):
         res_analytics = self.client.get("/analytics")
         self.assertEqual(res_analytics.status_code, 200)
 
-        # 4. Bank Transfer Payment Verification Request (UBL IBAN)
+        # 4. Bank Transfer Payment Verification Request (UBL IBAN) - Rs. 500/month
         res_sub_submit = self.client.post("/api/subscription/submit", json={
             "sender_name": "Hamza Ali",
             "transaction_ref": "UBL-TXN-984210",
-            "plan_name": "Pro Monthly",
-            "amount_paid": 1500,
+            "plan_name": "Pro Monthly - Rs. 500",
+            "amount_paid": 500,
             "notes": "Paid via UBL Netbanking to PK58UNIL0109000321329705"
         })
         self.assertEqual(res_sub_submit.status_code, 200)
@@ -496,6 +497,105 @@ class GymTrackerTestCase(unittest.TestCase):
         refreshed_user = User.get_by_id(user.id)
         self.assertEqual(refreshed_user.subscription_status, "pro")
         self.assertTrue(refreshed_user.has_pro_access)
+
+    # ---------------------------------------------------------
+    # 10. Single Daily Session & Flexible Equipment Weight Tests
+    # ---------------------------------------------------------
+    def test_single_daily_session_multi_exercise_grouping(self):
+        """
+        Verify that multiple exercises logged on the same date (e.g., Row -> Incline Bench -> Lat Pulldown)
+        are consolidated under a single workout_sessions record with aggregated volume and summary.
+        """
+        user = User.create("lifter_session", "lifter@test.com", "pass1234")
+        date_str = "2026-11-06"
+
+        # 1. Log First Exercise (Row) under session "Chest and Back"
+        res1 = WorkoutManager.log_workout_session(
+            user_id=user.id,
+            title="Chest and Back",
+            date=date_str,
+            notes="Morning session",
+            sets_data=[
+                {"muscle_group": "Back", "exercise_name": "Barbell Row", "set_number": 1, "weight": 70, "reps": 10, "rpe": 8, "is_warmup": False, "equipment_type": "plates", "equipment_details": "2 plates @ 25kg + 20kg bar"},
+                {"muscle_group": "Back", "exercise_name": "Barbell Row", "set_number": 2, "weight": 80, "reps": 8, "rpe": 8.5, "is_warmup": False, "equipment_type": "plates", "equipment_details": "2 plates @ 30kg + 20kg bar"}
+            ]
+        )
+        session_id_1 = res1["session_id"]
+
+        # 2. Add Next Exercise (Incline Bench) under the same daily session
+        res2 = WorkoutManager.log_workout_session(
+            user_id=user.id,
+            title="Chest and Back",
+            date=date_str,
+            notes="Added chest incline",
+            sets_data=[
+                {"muscle_group": "Chest", "exercise_name": "Incline Dumbbell Press", "set_number": 1, "weight": 60, "reps": 10, "rpe": 8, "is_warmup": False, "equipment_type": "dumbbell", "equipment_details": "2x 30kg (Total 60kg)"},
+                {"muscle_group": "Chest", "exercise_name": "Incline Dumbbell Press", "set_number": 2, "weight": 60, "reps": 8, "rpe": 9, "is_warmup": False, "equipment_type": "dumbbell", "equipment_details": "2x 30kg (Total 60kg)"}
+            ]
+        )
+        session_id_2 = res2["session_id"]
+
+        # Sessions must be grouped into the exact same database session row
+        self.assertEqual(session_id_1, session_id_2)
+
+        # Retrieve user workouts and verify consolidated session
+        workouts = WorkoutManager.get_user_workouts(user.id, date_str=date_str)
+        self.assertEqual(len(workouts), 1)
+
+        sess = workouts[0]
+        self.assertEqual(sess["title"], "Chest and Back")
+        self.assertEqual(len(sess["sets"]), 4) # 2 rows + 2 incline presses
+        self.assertIn("Barbell Row", sess["exercises_summary"])
+        self.assertIn("Incline Dumbbell Press", sess["exercises_summary"])
+        # Total volume: (70*10) + (80*8) + (60*10) + (60*8) = 700 + 640 + 600 + 480 = 2420
+        self.assertEqual(sess["total_volume"], 2420)
+
+    def test_equipment_weight_and_manual_override(self):
+        """
+        Verify flexible equipment weight calculator and manual override persistence:
+        - Dumbbell: stores single weight details and effective total
+        - Machine Stack: stores plate math details and effective total
+        - Direct / Manual Override: stores override total weight and detail tag
+        """
+        user = User.create("equip_user", "equip@test.com", "pass1234")
+        date_str = "2026-11-07"
+
+        res = WorkoutManager.log_workout_session(
+            user_id=user.id,
+            title="Full Body Power",
+            date=date_str,
+            notes="Testing equipment types",
+            sets_data=[
+                # Dumbbell: single DB = 22.5kg per arm -> total = 45kg
+                {"muscle_group": "Arms", "exercise_name": "Hammer Curl", "set_number": 1, "weight": 45.0, "reps": 10, "rpe": 8, "is_warmup": False, "equipment_type": "dumbbell", "equipment_details": "2x 22.5kg (Total 45kg)"},
+                # Machine Stack: 6 plates @ 10kg ea -> total = 60kg
+                {"muscle_group": "Back", "exercise_name": "Lat Pulldown", "set_number": 1, "weight": 60.0, "reps": 12, "rpe": 8, "is_warmup": False, "equipment_type": "machine", "equipment_details": "6 plates @ 10kg"},
+                # Manual Override on Barbell: user typed 85kg directly
+                {"muscle_group": "Chest", "exercise_name": "Bench Press", "set_number": 1, "weight": 85.0, "reps": 6, "rpe": 9, "is_warmup": False, "equipment_type": "plates", "equipment_details": "Plates (Manual Total: 85kg, 2x30kg + bar)"}
+            ]
+        )
+        self.assertTrue(res["session_id"] > 0)
+
+        workouts = WorkoutManager.get_user_workouts(user.id, date_str=date_str)
+        self.assertEqual(len(workouts), 1)
+        sets = workouts[0]["sets"]
+        self.assertEqual(len(sets), 3)
+
+        # Check DB columns persisted
+        set_db = next(s for s in sets if s["exercise_name"] == "Hammer Curl")
+        self.assertEqual(set_db["equipment_type"], "dumbbell")
+        self.assertEqual(set_db["equipment_details"], "2x 22.5kg (Total 45kg)")
+        self.assertEqual(set_db["weight"], 45.0)
+
+        set_mach = next(s for s in sets if s["exercise_name"] == "Lat Pulldown")
+        self.assertEqual(set_mach["equipment_type"], "machine")
+        self.assertEqual(set_mach["equipment_details"], "6 plates @ 10kg")
+        self.assertEqual(set_mach["weight"], 60.0)
+
+        set_override = next(s for s in sets if s["exercise_name"] == "Bench Press")
+        self.assertEqual(set_override["equipment_type"], "plates")
+        self.assertIn("Manual Total: 85kg", set_override["equipment_details"])
+        self.assertEqual(set_override["weight"], 85.0)
 
 if __name__ == "__main__":
     unittest.main()

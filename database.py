@@ -78,10 +78,10 @@ def init_db():
         if "is_owner" not in existing_cols:
             cursor.execute("ALTER TABLE users ADD COLUMN is_owner INTEGER DEFAULT 0;")
 
-        # Initialize trial_ends_at for existing users if NULL (30 days from creation)
+        # Initialize trial_ends_at for existing users if NULL (7 days / 1 week from creation)
         cursor.execute("""
         UPDATE users 
-        SET trial_ends_at = datetime(created_at, '+30 days')
+        SET trial_ends_at = datetime(created_at, '+7 days')
         WHERE trial_ends_at IS NULL;
         """)
 
@@ -112,9 +112,19 @@ def init_db():
             is_warmup INTEGER DEFAULT 0,
             is_pr INTEGER DEFAULT 0,
             estimated_1rm REAL,
+            equipment_type TEXT DEFAULT 'direct',
+            equipment_details TEXT DEFAULT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """)
+
+        # Migration check for workout_sets columns
+        cursor.execute("PRAGMA table_info(workout_sets);")
+        existing_set_cols = [c["name"] for c in cursor.fetchall()]
+        if "equipment_type" not in existing_set_cols:
+            cursor.execute("ALTER TABLE workout_sets ADD COLUMN equipment_type TEXT DEFAULT 'direct';")
+        if "equipment_details" not in existing_set_cols:
+            cursor.execute("ALTER TABLE workout_sets ADD COLUMN equipment_details TEXT DEFAULT NULL;")
 
         # Nutrition Entries table
         cursor.execute("""

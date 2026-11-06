@@ -389,7 +389,7 @@ def api_scan_meal():
         return jsonify({
             "success": False,
             "is_pro_required": True,
-            "error": "The AI Food Camera Scanner is a Pro feature. Your 30-day free trial has expired. Upgrade to Gym Tracker Pro to unlock unlimited photo meal scanning."
+            "error": "The AI Food Camera Scanner is a Pro feature. Your 7-day free trial has expired. Upgrade to Gym Tracker Pro to unlock unlimited photo meal scanning."
         }), 403
 
     image_bytes = None
@@ -603,7 +603,7 @@ def api_get_step_history():
 @login_required
 def one_rep_max():
     if not current_user.has_pro_access:
-        flash("The 1-Rep Max Analytical Engine & Periodization is a Pro feature. Your 30-day free trial has expired. Upgrade to Gym Tracker Pro to access.", "warning")
+        flash("The 1-Rep Max Analytical Engine & Periodization is a Pro feature. Your 7-day free trial has expired. Upgrade to Gym Tracker Pro to access.", "warning")
         return redirect(url_for("subscription", required="1rm"))
 
     distinct_exercises = AnalyticsManager.get_distinct_exercises(current_user.id)
@@ -718,7 +718,7 @@ def api_analytics_volume():
 @login_required
 def export_view():
     if not current_user.has_pro_access:
-        flash("Workout & Data CSV Export is a Pro feature. Your 30-day free trial has expired. Upgrade to Gym Tracker Pro to export your archives.", "warning")
+        flash("Workout & Data CSV Export is a Pro feature. Your 7-day free trial has expired. Upgrade to Gym Tracker Pro to export your archives.", "warning")
         return redirect(url_for("subscription", required="export"))
     return render_template("export.html", user=current_user)
 
@@ -947,7 +947,7 @@ def api_submit_subscription():
     data = request.get_json() or {}
     sender_name = (data.get("sender_name") or "").strip()
     transaction_ref = (data.get("transaction_ref") or "").strip()
-    plan_name = (data.get("plan_name") or "Pro Monthly").strip()
+    plan_name = (data.get("plan_name") or "Pro Monthly - Rs. 500").strip()
     amount_paid = float(data.get("amount_paid") or 0.0)
     notes = (data.get("notes") or "").strip()
 

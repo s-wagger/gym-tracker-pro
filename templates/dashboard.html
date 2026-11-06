@@ -69,10 +69,10 @@
           <span class="text-xl">{{ '⚡' if user.trial_days_left > 0 else '🔒' }}</span>
           <div>
             {% if user.trial_days_left > 0 %}
-              <strong class="text-[#E6D5B8] uppercase tracking-wide">30-Day Free Trial Active:</strong>
+              <strong class="text-[#E6D5B8] uppercase tracking-wide">7-Day Free Trial Active:</strong>
               <span class="text-gray-300 ml-1">You have <strong>{{ user.trial_days_left }} days remaining</strong> to enjoy full AI food scanning, 1RM calculations, and data exports.</span>
             {% else %}
-              <strong class="text-rose-300 uppercase tracking-wide">Free Trial Period Completed:</strong>
+              <strong class="text-rose-300 uppercase tracking-wide">7-Day Free Trial Completed:</strong>
               <span class="text-gray-300 ml-1">Workout logging and pedometer remain 100% free forever. Upgrade to Pro to re-enable the AI Food Scanner, 1RM engine, and CSV exports.</span>
             {% endif %}
           </div>

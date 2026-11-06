@@ -47,7 +47,7 @@ class User(UserMixin):
 
     @property
     def trial_days_left(self) -> int:
-        """Calculates days remaining in the 30-day free trial."""
+        """Calculates days remaining in the 7-day free trial."""
         if self.is_owner_user or self.subscription_status in ["pro", "active", "lifetime_owner"]:
             return 999
         if not self.trial_ends_at:
@@ -69,8 +69,8 @@ class User(UserMixin):
         """
         Determines if user has access to Pro features (AI camera, 1RM, exports).
         Owner always has full access.
-        New users get 30 days full trial.
-        After 30 days, pro features lock until subscription is active.
+        New users get 7 days full trial.
+        After 7 days, pro features lock until subscription is active.
         """
         if self.is_owner_user:
             return True
@@ -122,7 +122,7 @@ class User(UserMixin):
         self.is_owner = True
         self.subscription_status = "lifetime_owner"
 
-    def set_subscription(self, status: str, days: int = 30):
+    def set_subscription(self, status: str, days: int = 7):
         with get_db() as conn:
             if status == 'pro':
                 conn.execute("UPDATE users SET subscription_status = 'pro' WHERE id = ?", (self.id,))
@@ -167,8 +167,8 @@ class User(UserMixin):
         pw_hash = bcrypt.hashpw(password.encode("utf-8"), salt).decode("utf-8")
         user_id = None
         
-        # 30-Day Free Trial initialized for every new user
-        trial_end = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
+        # 7-Day Free Trial (1 Week) initialized for every new user
+        trial_end = (datetime.now() + timedelta(days=7)).strftime("%Y-%m-%d %H:%M:%S")
         
         # Check if this user matches owner credentials from environment or default
         owner_emails = ["ghost.5abdullah@gmail.com"] + [e.strip().lower() for e in os.environ.get("OWNER_EMAILS", "").split(",") if e.strip()]
@@ -237,7 +237,8 @@ class WorkoutManager:
     @staticmethod
     def log_workout_session(user_id: int, title: str, date: str, notes: str, sets_data: list) -> dict:
         """
-        Creates a workout session with all child sets.
+        Creates or appends to a single daily workout session with all child sets.
+        Groups all exercises logged on that date under the same session.
         Automatically analyzes each set for Personal Records (PRs) using Epley 1RM.
         Returns session info and any newly achieved PRs.
         """
@@ -246,12 +247,35 @@ class WorkoutManager:
         with get_db() as conn:
             cursor = conn.cursor()
             
-            # 1. Insert session
+            # 1. Group under a single daily session for this user and date
             cursor.execute("""
-            INSERT INTO workout_sessions (user_id, title, date, notes)
-            VALUES (?, ?, ?, ?)
-            """, (user_id, title.strip(), date, notes.strip() if notes else ""))
-            session_id = cursor.lastrowid
+            SELECT id, title, notes FROM workout_sessions 
+            WHERE user_id = ? AND date = ? 
+            ORDER BY id ASC LIMIT 1
+            """, (user_id, date))
+            existing_session = cursor.fetchone()
+
+            if existing_session:
+                session_id = existing_session["id"]
+                # If user entered a specific title, update it; otherwise preserve
+                if title and title.strip():
+                    cursor.execute("UPDATE workout_sessions SET title = ? WHERE id = ?", (title.strip(), session_id))
+                    session_title = title.strip()
+                else:
+                    session_title = existing_session["title"]
+                if notes and notes.strip():
+                    cursor.execute("""
+                    UPDATE workout_sessions 
+                    SET notes = CASE WHEN notes IS NULL OR notes = '' THEN ? ELSE notes || ' | ' || ? END 
+                    WHERE id = ?
+                    """, (notes.strip(), notes.strip(), session_id))
+            else:
+                session_title = title.strip() if title and title.strip() else "Daily Workout Session"
+                cursor.execute("""
+                INSERT INTO workout_sessions (user_id, title, date, notes)
+                VALUES (?, ?, ?, ?)
+                """, (user_id, session_title, date, notes.strip() if notes else ""))
+                session_id = cursor.lastrowid
 
             # 2. Process each set
             for idx, s in enumerate(sets_data):
@@ -261,7 +285,18 @@ class WorkoutManager:
                 reps = int(s.get("reps", 0))
                 rpe = float(s.get("rpe", 8.0))
                 is_warmup = 1 if s.get("is_warmup") else 0
-                set_num = int(s.get("set_number", idx + 1))
+                equipment_type = (s.get("equipment_type") or "direct").strip()
+                equipment_details = s.get("equipment_details")
+
+                # Get continuous set numbering for this exercise within this session
+                cursor.execute("""
+                SELECT COALESCE(MAX(set_number), 0) as max_set 
+                FROM workout_sets 
+                WHERE session_id = ? AND LOWER(exercise_name) = LOWER(?)
+                """, (session_id, exercise_name))
+                row_max = cursor.fetchone()
+                existing_max = row_max["max_set"] if row_max else 0
+                set_num = int(s.get("set_number") or (existing_max + 1))
                 
                 # Calculate estimated 1RM
                 est_1rm = calculate_epley_1rm(weight, reps)
@@ -317,9 +352,9 @@ class WorkoutManager:
 
                 cursor.execute("""
                 INSERT INTO workout_sets 
-                (session_id, user_id, muscle_group, exercise_name, set_number, weight, reps, rpe, is_warmup, is_pr, estimated_1rm)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                """, (session_id, user_id, muscle_group, exercise_name, set_num, weight, reps, rpe, is_warmup, is_pr, est_1rm))
+                (session_id, user_id, muscle_group, exercise_name, set_number, weight, reps, rpe, is_warmup, is_pr, estimated_1rm, equipment_type, equipment_details)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (session_id, user_id, muscle_group, exercise_name, set_num, weight, reps, rpe, is_warmup, is_pr, est_1rm, equipment_type, equipment_details))
 
             # Consolidate so only the highest peak PR per exercise is returned
             consolidated_prs = {}
@@ -330,7 +365,7 @@ class WorkoutManager:
 
         return {
             "session_id": session_id,
-            "title": title,
+            "title": session_title,
             "date": date,
             "new_prs": list(consolidated_prs.values())
         }
@@ -371,7 +406,7 @@ class WorkoutManager:
             # Populate sets for each session
             for sess in sessions:
                 cursor.execute("""
-                SELECT id, muscle_group, exercise_name, set_number, weight, reps, rpe, is_warmup, is_pr, estimated_1rm
+                SELECT id, muscle_group, exercise_name, set_number, weight, reps, rpe, is_warmup, is_pr, estimated_1rm, equipment_type, equipment_details
                 FROM workout_sets
                 WHERE session_id = ?
                 ORDER BY exercise_name, set_number ASC
@@ -779,7 +814,7 @@ class SubscriptionManager:
     BANK_IBAN = "PK58UNIL0109000321329705"
 
     @staticmethod
-    def create_request(user_id: int, sender_name: str, transaction_ref: str, plan_name: str = "Pro Monthly", amount_paid: float = 0.0, notes: str = ""):
+    def create_request(user_id: int, sender_name: str, transaction_ref: str, plan_name: str = "Pro Monthly - Rs. 500", amount_paid: float = 0.0, notes: str = ""):
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute("""
