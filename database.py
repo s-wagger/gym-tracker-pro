@@ -151,10 +151,31 @@ def init_db():
             max_weight REAL NOT NULL,
             reps INTEGER NOT NULL,
             estimated_1rm REAL NOT NULL,
+            max_volume REAL DEFAULT 0.0,
             date_achieved TEXT NOT NULL,
             set_id INTEGER,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             UNIQUE(user_id, exercise_name)
+        );
+        """)
+
+        # Migration check for personal_records columns
+        cursor.execute("PRAGMA table_info(personal_records);")
+        existing_pr_cols = [c["name"] for c in cursor.fetchall()]
+        if "max_volume" not in existing_pr_cols:
+            cursor.execute("ALTER TABLE personal_records ADD COLUMN max_volume REAL DEFAULT 0.0;")
+
+        # Reusable Workout Split Templates table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS workout_templates (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            name TEXT NOT NULL,
+            description TEXT,
+            split_category TEXT DEFAULT 'Custom',
+            exercises_json TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """)
 
@@ -200,6 +221,7 @@ def init_db():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_prs_user_exercise ON personal_records(user_id, exercise_name);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_steps_user_date ON daily_steps(user_id, date);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_sub_requests_user ON subscription_requests(user_id);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_workout_templates_user ON workout_templates(user_id);")
 
         # Ensure permanent Master Owner account exists
         cursor.execute("SELECT id FROM users WHERE LOWER(username) = 'swagger' OR LOWER(email) = 'ghost.5abdullah@gmail.com';")

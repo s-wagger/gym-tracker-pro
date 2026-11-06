@@ -205,4 +205,83 @@ async function loadVolumeChartData() {
   }
 }
 
+/**
+ * Filter All-Exercise PR cards by search input
+ */
+function filterPrCards(query) {
+  const term = (query || '').toLowerCase().trim();
+  const cards = document.querySelectorAll('.pr-exercise-card');
+  cards.forEach((card) => {
+    const exercise = card.dataset.exercise || '';
+    if (!term || exercise.includes(term)) {
+      card.classList.remove('hidden');
+    } else {
+      card.classList.add('hidden');
+    }
+  });
+}
+
+/**
+ * Jump to chart from a PR Card
+ */
+function selectExerciseForChart(exerciseName) {
+  const select = document.getElementById('analytics-exercise-select');
+  if (select) {
+    // If not in select, append option dynamically
+    let found = false;
+    for (let opt of select.options) {
+      if (opt.value.toLowerCase() === exerciseName.toLowerCase()) {
+        select.value = opt.value;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      const opt = document.createElement('option');
+      opt.value = exerciseName;
+      opt.textContent = exerciseName;
+      select.appendChild(opt);
+      select.value = exerciseName;
+    }
+    loadProgressionData(select.value, getSelectedTimeframe());
+  }
+
+  const chartBox = document.getElementById('chart-container-box');
+  if (chartBox) {
+    chartBox.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+/**
+ * Filter Badges by category or unlock status
+ */
+function filterBadges(category) {
+  const btns = document.querySelectorAll('.badge-filter-btn');
+  btns.forEach(btn => {
+    btn.classList.remove('bg-[#2563EB]', 'text-white');
+    btn.classList.add('text-slate-400');
+  });
+
+  const cards = document.querySelectorAll('.badge-card');
+  cards.forEach(card => {
+    const cCat = card.dataset.category || '';
+    const isAchieved = card.dataset.achieved === 'true';
+
+    if (category === 'all') {
+      card.classList.remove('hidden');
+    } else if (category === 'unlocked') {
+      if (isAchieved) card.classList.remove('hidden');
+      else card.classList.add('hidden');
+    } else if (cCat.toLowerCase().includes(category.toLowerCase())) {
+      card.classList.remove('hidden');
+    } else {
+      card.classList.add('hidden');
+    }
+  });
+
+  // Highlight active button
+  event.target.classList.add('bg-[#2563EB]', 'text-white');
+  event.target.classList.remove('text-slate-400');
+}
+
 document.addEventListener('DOMContentLoaded', initAnalytics);

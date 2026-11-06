@@ -49,6 +49,25 @@
       </div>
     </div>
 
+    <!-- Quick-Start Routines & Split Templates -->
+    <div class="mb-6 p-4 rounded-2xl bg-[#0A1128] border border-blue-900/50">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-sm">⚡</span>
+          <span class="text-xs font-black uppercase tracking-wider text-white">Routines & Split Templates</span>
+          <span class="text-[10px] text-slate-400 font-medium">• 1-click launch or save custom routine</span>
+        </div>
+        <button type="button" onclick="openSaveTemplateModal()" class="text-xs font-bold text-[#E6D5B8] hover:text-white px-2.5 py-1 rounded-lg bg-blue-950/60 border border-blue-800/60 hover:bg-blue-900/80 transition flex items-center gap-1.5 self-start sm:self-auto">
+          <span>🔖</span> <span>Save Session as Template</span>
+        </button>
+      </div>
+
+      <!-- Quick Template Chips Container -->
+      <div class="flex items-center gap-2 overflow-x-auto pb-1" id="template-chips-container">
+        <!-- Rendered dynamically by logger.js -->
+      </div>
+    </div>
+
     <form id="workout-log-form" class="space-y-6">
       
       <!-- Top Session Level: Title, Date, Session Notes -->
@@ -250,6 +269,77 @@
       {% endif %}
     </div>
   </section>
+
+  <!-- Celebratory PR & Badges Unlocked Modal -->
+  <div id="modal-pr-celebration" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md hidden">
+    <!-- Confetti Canvas -->
+    <canvas id="confetti-canvas" class="absolute inset-0 pointer-events-none w-full h-full"></canvas>
+
+    <div class="relative w-full max-w-md p-6 sm:p-8 rounded-3xl bg-[#101C3D] border-2 border-[#E6D5B8] shadow-2xl shadow-blue-500/30 text-center space-y-5 animate-in fade-in zoom-in duration-300">
+      <div class="w-16 h-16 mx-auto rounded-2xl bg-[#E6D5B8]/20 border border-[#E6D5B8]/40 flex items-center justify-center text-3xl">
+        🏆
+      </div>
+      
+      <div>
+        <span class="text-xs font-black uppercase tracking-widest text-[#E6D5B8]">Milestone Unlocked!</span>
+        <h2 class="text-2xl font-black text-white mt-1">NEW PERSONAL RECORD!</h2>
+        <p class="text-xs text-slate-300 mt-1">You just surpassed your all-time highest performance!</p>
+      </div>
+
+      <!-- PR Records / Badges List -->
+      <div id="pr-celebration-list" class="space-y-3 text-left max-h-60 overflow-y-auto pr-1">
+        <!-- Injected via JavaScript -->
+      </div>
+
+      <div>
+        <button type="button" onclick="closePrModal()" class="btn-royal w-full py-3.5 px-6 rounded-xl font-black text-sm uppercase tracking-wider shadow-lg shadow-blue-600/40">
+          🔥 AWESOME! KEEP CRUSHING IT
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Save Custom Routine Template Modal -->
+  <div id="modal-save-template" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm hidden">
+    <div class="relative w-full max-w-md p-6 rounded-2xl bg-[#101C3D] border border-blue-900/60 shadow-xl space-y-4">
+      <div class="flex items-center justify-between pb-3 border-b border-gray-800">
+        <h3 class="text-base font-black text-white flex items-center gap-2">
+          <span>🔖</span> Save Reusable Template
+        </h3>
+        <button type="button" onclick="closeSaveTemplateModal()" class="text-slate-400 hover:text-white text-lg">✕</button>
+      </div>
+
+      <div class="space-y-3 text-left">
+        <div>
+          <label class="block text-xs font-bold text-slate-300 uppercase mb-1">Routine / Split Name <span class="text-red-400">*</span></label>
+          <input type="text" id="template-input-name" placeholder="e.g. Push Day A, Heavy Upper Body" class="gt-input w-full font-bold text-white">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Category</label>
+          <select id="template-input-category" class="gt-input w-full text-xs font-semibold bg-[#0A1128]">
+            <option value="Push / Pull / Legs">Push / Pull / Legs</option>
+            <option value="Upper / Lower">Upper / Lower</option>
+            <option value="Bro Split">Bro Split</option>
+            <option value="Full Body">Full Body</option>
+            <option value="Custom" selected>Custom</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-400 uppercase mb-1">Short Description</label>
+          <input type="text" id="template-input-desc" placeholder="e.g. Incline chest emphasis with tricep accessories" class="gt-input w-full text-xs">
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 pt-2">
+        <button type="button" onclick="closeSaveTemplateModal()" class="flex-1 py-2.5 px-4 rounded-xl text-xs font-bold bg-gray-800 text-slate-300 hover:bg-gray-700 transition">
+          Cancel
+        </button>
+        <button type="button" onclick="confirmSaveTemplate()" class="btn-royal flex-1 py-2.5 px-4 rounded-xl text-xs font-black uppercase tracking-wider">
+          Save Routine
+        </button>
+      </div>
+    </div>
+  </div>
 
 </div>
 {% endblock %}

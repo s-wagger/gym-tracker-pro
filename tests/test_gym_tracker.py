@@ -15,7 +15,10 @@ import sqlite3
 os.environ["SECRET_KEY"] = "test-secret-key-12345"
 from app import app
 from database import init_db, get_db
-from models import User, WorkoutManager, NutritionManager, AnalyticsManager, ExportManager, StepManager, SubscriptionManager
+from models import (
+    User, WorkoutManager, NutritionManager, AnalyticsManager,
+    ExportManager, StepManager, SubscriptionManager, TemplateManager
+)
 from formulas import (
     calculate_epley_1rm, calculate_brzycki_1rm,
     calculate_lombardi_1rm, get_training_zones, evaluate_milestones,
@@ -34,6 +37,7 @@ class GymTrackerTestCase(unittest.TestCase):
 
         # Clean database before each test
         with get_db() as conn:
+            conn.execute("DELETE FROM workout_templates")
             conn.execute("DELETE FROM subscription_requests")
             conn.execute("DELETE FROM daily_steps")
             conn.execute("DELETE FROM workout_sets")
@@ -596,6 +600,193 @@ class GymTrackerTestCase(unittest.TestCase):
         self.assertEqual(set_override["equipment_type"], "plates")
         self.assertIn("Manual Total: 85kg", set_override["equipment_details"])
         self.assertEqual(set_override["weight"], 85.0)
+
+    # ---------------------------------------------------------
+    # 11. Dynamic All-Exercise PR Tracking & Universal Progression
+    # ---------------------------------------------------------
+    def test_dynamic_all_exercise_pr_tracking_and_progression_curves(self):
+        """
+        Verify that PR tracking is not limited to 4 hardcoded lifts, but tracks peak weight,
+        set volume, and 1RM for any exercise (e.g. Incline Dumbbell Press, Cable Crossover),
+        and feeds universal progression time-series.
+        """
+        user = User.create("pr_lifter", "prlifter@test.com", "pass1234")
+
+        # Day 1: Log Incline Dumbbell Press (30kg, 10 reps) & Cable Crossover (20kg, 12 reps)
+        res1 = WorkoutManager.log_workout_session(
+            user_id=user.id,
+            title="Chest Hypertrophy",
+            date="2026-11-01",
+            notes="Session 1",
+            sets_data=[
+                {"muscle_group": "Chest", "exercise_name": "Incline Dumbbell Press", "set_number": 1, "weight": 30.0, "reps": 10, "is_warmup": False, "equipment_type": "dumbbell"},
+                {"muscle_group": "Chest", "exercise_name": "Cable Crossover", "set_number": 1, "weight": 20.0, "reps": 12, "is_warmup": False, "equipment_type": "machine"}
+            ]
+        )
+        self.assertEqual(len(res1["new_prs"]), 2)
+
+        # Day 2: Beat Incline Dumbbell Press (34kg, 8 reps) -> Higher weight & 1RM
+        res2 = WorkoutManager.log_workout_session(
+            user_id=user.id,
+            title="Chest Hypertrophy 2",
+            date="2026-11-05",
+            notes="Session 2",
+            sets_data=[
+                {"muscle_group": "Chest", "exercise_name": "Incline Dumbbell Press", "set_number": 1, "weight": 34.0, "reps": 8, "is_warmup": False, "equipment_type": "dumbbell"}
+            ]
+        )
+        self.assertEqual(len(res2["new_prs"]), 1)
+        self.assertEqual(res2["new_prs"][0]["exercise"], "Incline Dumbbell Press")
+        self.assertEqual(res2["new_prs"][0]["weight"], 34.0)
+
+        # Verify all PRs in database
+        prs = AnalyticsManager.get_personal_records(user.id)
+        pr_exercises = [p["exercise_name"] for p in prs]
+        self.assertIn("Incline Dumbbell Press", pr_exercises)
+        self.assertIn("Cable Crossover", pr_exercises)
+
+        incline_pr = next(p for p in prs if p["exercise_name"] == "Incline Dumbbell Press")
+        self.assertEqual(incline_pr["max_weight"], 34.0)
+        self.assertGreater(incline_pr["max_volume"], 0.0)
+
+        # Distinct exercises list must include all logged movements
+        distinct = AnalyticsManager.get_distinct_exercises(user.id)
+        self.assertIn("Incline Dumbbell Press", distinct)
+        self.assertIn("Cable Crossover", distinct)
+
+        # Universal progression curve query for Incline Dumbbell Press
+        prog_points = AnalyticsManager.get_progression_data(user.id, "Incline Dumbbell Press")
+        self.assertEqual(len(prog_points), 2)
+        self.assertEqual(prog_points[0]["date"], "2026-11-01")
+        self.assertEqual(prog_points[1]["date"], "2026-11-05")
+        self.assertEqual(prog_points[1]["weight"], 34.0)
+
+    # ---------------------------------------------------------
+    # 12. Progressive Overload "Last Time" Ghost Targets
+    # ---------------------------------------------------------
+    def test_progressive_overload_ghost_targets(self):
+        """
+        Verify that the ghost target engine accurately retrieves the user's latest performance
+        for that specific exercise, enabling progressive overload guidance.
+        """
+        user = User.create("ghost_user", "ghost@test.com", "pass1234")
+
+        # Initial workout
+        WorkoutManager.log_workout_session(
+            user_id=user.id,
+            title="Back Power",
+            date="2026-11-02",
+            notes="Session A",
+            sets_data=[
+                {"muscle_group": "Back", "exercise_name": "Lat Pulldown", "set_number": 1, "weight": 55.0, "reps": 10, "is_warmup": False, "equipment_type": "machine"}
+            ]
+        )
+
+        # Second workout with higher weight
+        WorkoutManager.log_workout_session(
+            user_id=user.id,
+            title="Back Power 2",
+            date="2026-11-06",
+            notes="Session B",
+            sets_data=[
+                {"muscle_group": "Back", "exercise_name": "Lat Pulldown", "set_number": 1, "weight": 60.0, "reps": 10, "is_warmup": False, "equipment_type": "machine"}
+            ]
+        )
+
+        # Retrieve ghost target
+        target = WorkoutManager.get_last_performance(user.id, "Lat Pulldown")
+        self.assertIsNotNone(target)
+        self.assertEqual(target["date"], "2026-11-06")
+        self.assertEqual(target["weight"], 60.0)
+        self.assertEqual(target["reps"], 10)
+
+        # Test API endpoint
+        with self.client.session_transaction() as sess:
+            sess["_user_id"] = str(user.id)
+            sess["_fresh"] = True
+
+        res = self.client.get("/api/workouts/last-performance?exercise=Lat+Pulldown")
+        self.assertEqual(res.status_code, 200)
+        data = json.loads(res.data)
+        self.assertTrue(data["success"])
+        self.assertEqual(data["last_performance"]["weight"], 60.0)
+
+    # ---------------------------------------------------------
+    # 13. Workout Routines & Custom Split Templates
+    # ---------------------------------------------------------
+    def test_workout_routines_and_split_templates(self):
+        """
+        Verify starter split templates and user-created custom reusable templates.
+        """
+        user = User.create("routine_user", "routine@test.com", "pass1234")
+
+        # Get initial templates (should contain default starters)
+        templates = TemplateManager.get_user_templates(user.id)
+        self.assertGreaterEqual(len(templates), 4)
+        tmpl_names = [t["name"] for t in templates]
+        self.assertTrue(any("Push Day" in name for name in tmpl_names))
+        self.assertTrue(any("Pull Day" in name for name in tmpl_names))
+
+        # Create custom split template
+        custom_exercises = [
+            {"muscleGroup": "Chest", "exerciseName": "Incline Dumbbell Press", "equipType": "dumbbell", "defaultWeight": 28, "defaultReps": 10, "targetSets": 3},
+            {"muscleGroup": "Back", "exerciseName": "Chest Supported Row", "equipType": "machine", "defaultWeight": 45, "defaultReps": 10, "targetSets": 3}
+        ]
+        tid = TemplateManager.create_template(
+            user_id=user.id,
+            name="My Upper Hypertrophy Split",
+            description="Upper day with dumbbell incline focus",
+            split_category="Upper / Lower",
+            exercises=custom_exercises
+        )
+        self.assertGreater(tid, 0)
+
+        # Verify custom template appears first in list
+        updated_templates = TemplateManager.get_user_templates(user.id)
+        custom_tmpl = next(t for t in updated_templates if t["id"] == tid)
+        self.assertEqual(custom_tmpl["name"], "My Upper Hypertrophy Split")
+        self.assertTrue(custom_tmpl["is_custom"])
+        self.assertEqual(len(custom_tmpl["exercises"]), 2)
+
+        # Delete template
+        deleted = TemplateManager.delete_template(tid, user.id)
+        self.assertTrue(deleted)
+        post_del = TemplateManager.get_user_templates(user.id)
+        self.assertFalse(any(t["id"] == tid for t in post_del))
+
+    # ---------------------------------------------------------
+    # 14. Gamification Rewards & Badging System
+    # ---------------------------------------------------------
+    def test_gamification_rewards_and_badges_system(self):
+        """
+        Verify achievement badges (First 100kg lift, 50kg dumbbell club, consistency, PR master)
+        and celebratory triggers when logging qualifying sets.
+        """
+        user = User.create("badge_champ", "champ@test.com", "pass1234")
+
+        # Log a 100kg lift and 50kg dumbbell lift
+        res = WorkoutManager.log_workout_session(
+            user_id=user.id,
+            title="Heavy Test Day",
+            date="2026-11-07",
+            notes="Badge unlock attempt",
+            sets_data=[
+                {"muscle_group": "Chest", "exercise_name": "Bench Press", "set_number": 1, "weight": 100.0, "reps": 5, "is_warmup": False, "equipment_type": "plates"},
+                {"muscle_group": "Arms", "exercise_name": "Dumbbell Press", "set_number": 1, "weight": 50.0, "reps": 8, "is_warmup": False, "equipment_type": "dumbbell"}
+            ]
+        )
+        self.assertIn("new_badges", res)
+        self.assertGreater(len(res["new_badges"]), 0)
+
+        summary = AnalyticsManager.get_dashboard_summary(user)
+        milestones = summary["milestones"]
+        m_map = {m["id"]: m for m in milestones}
+
+        # Assert badges unlocked
+        self.assertTrue(m_map["first_100kg_lift"]["achieved"])
+        self.assertTrue(m_map["db_50kg_club"]["achieved"])
+        self.assertTrue(m_map["first_rep"]["achieved"])
+        self.assertTrue(m_map["pr_pioneer"]["achieved"])
 
 if __name__ == "__main__":
     unittest.main()

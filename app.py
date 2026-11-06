@@ -29,7 +29,8 @@ from config import Config
 from database import init_db
 from models import (
     User, WorkoutManager, NutritionManager,
-    AnalyticsManager, ExportManager, StepManager, SubscriptionManager
+    AnalyticsManager, ExportManager, StepManager, SubscriptionManager,
+    TemplateManager
 )
 from formulas import (
     calculate_epley_1rm, calculate_brzycki_1rm,
@@ -277,7 +278,8 @@ def api_apply_plan_targets():
 def workouts():
     today_str = datetime.now().strftime("%Y-%m-%d")
     sessions = WorkoutManager.get_user_workouts(current_user.id)
-    return render_template("workouts.html", user=current_user, sessions=sessions, today=today_str)
+    templates = TemplateManager.get_user_templates(current_user.id)
+    return render_template("workouts.html", user=current_user, sessions=sessions, today=today_str, templates=templates)
 
 @app.route("/api/workouts", methods=["GET"])
 @login_required
@@ -287,6 +289,43 @@ def api_get_workouts():
     date = request.args.get("date")
     sessions = WorkoutManager.get_user_workouts(current_user.id, muscle, exercise, date)
     return jsonify({"success": True, "sessions": sessions})
+
+@app.route("/api/workouts/last-performance", methods=["GET"])
+@login_required
+def api_get_last_performance():
+    exercise = request.args.get("exercise", "")
+    perf = WorkoutManager.get_last_performance(current_user.id, exercise)
+    return jsonify({"success": True, "exercise": exercise, "last_performance": perf})
+
+@app.route("/api/workouts/last-performances", methods=["GET"])
+@login_required
+def api_get_all_last_performances():
+    perfs = WorkoutManager.get_all_last_performances(current_user.id)
+    return jsonify({"success": True, "performances": perfs})
+
+@app.route("/api/templates", methods=["GET", "POST"])
+@login_required
+def api_templates():
+    if request.method == "POST":
+        data = request.get_json() or {}
+        name = data.get("name", "").strip()
+        if not name:
+            return jsonify({"success": False, "error": "Template name is required."}), 400
+        description = data.get("description", "").strip()
+        split_category = data.get("split_category", "Custom").strip()
+        exercises = data.get("exercises", [])
+        if not exercises:
+            return jsonify({"success": False, "error": "Template must contain at least one exercise."}), 400
+        tid = TemplateManager.create_template(current_user.id, name, description, split_category, exercises)
+        return jsonify({"success": True, "template_id": tid})
+    templates = TemplateManager.get_user_templates(current_user.id)
+    return jsonify({"success": True, "templates": templates})
+
+@app.route("/api/templates/<int:template_id>", methods=["DELETE"])
+@login_required
+def api_delete_template(template_id):
+    success = TemplateManager.delete_template(template_id, current_user.id)
+    return jsonify({"success": success})
 
 @app.route("/api/workouts/log", methods=["POST"])
 @login_required
@@ -675,6 +714,7 @@ def api_save_calculated_pr():
 # Module 7: PR Analytics & Milestones
 # -------------------------------------------------------------
 @app.route("/analytics")
+@app.route("/prs")
 @login_required
 def analytics():
     records = AnalyticsManager.get_personal_records(current_user.id)

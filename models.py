@@ -4,6 +4,7 @@ Handles database operations, bcrypt password hashing, session tracking,
 automatic PR detection, and analytical aggregations.
 """
 import bcrypt
+import json
 from datetime import datetime, timedelta
 from flask_login import UserMixin
 from database import get_db
@@ -277,6 +278,16 @@ class WorkoutManager:
                 """, (user_id, session_title, date, notes.strip() if notes else ""))
                 session_id = cursor.lastrowid
 
+            # Capture prior achieved badge IDs for gamification reward detection
+            pre_badges = set()
+            try:
+                pre_user = User.get_by_id(user_id)
+                if pre_user:
+                    pre_summary = AnalyticsManager.get_dashboard_summary(pre_user)
+                    pre_badges = {m["id"] for m in pre_summary.get("milestones", []) if m.get("achieved")}
+            except Exception:
+                pass
+
             # 2. Process each set
             for idx, s in enumerate(sets_data):
                 muscle_group = s.get("muscle_group", "Full Body").strip()
@@ -298,14 +309,15 @@ class WorkoutManager:
                 existing_max = row_max["max_set"] if row_max else 0
                 set_num = int(s.get("set_number") or (existing_max + 1))
                 
-                # Calculate estimated 1RM
+                # Calculate estimated 1RM and set volume
                 est_1rm = calculate_epley_1rm(weight, reps)
+                set_vol = round(weight * reps, 1)
                 
                 is_pr = 0
                 if not is_warmup and weight > 0 and reps > 0:
                     # Check current PR for this exercise
                     cursor.execute("""
-                    SELECT max_weight, reps, estimated_1rm FROM personal_records
+                    SELECT max_weight, reps, estimated_1rm, COALESCE(max_volume, 0.0) as max_volume FROM personal_records
                     WHERE user_id = ? AND LOWER(exercise_name) = LOWER(?)
                     """, (user_id, exercise_name))
                     existing_pr = cursor.fetchone()
@@ -314,40 +326,57 @@ class WorkoutManager:
                         # First time logging this exercise -> New PR!
                         is_pr = 1
                         cursor.execute("""
-                        INSERT INTO personal_records (user_id, exercise_name, max_weight, reps, estimated_1rm, date_achieved)
-                        VALUES (?, ?, ?, ?, ?, ?)
-                        """, (user_id, exercise_name, weight, reps, est_1rm, date))
+                        INSERT INTO personal_records (user_id, exercise_name, max_weight, reps, estimated_1rm, max_volume, date_achieved)
+                        VALUES (?, ?, ?, ?, ?, ?, ?)
+                        """, (user_id, exercise_name, weight, reps, est_1rm, set_vol, date))
                         new_prs_detected.append({
                             "exercise": exercise_name,
                             "weight": weight,
                             "reps": reps,
                             "estimated_1rm": est_1rm,
+                            "volume": set_vol,
                             "improvement": "First recorded PR!"
                         })
                     else:
-                        # Existing PR: check if weight is higher or 1RM is higher
+                        # Existing PR: check if weight is higher, 1RM is higher, or set volume is higher
                         prev_max_weight = existing_pr["max_weight"]
                         prev_1rm = existing_pr["estimated_1rm"]
+                        prev_volume = existing_pr["max_volume"]
                         
-                        if weight > prev_max_weight or est_1rm > prev_1rm:
+                        is_weight_pr = weight > prev_max_weight
+                        is_1rm_pr = est_1rm > prev_1rm
+                        is_volume_pr = set_vol > prev_volume
+
+                        if is_weight_pr or is_1rm_pr or is_volume_pr:
                             is_pr = 1
-                            diff = round(weight - prev_max_weight, 1)
+                            diff_wt = round(weight - prev_max_weight, 1)
+                            diff_vol = round(set_vol - prev_volume, 1)
+
+                            if is_weight_pr:
+                                reason = f"+{diff_wt} weight PR over previous record!"
+                            elif is_1rm_pr:
+                                reason = "New 1RM milestone!"
+                            else:
+                                reason = f"+{diff_vol} peak set volume PR!"
+
                             cursor.execute("""
                             UPDATE personal_records
                             SET max_weight = MAX(max_weight, ?),
                                 reps = CASE WHEN ? >= max_weight THEN ? ELSE reps END,
                                 estimated_1rm = MAX(estimated_1rm, ?),
+                                max_volume = MAX(COALESCE(max_volume, 0.0), ?),
                                 date_achieved = ?,
                                 updated_at = CURRENT_TIMESTAMP
                             WHERE user_id = ? AND LOWER(exercise_name) = LOWER(?)
-                            """, (weight, weight, reps, est_1rm, date, user_id, exercise_name))
+                            """, (weight, weight, reps, est_1rm, set_vol, date, user_id, exercise_name))
                             
                             new_prs_detected.append({
                                 "exercise": exercise_name,
                                 "weight": weight,
                                 "reps": reps,
                                 "estimated_1rm": est_1rm,
-                                "improvement": f"+{diff} over previous record!" if diff > 0 else "New 1RM milestone!"
+                                "volume": set_vol,
+                                "improvement": reason
                             })
 
                 cursor.execute("""
@@ -363,11 +392,24 @@ class WorkoutManager:
                 if ex not in consolidated_prs or pr["weight"] >= consolidated_prs[ex]["weight"]:
                     consolidated_prs[ex] = pr
 
+        # Post-session gamification badges check
+        new_badges_detected = []
+        try:
+            post_user = User.get_by_id(user_id)
+            if post_user:
+                post_summary = AnalyticsManager.get_dashboard_summary(post_user)
+                for badge in post_summary.get("milestones", []):
+                    if badge.get("achieved") and badge.get("id") not in pre_badges:
+                        new_badges_detected.append(badge)
+        except Exception:
+            pass
+
         return {
             "session_id": session_id,
             "title": session_title,
             "date": date,
-            "new_prs": list(consolidated_prs.values())
+            "new_prs": list(consolidated_prs.values()),
+            "new_badges": new_badges_detected
         }
 
     @staticmethod
@@ -425,6 +467,158 @@ class WorkoutManager:
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute("DELETE FROM workout_sessions WHERE id = ? AND user_id = ?", (session_id, user_id))
+            return cursor.rowcount > 0
+
+    @staticmethod
+    def get_last_performance(user_id: int, exercise_name: str) -> dict:
+        """
+        Retrieves the user's latest performance on a specific exercise.
+        Returns the top non-warmup set from the most recent workout containing this exercise.
+        """
+        if not exercise_name or not exercise_name.strip():
+            return None
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+            SELECT s.date, w.weight, w.reps, w.estimated_1rm, w.rpe, w.equipment_type, w.equipment_details
+            FROM workout_sets w
+            JOIN workout_sessions s ON w.session_id = s.id
+            WHERE w.user_id = ? AND LOWER(w.exercise_name) = LOWER(?) AND w.is_warmup = 0
+            ORDER BY s.date DESC, w.weight DESC, w.reps DESC
+            LIMIT 1
+            """, (user_id, exercise_name.strip()))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    @staticmethod
+    def get_all_last_performances(user_id: int) -> dict:
+        """
+        Retrieves a map of exercise_name -> latest top set performance.
+        Useful for preloading ghost targets in the active session builder.
+        """
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+            SELECT w.exercise_name, s.date, w.weight, w.reps, w.estimated_1rm, w.rpe, w.equipment_type, w.equipment_details
+            FROM workout_sets w
+            JOIN workout_sessions s ON w.session_id = s.id
+            WHERE w.user_id = ? AND w.is_warmup = 0
+            ORDER BY s.date DESC, w.weight DESC
+            """, (user_id,))
+            rows = cursor.fetchall()
+            results = {}
+            for r in rows:
+                key = r["exercise_name"].strip()
+                if key not in results:
+                    results[key] = dict(r)
+            return results
+
+
+class TemplateManager:
+    """
+    Manages custom and starter workout split templates (Push, Pull, Legs, Upper, etc.)
+    allowing users to launch multi-exercise sessions with 1 click.
+    """
+    DEFAULT_STARTER_TEMPLATES = [
+        {
+            "id": "starter_push",
+            "name": "Push Day (Chest, Shoulders, Triceps)",
+            "description": "Hypertrophy and strength for pushing chain.",
+            "split_category": "Push / Pull / Legs",
+            "is_custom": False,
+            "exercises": [
+                { "muscleGroup": "Chest", "exerciseName": "Bench Press", "equipType": "plates", "defaultWeight": 60, "defaultReps": 10, "targetSets": 3 },
+                { "muscleGroup": "Chest", "exerciseName": "Incline Dumbbell Press", "equipType": "dumbbell", "defaultWeight": 22.5, "defaultReps": 10, "targetSets": 3 },
+                { "muscleGroup": "Shoulders", "exerciseName": "Overhead Press", "equipType": "plates", "defaultWeight": 40, "defaultReps": 8, "targetSets": 3 },
+                { "muscleGroup": "Arms", "exerciseName": "Tricep Rope Pushdown", "equipType": "machine", "defaultWeight": 25, "defaultReps": 12, "targetSets": 3 }
+            ]
+        },
+        {
+            "id": "starter_pull",
+            "name": "Pull Day (Back & Biceps)",
+            "description": "Posterior chain thickness, lat width, and pulling power.",
+            "split_category": "Push / Pull / Legs",
+            "is_custom": False,
+            "exercises": [
+                { "muscleGroup": "Back", "exerciseName": "Barbell Row", "equipType": "plates", "defaultWeight": 60, "defaultReps": 10, "targetSets": 3 },
+                { "muscleGroup": "Back", "exerciseName": "Lat Pulldown", "equipType": "machine", "defaultWeight": 50, "defaultReps": 10, "targetSets": 3 },
+                { "muscleGroup": "Back", "exerciseName": "Seated Cable Row", "equipType": "machine", "defaultWeight": 45, "defaultReps": 12, "targetSets": 3 },
+                { "muscleGroup": "Arms", "exerciseName": "Barbell Bicep Curl", "equipType": "direct", "defaultWeight": 30, "defaultReps": 10, "targetSets": 3 }
+            ]
+        },
+        {
+            "id": "starter_legs",
+            "name": "Leg Day (Quads, Hamstrings & Calves)",
+            "description": "Lower body compound power and hypertrophy foundation.",
+            "split_category": "Push / Pull / Legs",
+            "is_custom": False,
+            "exercises": [
+                { "muscleGroup": "Legs", "exerciseName": "Back Squat", "equipType": "plates", "defaultWeight": 80, "defaultReps": 8, "targetSets": 3 },
+                { "muscleGroup": "Legs", "exerciseName": "Leg Press", "equipType": "plates", "defaultWeight": 120, "defaultReps": 10, "targetSets": 3 },
+                { "muscleGroup": "Legs", "exerciseName": "Romanian Deadlift", "equipType": "plates", "defaultWeight": 70, "defaultReps": 10, "targetSets": 3 },
+                { "muscleGroup": "Legs", "exerciseName": "Standing Calf Raise", "equipType": "machine", "defaultWeight": 40, "defaultReps": 15, "targetSets": 3 }
+            ]
+        },
+        {
+            "id": "starter_upper",
+            "name": "Upper Body Power",
+            "description": "Balanced high-intensity upper body workout.",
+            "split_category": "Upper / Lower",
+            "is_custom": False,
+            "exercises": [
+                { "muscleGroup": "Chest", "exerciseName": "Bench Press", "equipType": "plates", "defaultWeight": 70, "defaultReps": 8, "targetSets": 4 },
+                { "muscleGroup": "Back", "exerciseName": "Barbell Row", "equipType": "plates", "defaultWeight": 65, "defaultReps": 8, "targetSets": 4 },
+                { "muscleGroup": "Shoulders", "exerciseName": "Dumbbell Lateral Raise", "equipType": "dumbbell", "defaultWeight": 10, "defaultReps": 12, "targetSets": 3 },
+                { "muscleGroup": "Arms", "exerciseName": "Incline Dumbbell Curl", "equipType": "dumbbell", "defaultWeight": 12.5, "defaultReps": 10, "targetSets": 3 }
+            ]
+        }
+    ]
+
+    @staticmethod
+    def get_user_templates(user_id: int) -> list:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+            SELECT id, name, description, split_category, exercises_json, created_at
+            FROM workout_templates
+            WHERE user_id = ?
+            ORDER BY id DESC
+            """, (user_id,))
+            rows = cursor.fetchall()
+            
+            custom_templates = []
+            for r in rows:
+                try:
+                    exs = json.loads(r["exercises_json"])
+                except Exception:
+                    exs = []
+                custom_templates.append({
+                    "id": r["id"],
+                    "name": r["name"],
+                    "description": r["description"] or "",
+                    "split_category": r["split_category"] or "Custom",
+                    "is_custom": True,
+                    "exercises": exs,
+                    "created_at": str(r["created_at"])
+                })
+            
+            return custom_templates + TemplateManager.DEFAULT_STARTER_TEMPLATES
+
+    @staticmethod
+    def create_template(user_id: int, name: str, description: str, split_category: str, exercises: list) -> int:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+            INSERT INTO workout_templates (user_id, name, description, split_category, exercises_json)
+            VALUES (?, ?, ?, ?, ?)
+            """, (user_id, name.strip(), (description or "").strip(), (split_category or "Custom").strip(), json.dumps(exercises)))
+            return cursor.lastrowid
+
+    @staticmethod
+    def delete_template(template_id: int, user_id: int) -> bool:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM workout_templates WHERE id = ? AND user_id = ?", (template_id, user_id))
             return cursor.rowcount > 0
 
 
@@ -496,7 +690,7 @@ class AnalyticsManager:
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-            SELECT exercise_name, max_weight, reps, estimated_1rm, date_achieved, updated_at
+            SELECT exercise_name, max_weight, reps, estimated_1rm, COALESCE(max_volume, 0.0) as max_volume, date_achieved, updated_at
             FROM personal_records
             WHERE user_id = ?
             ORDER BY max_weight DESC, estimated_1rm DESC
@@ -515,19 +709,20 @@ class AnalyticsManager:
                     "weight": found["max_weight"],
                     "reps": found["reps"],
                     "estimated_1rm": found["estimated_1rm"],
+                    "max_volume": found["max_volume"],
                     "date": found["date_achieved"]
                 }
             else:
-                res[lift] = {"weight": 0.0, "reps": 0, "estimated_1rm": 0.0, "date": "Not yet logged"}
+                res[lift] = {"weight": 0.0, "reps": 0, "estimated_1rm": 0.0, "max_volume": 0.0, "date": "Not yet logged"}
         return res
 
     @staticmethod
     def get_progression_data(user_id: int, exercise_name: str, days: int = None) -> list:
-        """Returns time-series data points of (date, weight, reps, estimated_1rm) for charting."""
+        """Returns time-series data points of (date, weight, reps, estimated_1rm, volume) for charting."""
         with get_db() as conn:
             cursor = conn.cursor()
             query = """
-            SELECT s.date, w.weight, w.reps, w.estimated_1rm, w.set_number
+            SELECT s.date, w.weight, w.reps, w.estimated_1rm, (w.weight * w.reps) as volume, w.set_number
             FROM workout_sets w
             JOIN workout_sessions s ON w.session_id = s.id
             WHERE w.user_id = ? AND LOWER(w.exercise_name) = LOWER(?) AND w.is_warmup = 0
@@ -549,12 +744,15 @@ class AnalyticsManager:
         with get_db() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-            SELECT DISTINCT exercise_name FROM workout_sets
-            WHERE user_id = ?
+            SELECT DISTINCT exercise_name FROM (
+                SELECT exercise_name FROM workout_sets WHERE user_id = ?
+                UNION
+                SELECT exercise_name FROM personal_records WHERE user_id = ?
+            )
             ORDER BY exercise_name ASC
-            """, (user_id,))
+            """, (user_id, user_id))
             rows = cursor.fetchall()
-            return [r["exercise_name"] for r in rows]
+            return [r["exercise_name"] for r in rows if r["exercise_name"]]
 
     @staticmethod
     def get_dashboard_summary(user: User) -> dict:
@@ -575,6 +773,31 @@ class AnalyticsManager:
             cursor.execute("SELECT COUNT(*) as pr_count FROM personal_records WHERE user_id = ?", (user.id,))
             pr_count = cursor.fetchone()["pr_count"]
 
+            # Peak single lift weight
+            cursor.execute("SELECT COALESCE(MAX(weight), 0.0) as max_lift FROM workout_sets WHERE user_id = ? AND is_warmup = 0", (user.id,))
+            max_lift_kg = float(cursor.fetchone()["max_lift"])
+
+            # Peak dumbbell lift
+            cursor.execute("SELECT COALESCE(MAX(weight), 0.0) as max_db FROM workout_sets WHERE user_id = ? AND is_warmup = 0 AND equipment_type = 'dumbbell'", (user.id,))
+            max_db_kg = float(cursor.fetchone()["max_db"])
+
+            # Max volume in a single session
+            cursor.execute("""
+            SELECT COALESCE(MAX(sess_vol), 0.0) as max_sess_vol FROM (
+                SELECT session_id, SUM(weight * reps) as sess_vol
+                FROM workout_sets
+                WHERE user_id = ? AND is_warmup = 0
+                GROUP BY session_id
+            )
+            """, (user.id,))
+            vol_row = cursor.fetchone()
+            session_max_volume = float(vol_row["max_sess_vol"]) if vol_row else 0.0
+
+            # Workout streak count
+            cursor.execute("SELECT DISTINCT date FROM workout_sessions WHERE user_id = ? ORDER BY date DESC LIMIT 30", (user.id,))
+            dates = [r["date"] for r in cursor.fetchall()]
+            streak_days = len(dates)
+
             # Recent 3 workouts
             recent_workouts = WorkoutManager.get_user_workouts(user.id, limit=3)
 
@@ -586,13 +809,22 @@ class AnalyticsManager:
             milestones = evaluate_milestones({
                 "key_prs": key_prs,
                 "total_workouts": total_workouts,
-                "total_volume": total_volume
+                "total_volume": total_volume,
+                "pr_count": pr_count,
+                "max_lift_kg": max_lift_kg,
+                "max_db_kg": max_db_kg,
+                "session_max_volume": session_max_volume,
+                "streak_days": streak_days
             }, unit=user.unit_preference)
 
             return {
                 "total_workouts": total_workouts,
                 "total_volume": total_volume,
                 "pr_count": pr_count,
+                "max_lift_kg": max_lift_kg,
+                "max_db_kg": max_db_kg,
+                "session_max_volume": session_max_volume,
+                "streak_days": streak_days,
                 "recent_workouts": recent_workouts,
                 "today_nutrition": today_nutrition,
                 "key_prs": key_prs,

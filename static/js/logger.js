@@ -1,16 +1,18 @@
 /**
- * Gym Tracker Pro - Unified Daily Workout Logger & Exercise Manager
+ * Gym Tracker Pro - Unified Daily Workout Logger & Progressive Overload Engine
  * 
  * Features:
- * 1. Single Daily Session Flow: One session title per day (e.g., "Chest and Back").
- * 2. Multi-Exercise appending: Add multiple exercises back-to-back (Row -> Incline Bench -> Lat Pulldown).
- * 3. Equipment Weight Calculator:
- *    - Dumbbell: single dumbbell weight (kg/arm) -> computes total = single * 2.
- *    - Machine Stack: plate weight * number of plates.
- *    - Plates (Barbell/Smith): plate weight * number of plates.
- *    - Direct / Manual Override Toggle: bypasses plate math to directly type total weight (including bar).
- * 4. Live volume tallying across all exercises and sets.
- * 5. Automatic PR detection, history filtering, and PWA integration.
+ * 1. Single Daily Session Flow: One consolidated session title per day (e.g., "Chest and Back").
+ * 2. Multi-Exercise appending: Add multiple movements back-to-back under one session.
+ * 3. Flexible Equipment Weight Selector & Manual Override Toggle.
+ * 4. Progressive Overload "Last Time" Ghost Targets:
+ *    - Displays previous session's performance for each movement (e.g. "Last Time: 30 kg x 10 reps").
+ *    - Live visual feedback when beating previous session stats (Overload Indicator).
+ * 5. Reusable Workout Routines & Custom Split Templates:
+ *    - 1-click loading of splits (Push Day, Pull Day, Legs, Upper Body Power, Custom).
+ *    - Save current active session as a reusable routine template.
+ * 6. Celebratory PR & Badges Gamification Modal with Confetti:
+ *    - Triggers celebratory modal and canvas confetti particle burst when new PRs or badges are achieved!
  */
 
 const EXERCISE_DATABASE = {
@@ -75,23 +77,37 @@ const EXERCISE_DATABASE = {
   ]
 };
 
-// Global state for active multi-exercise session
+// Global active session state
 let currentExercises = [];
 let nextExerciseId = 1;
 let nextSetId = 1;
 
+// Ghost targets cache: exercise_name -> { weight, reps, estimated_1rm, date }
+let ghostTargetsCache = {};
+
+// Saved and starter routines
+let loadedTemplates = [];
+
+// Confetti animation handle
+let confettiAnimationId = null;
+
 /**
- * Initialize logger on DOM ready
+ * Initialize workout logger on DOM ready
  */
-function initWorkoutLogger() {
+async function initWorkoutLogger() {
   const workoutForm = document.getElementById('workout-log-form');
   const addExerciseBtn = document.getElementById('btn-add-exercise');
 
   if (!workoutForm) return;
 
-  // Add initial default exercises to the daily session
+  // 1. Preload ghost targets cache from historical logs
+  await preloadGhostTargets();
+
+  // 2. Preload and render split templates
+  await loadTemplates();
+
+  // 3. Populate initial default exercises if none exist
   if (currentExercises.length === 0) {
-    // 1st Exercise: Chest - Bench Press
     addExerciseToSession("Chest", "Bench Press", [
       { equipType: "plates", singleWeight: 20, plateWeight: 20, platesCount: 3, isOverride: false, overrideWeight: 60, totalWeight: 60, reps: 10, rpe: 8, isWarmup: false },
       { equipType: "plates", singleWeight: 20, plateWeight: 20, platesCount: 3, isOverride: false, overrideWeight: 60, totalWeight: 60, reps: 10, rpe: 8.5, isWarmup: false },
@@ -99,10 +115,9 @@ function initWorkoutLogger() {
     ]);
   }
 
-  // Bind Add Next Exercise button
+  // 4. Bind Add Next Exercise button
   if (addExerciseBtn) {
     addExerciseBtn.addEventListener('click', () => {
-      // Intelligently default to a complementary muscle group or same
       const lastEx = currentExercises[currentExercises.length - 1];
       let nextMuscle = "Back";
       if (lastEx && lastEx.muscleGroup === "Chest") nextMuscle = "Back";
@@ -118,7 +133,6 @@ function initWorkoutLogger() {
         { equipType: "direct", singleWeight: 40, plateWeight: 10, platesCount: 4, isOverride: false, overrideWeight: 40, totalWeight: 40, reps: 8, rpe: 8.5, isWarmup: false }
       ]);
 
-      // Smooth scroll to the newly appended exercise
       setTimeout(() => {
         const allCards = document.querySelectorAll('.exercise-card');
         if (allCards.length > 0) {
@@ -128,10 +142,10 @@ function initWorkoutLogger() {
     });
   }
 
-  // Bind Form Submission
+  // 5. Bind Form Submission
   workoutForm.addEventListener('submit', handleWorkoutSubmit);
 
-  // Bind History Filters
+  // 6. Bind History Filters
   const filterMuscle = document.getElementById('filter-muscle');
   const filterExercise = document.getElementById('filter-exercise');
   const filterDate = document.getElementById('filter-date');
@@ -152,7 +166,244 @@ function initWorkoutLogger() {
 }
 
 /**
- * Add an exercise block to the session state and re-render
+ * Preload all historical top performances to serve as Progressive Overload Ghost Targets
+ */
+async function preloadGhostTargets() {
+  try {
+    const res = await fetch('/api/workouts/last-performances');
+    const data = await res.json();
+    if (res.ok && data.performances) {
+      ghostTargetsCache = data.performances;
+    }
+  } catch (err) {
+    console.error('Error preloading ghost targets:', err);
+  }
+}
+
+/**
+ * Get ghost target for an exercise, fetching from API if not yet in cache
+ */
+async function fetchGhostTargetForExercise(exerciseName) {
+  if (!exerciseName) return null;
+  const cleanName = exerciseName.trim();
+  const lowerName = cleanName.toLowerCase();
+
+  // Search case-insensitively in cache
+  for (let key in ghostTargetsCache) {
+    if (key.toLowerCase() === lowerName) {
+      return ghostTargetsCache[key];
+    }
+  }
+
+  try {
+    const res = await fetch(`/api/workouts/last-performance?exercise=${encodeURIComponent(cleanName)}`);
+    const data = await res.json();
+    if (res.ok && data.last_performance) {
+      ghostTargetsCache[cleanName] = data.last_performance;
+      return data.last_performance;
+    }
+  } catch (err) {
+    console.error('Error fetching ghost target:', err);
+  }
+  return null;
+}
+
+/**
+ * Load and render Reusable Workout Split Templates
+ */
+async function loadTemplates() {
+  const container = document.getElementById('template-chips-container');
+  if (!container) return;
+
+  try {
+    const res = await fetch('/api/templates');
+    const data = await res.json();
+    if (res.ok && data.templates) {
+      loadedTemplates = data.templates;
+      renderTemplateChips(loadedTemplates);
+    }
+  } catch (err) {
+    console.error('Error loading routines:', err);
+  }
+}
+
+function renderTemplateChips(templates) {
+  const container = document.getElementById('template-chips-container');
+  if (!container) return;
+
+  if (templates.length === 0) {
+    container.innerHTML = '<span class="text-xs text-slate-500 italic">No templates available.</span>';
+    return;
+  }
+
+  container.innerHTML = templates.map((tmpl) => `
+    <div class="inline-flex items-center gap-1.5 shrink-0 p-1 pl-3 pr-2 rounded-xl text-xs font-bold bg-[#101C3D] hover:bg-[#1E3A8A]/50 border border-blue-900/60 hover:border-[#E6D5B8]/50 transition group shadow-sm">
+      <button type="button" onclick="applyTemplate('${tmpl.id}')" class="flex items-center gap-1.5 text-white hover:text-[#E6D5B8]">
+        <span class="text-blue-400">🚀</span>
+        <span>${tmpl.name}</span>
+        <span class="text-[10px] text-slate-400 font-normal lowercase">(${tmpl.exercises.length} ex)</span>
+      </button>
+
+      ${tmpl.is_custom ? `
+        <button type="button" onclick="deleteCustomTemplate(${tmpl.id}, event)" title="Delete template" class="text-slate-500 hover:text-red-400 ml-1 p-0.5 rounded transition">
+          ✕
+        </button>
+      ` : ''}
+    </div>
+  `).join('');
+}
+
+/**
+ * 1-Click Launch: Load routine template into the active session
+ */
+async function applyTemplate(templateId) {
+  const tmpl = loadedTemplates.find(t => String(t.id) === String(templateId));
+  if (!tmpl) return;
+
+  const titleInput = document.getElementById('log-workout-title');
+  if (titleInput) {
+    titleInput.value = tmpl.name;
+  }
+
+  currentExercises = [];
+  nextExerciseId = 1;
+  nextSetId = 1;
+
+  for (let i = 0; i < tmpl.exercises.length; i++) {
+    const exConfig = tmpl.exercises[i];
+    const targetSets = exConfig.targetSets || 3;
+    const defWeight = exConfig.defaultWeight || 40;
+    const defReps = exConfig.defaultReps || 10;
+    const equipType = exConfig.equipType || "plates";
+
+    const sets = [];
+    for (let s = 1; s <= targetSets; s++) {
+      sets.push({
+        equipType: equipType,
+        singleWeight: equipType === "dumbbell" ? defWeight : defWeight / 2,
+        plateWeight: 10,
+        platesCount: Math.max(1, Math.round(defWeight / 10)),
+        isOverride: false,
+        overrideWeight: defWeight,
+        totalWeight: defWeight,
+        reps: defReps,
+        rpe: 8.0,
+        isWarmup: false
+      });
+    }
+
+    addExerciseToSession(exConfig.muscleGroup || "Chest", exConfig.exerciseName || "Exercise", sets);
+  }
+
+  showToast(`⚡ Loaded routine: ${tmpl.name}!`, 'success');
+
+  // Scroll to active session
+  const formSection = document.getElementById('section-workout-form');
+  if (formSection) {
+    formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
+
+/**
+ * Open Modal to Save Current Session as a Template
+ */
+function openSaveTemplateModal() {
+  if (currentExercises.length === 0) {
+    showToast('Add at least one exercise before saving as a routine template.', 'error');
+    return;
+  }
+
+  const modal = document.getElementById('modal-save-template');
+  const nameInput = document.getElementById('template-input-name');
+  const currentTitle = document.getElementById('log-workout-title')?.value.trim();
+
+  if (nameInput) {
+    nameInput.value = currentTitle || "Custom Routine";
+  }
+
+  if (modal) modal.classList.remove('hidden');
+}
+
+function closeSaveTemplateModal() {
+  const modal = document.getElementById('modal-save-template');
+  if (modal) modal.classList.add('hidden');
+}
+
+/**
+ * Confirm and save active session as a reusable split template
+ */
+async function confirmSaveTemplate() {
+  const name = document.getElementById('template-input-name')?.value.trim();
+  const category = document.getElementById('template-input-category')?.value || 'Custom';
+  const desc = document.getElementById('template-input-desc')?.value.trim() || '';
+
+  if (!name) {
+    showToast('Please enter a routine name.', 'error');
+    return;
+  }
+
+  const exercisesPayload = currentExercises.map(ex => {
+    const exName = ex.exerciseName === "CUSTOM" ? (ex.customName || "Custom Exercise") : ex.exerciseName;
+    const firstSet = ex.sets[0] || {};
+    return {
+      muscleGroup: ex.muscleGroup,
+      exerciseName: exName,
+      equipType: firstSet.equipType || "direct",
+      defaultWeight: firstSet.totalWeight || 40,
+      defaultReps: firstSet.reps || 10,
+      targetSets: ex.sets.length || 3
+    };
+  });
+
+  try {
+    const res = await fetch('/api/templates', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: name,
+        description: desc,
+        split_category: category,
+        exercises: exercisesPayload
+      })
+    });
+
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast(`Routine "${name}" saved to your templates!`, 'success');
+      closeSaveTemplateModal();
+      await loadTemplates();
+    } else {
+      showToast(data.error || 'Failed to save template.', 'error');
+    }
+  } catch (err) {
+    console.error('Error saving template:', err);
+    showToast('Network error while saving template.', 'error');
+  }
+}
+
+/**
+ * Delete a custom template
+ */
+async function deleteCustomTemplate(templateId, e) {
+  if (e) e.stopPropagation();
+  if (!confirm('Are you sure you want to remove this custom template?')) return;
+
+  try {
+    const res = await fetch(`/api/templates/${templateId}`, { method: 'DELETE' });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      showToast('Template deleted.', 'success');
+      await loadTemplates();
+    } else {
+      showToast(data.error || 'Could not delete template.', 'error');
+    }
+  } catch (err) {
+    console.error('Error deleting template:', err);
+  }
+}
+
+/**
+ * Add an exercise block to the active session
  */
 function addExerciseToSession(muscleGroup = "Chest", exerciseName = "Bench Press", initialSets = null) {
   const exId = nextExerciseId++;
@@ -185,9 +436,6 @@ function addExerciseToSession(muscleGroup = "Chest", exerciseName = "Bench Press
   renderExercises();
 }
 
-/**
- * Helper to create a single set object
- */
 function createNewDefaultSet(setNumber = 1, defaultWeight = 40, defaultReps = 10, equipType = "direct") {
   return {
     id: nextSetId++,
@@ -205,21 +453,16 @@ function createNewDefaultSet(setNumber = 1, defaultWeight = 40, defaultReps = 10
   };
 }
 
-/**
- * Compute total weight and equipment details string based on equipment selection
- */
 function computeSetWeights(set) {
   if (set.isOverride) {
     set.totalWeight = parseFloat(set.overrideWeight || 0);
   } else {
     switch (set.equipType) {
       case "dumbbell":
-        // User enters weight of single dumbbell (per arm), effective total lifted = single * 2
         set.totalWeight = parseFloat(set.singleWeight || 0) * 2;
         break;
       case "machine":
       case "plates":
-        // Single plate weight * number of plates
         set.totalWeight = parseFloat(set.plateWeight || 0) * parseInt(set.platesCount || 0);
         break;
       case "direct":
@@ -230,9 +473,6 @@ function computeSetWeights(set) {
   }
 }
 
-/**
- * Produce formatted human-readable equipment details for DB and UI badges
- */
 function getEquipmentDetailsString(set) {
   if (set.equipType === "dumbbell") {
     if (set.isOverride) {
@@ -254,42 +494,68 @@ function getEquipmentDetailsString(set) {
 }
 
 /**
- * Render all exercises in the container
+ * Render all exercises in the container with Progressive Overload Ghost Targets
  */
-function renderExercises() {
+async function renderExercises() {
   const container = document.getElementById('exercises-container');
   if (!container) return;
 
   container.innerHTML = '';
 
-  currentExercises.forEach((exercise, exIndex) => {
+  for (let exIndex = 0; exIndex < currentExercises.length; exIndex++) {
+    const exercise = currentExercises[exIndex];
     const card = document.createElement('div');
     card.className = 'exercise-card gt-card p-4 sm:p-6 bg-[#0A1128] border border-blue-900/60 rounded-2xl shadow-lg space-y-4';
     card.dataset.exerciseId = exercise.id;
 
-    // Build muscle options
+    // Muscle options
     const muscleGroups = ["Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Full Body"];
     const muscleOptionsHtml = muscleGroups.map(m => 
       `<option value="${m}" ${m === exercise.muscleGroup ? 'selected' : ''}>${m}</option>`
     ).join('');
 
-    // Build exercise options for current muscle
+    // Exercise options
     const exercisesList = EXERCISE_DATABASE[exercise.muscleGroup] || EXERCISE_DATABASE["Chest"];
     let exOptionsHtml = exercisesList.map(name => 
       `<option value="${name}" ${name === exercise.exerciseName ? 'selected' : ''}>${name}</option>`
     ).join('');
     exOptionsHtml += `<option value="CUSTOM" ${exercise.exerciseName === 'CUSTOM' ? 'selected' : ''}>✏️ Custom Exercise...</option>`;
 
+    // Active movement name
+    const activeMovementName = exercise.exerciseName === 'CUSTOM' ? (exercise.customName || 'Custom Exercise') : exercise.exerciseName;
+
+    // Look up Ghost Target for this exercise
+    const ghost = await fetchGhostTargetForExercise(activeMovementName);
+
+    let ghostBadgeHtml = '';
+    if (ghost) {
+      ghostBadgeHtml = `
+        <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-[11px] font-black bg-[#2563EB]/20 text-[#E6D5B8] border border-[#2563EB]/40 shadow-sm" title="Your top set performance from your previous session">
+          <span>🎯 Ghost Target:</span>
+          <strong>Last Time: ${ghost.weight} kg × ${ghost.reps} reps</strong>
+          <span class="text-[10px] text-slate-400 font-normal">(${ghost.date})</span>
+        </span>
+      `;
+    } else {
+      ghostBadgeHtml = `
+        <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl text-[10px] font-bold bg-[#101C3D] text-slate-400 border border-blue-900/40">
+          <span>🎯 First time logging this movement!</span>
+        </span>
+      `;
+    }
+
     card.innerHTML = `
       <!-- Exercise Header Row -->
-      <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-gray-800">
-        <div class="flex items-center gap-2">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-800">
+        <div class="flex flex-wrap items-center gap-2">
           <span class="w-7 h-7 rounded-lg bg-blue-600/20 border border-blue-500/40 text-blue-400 font-black text-xs flex items-center justify-center">
             #${exIndex + 1}
           </span>
           <span class="text-sm font-bold text-white tracking-wide">
-            Exercise ${exIndex + 1}: <strong class="text-[#E6D5B8]">${exercise.exerciseName === 'CUSTOM' ? (exercise.customName || 'Custom Exercise') : exercise.exerciseName}</strong>
+            Exercise ${exIndex + 1}: <strong class="text-[#E6D5B8]">${activeMovementName}</strong>
           </span>
+          <!-- Progressive Overload Ghost Target Badge -->
+          ${ghostBadgeHtml}
         </div>
 
         <div class="flex items-center gap-2">
@@ -342,18 +608,16 @@ function renderExercises() {
     `;
 
     container.appendChild(card);
-
-    // Now render individual sets for this exercise
-    renderSetsForExercise(exercise);
-  });
+    renderSetsForExercise(exercise, ghost);
+  }
 
   calculateLiveVolume();
 }
 
 /**
- * Render sets for a specific exercise
+ * Render sets for a specific exercise and compare with Ghost Target for progressive overload
  */
-function renderSetsForExercise(exercise) {
+function renderSetsForExercise(exercise, ghostTarget = null) {
   const setsContainer = document.getElementById(`sets-list-${exercise.id}`);
   if (!setsContainer) return;
 
@@ -379,11 +643,21 @@ function renderSetsForExercise(exercise) {
       `<option value="${opt.val}" ${opt.val === set.equipType ? 'selected' : ''}>${opt.label}</option>`
     ).join('');
 
+    // Progressive Overload Check
+    let overloadIndicatorHtml = '';
+    if (ghostTarget && set.totalWeight > 0 && set.reps > 0) {
+      if (set.totalWeight > ghostTarget.weight) {
+        const diff = (set.totalWeight - ghostTarget.weight).toFixed(1);
+        overloadIndicatorHtml = `<span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">⚡ +${diff}kg OVERLOAD!</span>`;
+      } else if (set.totalWeight === ghostTarget.weight && set.reps > ghostTarget.reps) {
+        overloadIndicatorHtml = `<span class="text-[9px] font-black px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/40">⚡ +${set.reps - ghostTarget.reps} REPS OVERLOAD!</span>`;
+      }
+    }
+
     // Dynamic weight input UI based on equipment and override status
     let weightInputControlsHtml = '';
 
     if (set.isOverride) {
-      // Manual Total Override active: direct total weight input
       weightInputControlsHtml = `
         <div class="flex-1 min-w-[130px]">
           <div class="flex items-center justify-between mb-1">
@@ -391,11 +665,13 @@ function renderSetsForExercise(exercise) {
             <span class="text-[9px] text-[#E6D5B8]/80 font-bold bg-[#E6D5B8]/15 px-1 rounded">OVERRIDE ON</span>
           </div>
           <input type="number" step="0.5" min="0" value="${set.overrideWeight}" class="gt-input w-full py-1.5 px-2 text-xs font-bold text-[#E6D5B8] bg-blue-950/60 border-[#E6D5B8]/50" oninput="onOverrideWeightChange(${exercise.id}, ${set.id}, this.value)">
-          <span class="text-[10px] text-slate-400 mt-0.5 block">Total load lifted: <strong>${set.totalWeight} kg</strong></span>
+          <div class="flex items-center justify-between mt-0.5">
+            <span class="text-[10px] text-slate-400">Total load: <strong>${set.totalWeight} kg</strong></span>
+            ${overloadIndicatorHtml}
+          </div>
         </div>
       `;
     } else if (set.equipType === "dumbbell") {
-      // Dumbbell: single dumbbell weight (per arm)
       weightInputControlsHtml = `
         <div class="flex-1 min-w-[130px]">
           <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Single DB Wt (One Arm)</label>
@@ -403,11 +679,13 @@ function renderSetsForExercise(exercise) {
             <input type="number" step="0.5" min="0" value="${set.singleWeight}" class="gt-input w-full py-1.5 px-2 text-xs font-bold text-white text-center" oninput="onSingleWeightChange(${exercise.id}, ${set.id}, this.value)">
             <span class="text-[11px] font-bold text-slate-400">ea</span>
           </div>
-          <span class="text-[10px] text-[#E6D5B8] font-bold mt-0.5 block">Total: <strong>${set.totalWeight} kg</strong> (2 × ${set.singleWeight}kg)</span>
+          <div class="flex items-center justify-between mt-0.5">
+            <span class="text-[10px] text-[#E6D5B8] font-bold">Total: <strong>${set.totalWeight} kg</strong></span>
+            ${overloadIndicatorHtml}
+          </div>
         </div>
       `;
     } else if (set.equipType === "machine" || set.equipType === "plates") {
-      // Machine Stack or Barbell Plates: single plate wt + plate count
       weightInputControlsHtml = `
         <div class="flex-1 min-w-[150px] flex items-center gap-2">
           <div class="flex-1">
@@ -420,16 +698,18 @@ function renderSetsForExercise(exercise) {
           </div>
         </div>
         <div class="hidden sm:block text-[10px] text-[#E6D5B8] font-bold shrink-0 self-end pb-2">
-          Total: <strong>${set.totalWeight} kg</strong> (${set.platesCount} × ${set.plateWeight}kg)
+          Total: <strong>${set.totalWeight} kg</strong> ${overloadIndicatorHtml}
         </div>
       `;
     } else {
-      // Direct total load
       weightInputControlsHtml = `
         <div class="flex-1 min-w-[120px]">
           <label class="block text-[10px] uppercase font-bold text-slate-400 mb-1">Direct Total Weight</label>
           <input type="number" step="0.5" min="0" value="${set.totalWeight}" class="gt-input w-full py-1.5 px-2 text-xs font-bold text-[#E6D5B8] text-center" oninput="onDirectWeightChange(${exercise.id}, ${set.id}, this.value)">
-          <span class="text-[10px] text-slate-400 mt-0.5 block">Total load: <strong>${set.totalWeight} kg</strong></span>
+          <div class="flex items-center justify-between mt-0.5">
+            <span class="text-[10px] text-slate-400">Total: <strong>${set.totalWeight} kg</strong></span>
+            ${overloadIndicatorHtml}
+          </div>
         </div>
       `;
     }
@@ -575,7 +855,6 @@ function onEquipTypeChange(exerciseId, setId, equipType) {
 
   set.equipType = equipType;
   if (equipType === "dumbbell") {
-    // If switching to dumbbell, default single weight to half of previous total or 20
     set.singleWeight = set.totalWeight > 0 ? (set.totalWeight / 2) : 20;
   } else if (equipType === "machine" || equipType === "plates") {
     set.plateWeight = 10;
@@ -684,9 +963,6 @@ function onWarmupChange(exerciseId, setId, checked) {
   calculateLiveVolume();
 }
 
-/**
- * Tally and update live volume stats
- */
 function calculateLiveVolume() {
   const statsElem = document.getElementById('live-session-stats');
   if (!statsElem) return;
@@ -712,9 +988,6 @@ function calculateLiveVolume() {
   statsElem.textContent = `${totalExercises} ${totalExercises === 1 ? 'exercise' : 'exercises'} • ${totalSets} sets • ${totalVol.toLocaleString()} vol`;
 }
 
-/**
- * View Switcher: Saved Workout Logs vs Record New Workout
- */
 function switchWorkoutView(mode) {
   const formSection = document.getElementById('section-workout-form');
   const historySection = document.getElementById('section-workout-history');
@@ -743,7 +1016,7 @@ function switchWorkoutView(mode) {
 }
 
 /**
- * Handle form submission: collects all sets across all exercises into a single payload
+ * Handle form submission: collects all sets, posts to backend, and handles PR / Badges celebration
  */
 async function handleWorkoutSubmit(e) {
   e.preventDefault();
@@ -810,13 +1083,18 @@ async function handleWorkoutSubmit(e) {
 
     const data = await response.json();
     if (response.ok && data.success) {
-      if (data.new_prs && data.new_prs.length > 0) {
-        data.new_prs.forEach((pr) => {
-          showToast(`🏆 NEW PERSONAL RECORD! ${pr.exercise}: ${pr.weight} × ${pr.reps} reps (Est 1RM: ${pr.estimated_1rm})`, 'pr', 'PR UNLOCKED!');
-        });
+      // Check for PRs or unlocked badges to trigger celebratory modal
+      const hasPRs = data.new_prs && data.new_prs.length > 0;
+      const hasBadges = data.new_badges && data.new_badges.length > 0;
+
+      if (hasPRs || hasBadges) {
+        showPrCelebrationModal(data.new_prs || [], data.new_badges || []);
       } else {
         showToast(`Successfully saved ${title} with ${currentExercises.length} exercises!`, 'success');
       }
+
+      // Preload updated ghost targets
+      await preloadGhostTargets();
 
       // Automatically switch to history tab and refresh logs
       switchWorkoutView('history');
@@ -827,6 +1105,152 @@ async function handleWorkoutSubmit(e) {
   } catch (err) {
     console.error('Error submitting workout:', err);
     showToast('Network error while saving workout.', 'error');
+  }
+}
+
+/**
+ * Celebratory PR & Badges Modal with Confetti
+ */
+function showPrCelebrationModal(newPrs, newBadges) {
+  const modal = document.getElementById('modal-pr-celebration');
+  const list = document.getElementById('pr-celebration-list');
+  if (!modal || !list) return;
+
+  list.innerHTML = '';
+
+  // Render PRs
+  newPrs.forEach(pr => {
+    const item = document.createElement('div');
+    item.className = 'p-3 rounded-xl bg-[#0A1128] border border-[#E6D5B8]/40 flex items-center justify-between gap-3 shadow-md';
+    item.innerHTML = `
+      <div class="flex items-center gap-2.5">
+        <span class="text-2xl">🏆</span>
+        <div>
+          <h4 class="text-xs font-black text-white">${pr.exercise}</h4>
+          <span class="text-[11px] text-[#E6D5B8] font-bold">${pr.weight} kg × ${pr.reps} reps (1RM: ${pr.estimated_1rm})</span>
+        </div>
+      </div>
+      <span class="px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+        ${pr.improvement || 'NEW PR'}
+      </span>
+    `;
+    list.appendChild(item);
+  });
+
+  // Render newly unlocked badges
+  newBadges.forEach(b => {
+    const item = document.createElement('div');
+    item.className = 'p-3 rounded-xl bg-gradient-to-r from-[#101C3D] to-blue-900/40 border border-blue-500/60 flex items-center justify-between gap-3 shadow-md';
+    item.innerHTML = `
+      <div class="flex items-center gap-2.5">
+        <span class="text-2xl">${b.icon || '🎖️'}</span>
+        <div>
+          <h4 class="text-xs font-black text-[#E6D5B8]">${b.title}</h4>
+          <span class="text-[10px] text-slate-300">${b.target}</span>
+        </div>
+      </div>
+      <span class="px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider bg-[#2563EB] text-white">
+        UNLOCKED
+      </span>
+    `;
+    list.appendChild(item);
+  });
+
+  modal.classList.remove('hidden');
+
+  // Trigger Haptic Vibration on Mobile
+  if (navigator.vibrate) {
+    try { navigator.vibrate([100, 50, 150, 50, 250]); } catch (e) {}
+  }
+
+  // Start celebratory canvas confetti
+  startConfettiBurst();
+}
+
+function closePrModal() {
+  const modal = document.getElementById('modal-pr-celebration');
+  if (modal) modal.classList.add('hidden');
+  stopConfettiBurst();
+}
+
+/**
+ * Pure JavaScript Confetti Burst (Works 100% offline in PWA with zero dependencies)
+ */
+function startConfettiBurst() {
+  const canvas = document.getElementById('confetti-canvas');
+  if (!canvas) return;
+
+  const ctx = canvas.getContext('2d');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const colors = ['#2563EB', '#E6D5B8', '#F59E0B', '#10B981', '#38BDF8', '#FFFFFF'];
+  const particles = [];
+  const particleCount = 140;
+
+  for (let i = 0; i < particleCount; i++) {
+    particles.push({
+      x: canvas.width / 2,
+      y: canvas.height * 0.45,
+      r: Math.random() * 6 + 3,
+      d: Math.random() * particleCount,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      tilt: Math.floor(Math.random() * 10) - 10,
+      tiltAngleIncremental: (Math.random() * 0.07) + 0.05,
+      tiltAngle: 0,
+      vx: (Math.random() - 0.5) * 16,
+      vy: (Math.random() - 0.7) * 18,
+      gravity: 0.35,
+      alpha: 1,
+      decay: Math.random() * 0.01 + 0.005
+    });
+  }
+
+  const startTime = Date.now();
+
+  function render() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    particles.forEach(p => {
+      p.tiltAngle += p.tiltAngleIncremental;
+      p.vy += p.gravity;
+      p.x += p.vx;
+      p.y += p.vy;
+      p.alpha -= p.decay;
+
+      if (p.alpha > 0) {
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, p.alpha);
+        ctx.beginPath();
+        ctx.lineWidth = p.r / 2;
+        ctx.strokeStyle = p.color;
+        ctx.moveTo(p.x + p.tilt + (p.r / 4), p.y);
+        ctx.lineTo(p.x + p.tilt, p.y + p.tilt + (p.r / 4));
+        ctx.stroke();
+        ctx.restore();
+      }
+    });
+
+    if (Date.now() - startTime < 3800) {
+      confettiAnimationId = requestAnimationFrame(render);
+    } else {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+  }
+
+  if (confettiAnimationId) cancelAnimationFrame(confettiAnimationId);
+  confettiAnimationId = requestAnimationFrame(render);
+}
+
+function stopConfettiBurst() {
+  if (confettiAnimationId) {
+    cancelAnimationFrame(confettiAnimationId);
+    confettiAnimationId = null;
+  }
+  const canvas = document.getElementById('confetti-canvas');
+  if (canvas) {
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
   }
 }
 
@@ -942,9 +1366,6 @@ function renderWorkoutHistory(sessions) {
   `).join('');
 }
 
-/**
- * Delete a session
- */
 async function deleteWorkoutSession(sessionId) {
   if (!confirm('Are you sure you want to delete this workout session?')) return;
 

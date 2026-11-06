@@ -214,7 +214,8 @@ def evaluate_milestones(stats: dict, unit: str = "kg") -> list:
     milestones.append({
         "id": "thousand_lb_club",
         "title": "The 1000-lb Club",
-        "category": "Elite Honor",
+        "category": "Strength Club",
+        "tier": "gold",
         "icon": "🏆",
         "target": "1,000 lbs (454 kg) Total",
         "current": f"{round(total_big_three_lbs if unit == 'lbs' else total_big_three_kg, 1)} {unit}",
@@ -222,21 +223,124 @@ def evaluate_milestones(stats: dict, unit: str = "kg") -> list:
         "progress": min(100, int((total_big_three_lbs / 1000.0) * 100)) if total_big_three_lbs else 0
     })
 
-    # 5. Workout Consistency Badges
+    # 5. First 100kg Lift (Any exercise >= 100kg / 220lbs)
+    max_lift_kg = float(stats.get("max_lift_kg", 0.0))
+    first_100_achieved = max_lift_kg >= 100.0
+    milestones.append({
+        "id": "first_100kg_lift",
+        "title": "First 100kg Lift",
+        "category": "Strength Club",
+        "tier": "silver",
+        "icon": "🎖️",
+        "target": "100 kg (220 lbs) on any lift",
+        "current": f"{round(max_lift_kg if unit == 'kg' else max_lift_kg * 2.20462, 1)} {unit}",
+        "achieved": first_100_achieved,
+        "progress": min(100, int((max_lift_kg / 100.0) * 100)) if max_lift_kg else 0
+    })
+
+    # 6. 50kg Dumbbell Club (Dumbbell total >= 50kg or single >= 25kg)
+    max_db_kg = float(stats.get("max_db_kg", 0.0))
+    db_50_achieved = max_db_kg >= 50.0
+    milestones.append({
+        "id": "db_50kg_club",
+        "title": "50kg Dumbbell Club",
+        "category": "Strength Club",
+        "tier": "gold",
+        "icon": "💥",
+        "target": "50 kg Total (25kg/arm)",
+        "current": f"{round(max_db_kg if unit == 'kg' else max_db_kg * 2.20462, 1)} {unit}",
+        "achieved": db_50_achieved,
+        "progress": min(100, int((max_db_kg / 50.0) * 100)) if max_db_kg else 0
+    })
+
+    # 7. PR Mastery Badges
+    pr_count = int(stats.get("pr_count", 0))
+    pr_pioneer = pr_count >= 1
+    milestones.append({
+        "id": "pr_pioneer",
+        "title": "PR Pioneer",
+        "category": "PR Mastery",
+        "tier": "bronze",
+        "icon": "🌟",
+        "target": "1 Active PR Recorded",
+        "current": f"{pr_count} PRs",
+        "achieved": pr_pioneer,
+        "progress": min(100, int((pr_count / 1.0) * 100)) if pr_count else 0
+    })
+
+    pr_master = pr_count >= 5
+    milestones.append({
+        "id": "pr_master_5",
+        "title": "New PR Master",
+        "category": "PR Mastery",
+        "tier": "gold",
+        "icon": "🏅",
+        "target": "5 Distinct Exercise PRs",
+        "current": f"{pr_count} PRs",
+        "achieved": pr_master,
+        "progress": min(100, int((pr_count / 5.0) * 100)) if pr_count else 0
+    })
+
+    # 8. Consistency & Streak Badges
+    streak_days = int(stats.get("streak_days", 0))
+    streak_achieved = streak_days >= 3
+    milestones.append({
+        "id": "consistency_streak_3",
+        "title": "Consistency Streak",
+        "category": "Consistency",
+        "tier": "silver",
+        "icon": "⚡",
+        "target": "3+ Workout Days Streak",
+        "current": f"{streak_days} Days Streak",
+        "achieved": streak_achieved,
+        "progress": min(100, int((streak_days / 3.0) * 100)) if streak_days else 0
+    })
+
+    # 9. Volume Titans
+    total_vol = float(stats.get("total_volume", 0.0))
+    session_max_vol = float(stats.get("session_max_volume", 0.0))
+    vol_beast = session_max_vol >= 10000.0
+    milestones.append({
+        "id": "volume_beast_10k",
+        "title": "Volume Beast",
+        "category": "Volume",
+        "tier": "gold",
+        "icon": "🦍",
+        "target": "10,000 kg in One Session",
+        "current": f"{int(session_max_vol)} {unit}",
+        "achieved": vol_beast,
+        "progress": min(100, int((session_max_vol / 10000.0) * 100)) if session_max_vol else 0
+    })
+
+    heavy_artillery = total_vol >= 50000.0
+    milestones.append({
+        "id": "heavy_artillery_50k",
+        "title": "Heavy Artillery",
+        "category": "Volume",
+        "tier": "diamond",
+        "icon": "🚀",
+        "target": "50,000 kg Lifetime Volume",
+        "current": f"{int(total_vol)} {unit}",
+        "achieved": heavy_artillery,
+        "progress": min(100, int((total_vol / 50000.0) * 100)) if total_vol else 0
+    })
+
+    # 10. Workout Consistency Total Count Badges
     total_workouts = stats.get("total_workouts", 0)
     consistency_levels = [
-        ("first_rep", "First Rep", "1 Workout Completed", 1, "🌱"),
-        ("consistency_10", "10-Session Grinder", "10 Workouts Logged", 10, "🔥"),
-        ("iron_devotee_25", "Iron Devotee", "25 Workouts Logged", 25, "⚔️"),
-        ("titan_50", "Half-Century Titan", "50 Workouts Logged", 50, "👑"),
-        ("centurion_100", "Century Club", "100 Workouts Logged", 100, "💎")
+        ("first_rep", "First Rep", "1 Workout Completed", 1, "🌱", "bronze"),
+        ("consistency_10", "10-Session Grinder", "10 Workouts Logged", 10, "🔥", "silver"),
+        ("iron_devotee_25", "Iron Devotee", "25 Workouts Logged", 25, "⚔️", "gold"),
+        ("titan_50", "Half-Century Titan", "50 Workouts Logged", 50, "👑", "diamond"),
+        ("centurion_100", "Century Club", "100 Workouts Logged", 100, "💎", "diamond")
     ]
-    for m_id, title, desc, threshold, emoji in consistency_levels:
+    for m_id, title, desc, threshold, emoji, tier in consistency_levels:
         achieved = total_workouts >= threshold
         milestones.append({
             "id": m_id,
             "title": title,
             "category": "Consistency",
+            "tier": tier,
             "icon": emoji,
             "target": f"{threshold} Workouts",
             "current": f"{total_workouts} Workouts",

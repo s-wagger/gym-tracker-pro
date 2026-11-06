@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}PR Analytics & Milestones | Gym Tracker Pro{% endblock %}
+{% block title %}PR Analytics & Achievement Badges | Gym Tracker Pro{% endblock %}
 
 {% block content %}
 <div class="space-y-8">
@@ -9,58 +9,94 @@
   <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
     <div>
       <div class="flex items-center gap-2 text-xs uppercase font-black tracking-widest text-[#E6D5B8]">
-        <span>Module M7</span> • <span>Performance Intelligence</span>
+        <span>Universal PR Tracking</span> • <span>Biomechanical Milestones</span>
       </div>
-      <h1 class="text-3xl font-black text-white tracking-tight mt-1">Personal Records & Milestones</h1>
-      <p class="text-gray-400 text-xs">Automated all-time record detection, milestone tracking, and weight progression curves.</p>
+      <h1 class="text-2xl sm:text-3xl font-black text-white tracking-tight mt-1">Personal Records & Achievement Badges</h1>
+      <p class="text-slate-400 text-xs">Automated all-exercise PR detection, gamified achievements, and progressive overload trajectories.</p>
     </div>
 
-    <div class="flex items-center gap-2">
-      <span class="text-xs font-bold text-gray-300">Total Records: <strong class="text-[#E6D5B8]">{{ records | length }}</strong></span>
+    <div class="flex flex-wrap items-center gap-3">
+      <div class="px-3 py-1.5 rounded-xl bg-[#0A1128] border border-blue-900/40 text-xs text-slate-300">
+        Active PRs: <strong class="text-[#E6D5B8]">{{ records | length }}</strong>
+      </div>
+      <div class="px-3 py-1.5 rounded-xl bg-[#0A1128] border border-blue-900/40 text-xs text-slate-300">
+        Badges Unlocked: <strong class="text-blue-400">{{ milestones | selectattr('achieved') | list | length }} / {{ milestones | length }}</strong>
+      </div>
     </div>
   </div>
 
-  <!-- Big Three / Four Centralized Record Dashboard -->
+  <!-- Dynamic All-Exercise PR Showcase -->
   <section class="space-y-4">
-    <div class="flex items-center justify-between pb-2 border-b border-blue-900/40">
-      <h2 class="text-lg font-black uppercase tracking-wider text-white flex items-center gap-2">
-        <span class="text-[#E6D5B8]">🏆</span> Key Lift Records
-      </h2>
-      <span class="text-xs text-gray-400">All-time peak performance</span>
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-blue-900/40">
+      <div>
+        <h2 class="text-lg font-black uppercase tracking-wider text-white flex items-center gap-2">
+          <span class="text-[#E6D5B8]">🏆</span> All-Exercise PR Showcase
+        </h2>
+        <span class="text-xs text-slate-400">Peak weight, volume, and estimated 1RM milestones across all movements</span>
+      </div>
+
+      <!-- Quick Search Filter for PR Cards -->
+      <div class="w-full sm:w-64">
+        <input type="text" id="pr-search-input" placeholder="🔍 Filter exercises (e.g. Incline, Row)..." class="gt-input w-full text-xs py-1.5 px-3 bg-[#0A1128] border-blue-900/50" oninput="filterPrCards(this.value)">
+      </div>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-      {% for lift_name in ["Bench Press", "Back Squat", "Deadlift", "Overhead Press"] %}
-        {% set lift = key_prs[lift_name] %}
-        <div class="tilt-card gt-card p-5 border border-blue-900/40 hover:border-[#2563EB]/60 bg-[#101C3D] rounded-2xl shadow-md">
-          <div class="tilt-inner">
-            <div class="flex items-center justify-between mb-3">
-              <span class="text-xs font-black uppercase tracking-wider text-gray-300">{{ lift_name }}</span>
-              <span class="text-base">
-                {% if lift_name == 'Bench Press' %}🏋️‍♂️{% elif lift_name == 'Back Squat' %}🦵{% elif lift_name == 'Deadlift' %}⚡{% else %}💪{% endif %}
+    {% if records | length == 0 %}
+      <div class="text-center py-10 bg-[#101C3D] border border-blue-900/40 rounded-2xl p-6">
+        <div class="text-4xl mb-2">🏋️‍♂️</div>
+        <h3 class="text-base font-bold text-white mb-1">No Personal Records Yet</h3>
+        <p class="text-slate-400 text-xs mb-3">Every completed exercise you log in workouts automatically tracks peak weight, reps, and volume here.</p>
+        <a href="{{ url_for('workouts') }}" class="btn-royal inline-block px-4 py-2 rounded-xl text-xs font-black">
+          Record First Workout
+        </a>
+      </div>
+    {% else %}
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="pr-cards-container">
+        {% for r in records %}
+          <div class="pr-exercise-card tilt-card gt-card p-5 border border-blue-900/40 hover:border-[#2563EB]/70 bg-[#101C3D] rounded-2xl shadow-md transition-all group" data-exercise="{{ r.exercise_name | lower }}">
+            <div class="flex items-start justify-between gap-2 mb-3">
+              <div>
+                <h3 class="text-sm font-black text-white group-hover:text-blue-300 transition line-clamp-1" title="{{ r.exercise_name }}">
+                  {{ r.exercise_name }}
+                </h3>
+                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider">All-Time Peak</span>
+              </div>
+              <span class="w-7 h-7 rounded-lg bg-blue-500/10 border border-blue-500/30 text-blue-400 flex items-center justify-center text-xs font-black shrink-0">
+                🏆
               </span>
             </div>
 
-            {% if lift.weight > 0 %}
-              <div class="text-3xl font-black text-[#E6D5B8]">
-                {{ lift.weight }} <span class="text-xs text-gray-400 font-bold">{{ user.unit_preference }}</span>
+            <!-- Peak Weight Metric -->
+            <div class="text-3xl font-black text-[#E6D5B8] tracking-tight">
+              {{ r.max_weight }} <span class="text-xs text-slate-400 font-bold uppercase">{{ user.unit_preference }}</span>
+            </div>
+
+            <!-- Reps & 1RM Row -->
+            <div class="grid grid-cols-2 gap-2 mt-3 pt-3 border-t border-blue-900/40 text-xs">
+              <div>
+                <span class="text-[10px] text-slate-500 uppercase font-bold block">Top Set</span>
+                <strong class="text-white font-semibold">{{ r.reps }} reps</strong>
               </div>
-              <div class="text-xs text-gray-400 mt-1 flex items-center justify-between">
-                <span>{{ lift.reps }} reps</span>
-                <span class="text-blue-400 font-semibold">1RM: {{ lift.estimated_1rm }}</span>
+              <div>
+                <span class="text-[10px] text-slate-500 uppercase font-bold block">Est. 1RM</span>
+                <strong class="text-blue-400 font-bold">{{ r.estimated_1rm }} {{ user.unit_preference }}</strong>
               </div>
-              <div class="text-[10px] text-gray-400 mt-2 pt-2 border-t border-blue-900/40">
-                Achieved: {{ lift.date }}
-              </div>
-            {% else %}
-              <div class="text-xl font-bold text-gray-600 my-2">--</div>
-              <div class="text-xs text-gray-500 italic">No lift recorded yet</div>
-              <div class="text-[10px] text-gray-600 mt-2 pt-2 border-t border-blue-900/40">Log in workouts</div>
-            {% endif %}
+            </div>
+
+            <!-- Peak Set Volume & Date -->
+            <div class="flex items-center justify-between text-[11px] text-slate-400 mt-2.5 pt-2.5 border-t border-blue-900/30">
+              <span>Set Vol: <strong class="text-slate-200">{{ r.max_volume | int if r.max_volume else (r.max_weight * r.reps) | int }}</strong></span>
+              <span class="text-[10px]">{{ r.date_achieved }}</span>
+            </div>
+
+            <!-- Quick Chart Jump Button -->
+            <button type="button" onclick="selectExerciseForChart('{{ r.exercise_name }}')" class="w-full mt-3 py-1.5 px-2 rounded-lg bg-[#0A1128] hover:bg-[#2563EB] text-slate-300 hover:text-white border border-blue-900/50 hover:border-transparent text-[11px] font-bold transition flex items-center justify-center gap-1.5">
+              <span>📈</span> <span>View Progression Curve</span>
+            </button>
           </div>
-        </div>
-      {% endfor %}
-    </div>
+        {% endfor %}
+      </div>
+    {% endif %}
   </section>
 
   <!-- Interactive Trend Analysis Progression Graph (Chart.js) -->
@@ -68,12 +104,12 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 mb-6 border-b border-blue-900/40">
       <div>
         <h2 class="text-lg font-black text-white flex items-center gap-2">
-          <span>📈</span> Weight Progression Curve
+          <span>📈</span> Universal Weight Progression Curve
         </h2>
-        <span class="text-xs text-gray-400">Track strength development and estimated 1RM trajectory over time</span>
+        <span class="text-xs text-slate-400">Track strength development, set volume, and estimated 1RM trajectory over time for any movement</span>
       </div>
 
-      <!-- Controls: Exercise Select & Timeframe Buttons -->
+      <!-- Controls: Universal Exercise Select & Timeframe Buttons -->
       <div class="flex flex-wrap items-center gap-3">
         <select id="analytics-exercise-select" class="gt-input text-xs font-bold bg-[#0A1128] border border-blue-900/40">
           {% for ex in exercises %}
@@ -102,76 +138,102 @@
       <h3 class="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
         <span class="text-[#E6D5B8]">⚡</span> Session Workload Volume History
       </h3>
-      <span class="text-xs text-gray-400">Total load lifted per session (Weight × Reps)</span>
+      <span class="text-xs text-slate-400">Total workload lifted per completed session (Weight × Reps)</span>
     </div>
     <div class="w-full h-56 relative">
       <canvas id="chart-volume"></canvas>
     </div>
   </section>
 
-  <!-- Milestone Clubs & Badges Grid -->
-  <section class="space-y-4">
-    <div class="flex items-center justify-between pb-2 border-b border-blue-900/40">
-      <h2 class="text-lg font-black uppercase tracking-wider text-white flex items-center gap-2">
-        <span>🎖️</span> Strength Clubs & Consistency Milestones
-      </h2>
-      <span class="text-xs text-gray-400">Automated achievement badges</span>
+  <!-- Dedicated Badges & Achievements Gallery -->
+  <section class="space-y-4" id="badges-gallery">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-blue-900/40">
+      <div>
+        <h2 class="text-lg font-black uppercase tracking-wider text-white flex items-center gap-2">
+          <span>🎖️</span> Badges & Achievements Gallery
+        </h2>
+        <span class="text-xs text-slate-400">Unlock trophies through heavy lifts, PR streaks, volume milestones, and training consistency</span>
+      </div>
+
+      <!-- Badge Category Filter Tabs -->
+      <div class="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-[#0A1128] border border-blue-900/40 text-[11px] font-bold">
+        <button type="button" class="badge-filter-btn px-2.5 py-1 rounded-lg bg-[#2563EB] text-white" onclick="filterBadges('all')">All</button>
+        <button type="button" class="badge-filter-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white" onclick="filterBadges('unlocked')">Unlocked 🏆</button>
+        <button type="button" class="badge-filter-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white" onclick="filterBadges('Strength Club')">Strength</button>
+        <button type="button" class="badge-filter-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white" onclick="filterBadges('PR Mastery')">PR Mastery</button>
+        <button type="button" class="badge-filter-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white" onclick="filterBadges('Consistency')">Consistency</button>
+        <button type="button" class="badge-filter-btn px-2.5 py-1 rounded-lg text-slate-400 hover:text-white" onclick="filterBadges('Volume')">Volume</button>
+      </div>
     </div>
 
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4" id="badges-container">
       {% for m in milestones %}
-        <div class="gt-card p-5 border rounded-2xl {{ 'border-[#2563EB]/70 bg-gradient-to-br from-[#101C3D] to-[#1E3A8A]/30 shadow-lg' if m.achieved else 'border-blue-900/30 bg-[#0A1128]' }} transition">
+        <div class="badge-card gt-card p-5 border rounded-2xl transition-all {{ 'border-[#2563EB]/80 bg-gradient-to-br from-[#101C3D] via-[#101C3D] to-[#1E3A8A]/40 shadow-lg shadow-blue-900/20' if m.achieved else 'border-blue-900/30 bg-[#0A1128]/90 opacity-80' }}" data-category="{{ m.category }}" data-achieved="{{ 'true' if m.achieved else 'false' }}">
+          
+          <!-- Badge Header: Icon + Tier + Status -->
           <div class="flex items-start justify-between gap-3 mb-3">
             <div class="flex items-center gap-3">
-              <span class="text-2xl">{{ m.icon }}</span>
+              <span class="text-3xl filter drop-shadow">{{ m.icon }}</span>
               <div>
-                <h4 class="text-sm font-black {{ 'text-[#E6D5B8]' if m.achieved else 'text-white' }}">{{ m.title }}</h4>
-                <div class="text-[10px] text-gray-400 uppercase font-bold">{{ m.category }}</div>
+                <h4 class="text-sm font-black {{ 'text-[#E6D5B8]' if m.achieved else 'text-white' }} line-clamp-1">{{ m.title }}</h4>
+                <div class="flex items-center gap-1.5 mt-0.5">
+                  <span class="text-[9px] uppercase font-black px-1.5 py-0.2 rounded border {{ 'bg-[#E6D5B8]/20 text-[#E6D5B8] border-[#E6D5B8]/40' if m.tier == 'gold' else 'bg-blue-500/20 text-blue-300 border-blue-500/40' if m.tier == 'diamond' else 'bg-slate-700/40 text-slate-300 border-slate-600' }}">
+                    {{ m.tier | upper if m.tier else 'BADGE' }}
+                  </span>
+                  <span class="text-[10px] text-slate-400 uppercase font-semibold">{{ m.category }}</span>
+                </div>
               </div>
             </div>
+
             {% if m.achieved %}
-              <span class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-[#2563EB] text-white shadow-sm">
-                UNLOCKED
+              <span class="px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-[#2563EB] text-white shadow-sm shrink-0">
+                🏆 UNLOCKED
               </span>
             {% else %}
-              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold text-gray-400 bg-[#16254F]">
+              <span class="px-2 py-0.5 rounded-full text-[10px] font-bold text-slate-400 bg-[#16254F] shrink-0">
                 {{ m.progress }}%
               </span>
             {% endif %}
           </div>
 
-          <div class="w-full bg-[#0A1128] border border-blue-900/30 rounded-full h-1.5 mb-2 overflow-hidden">
-            <div class="h-full rounded-full {{ 'bg-[#2563EB]' if m.achieved else 'bg-gray-700' }}" style="width: {{ m.progress }}%"></div>
+          <!-- Progress Bar -->
+          <div class="w-full bg-[#0A1128] border border-blue-900/40 rounded-full h-1.5 mb-2.5 overflow-hidden">
+            <div class="h-full rounded-full transition-all duration-500 {{ 'bg-[#2563EB]' if m.achieved else 'bg-slate-600' }}" style="width: {{ m.progress }}%"></div>
           </div>
 
-          <div class="flex items-center justify-between text-xs text-gray-400">
-            <span>Target: <strong class="text-gray-200">{{ m.target }}</strong></span>
-            <span>Current: <strong class="text-white">{{ m.current }}</strong></span>
+          <!-- Target & Current Status -->
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <span>Target: <strong class="text-slate-200">{{ m.target }}</strong></span>
+            <span>Current: <strong class="{{ 'text-[#E6D5B8]' if m.achieved else 'text-white' }}">{{ m.current }}</strong></span>
           </div>
         </div>
       {% endfor %}
     </div>
   </section>
 
-  <!-- Complete Records Table -->
+  <!-- Complete Records Historical Table -->
   <section class="gt-card p-6 border border-blue-900/40 bg-[#101C3D] rounded-2xl shadow-xl">
-    <div class="flex items-center justify-between pb-3 mb-4 border-b border-blue-900/40">
-      <h3 class="text-base font-black text-white">All Personal Records</h3>
-      <a href="{{ url_for('export_prs_csv') }}" class="text-xs font-bold text-[#E6D5B8] hover:underline flex items-center gap-1">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 mb-4 border-b border-blue-900/40">
+      <div>
+        <h3 class="text-base font-black text-white">All Personal Records Database</h3>
+        <span class="text-xs text-slate-400">Permanent historical peak performance archive</span>
+      </div>
+      <a href="{{ url_for('export_prs_csv') }}" class="btn-royal px-3 py-1.5 rounded-xl text-xs font-bold text-white flex items-center gap-1.5 shadow-sm w-fit">
         <span>💾</span> Export PRs (.csv)
       </a>
     </div>
 
     {% if records | length == 0 %}
-      <div class="text-center py-8 text-gray-500 text-xs">No records tracked yet. Log workouts to automatically generate PRs.</div>
+      <div class="text-center py-8 text-slate-500 text-xs">No records tracked yet. Log workouts to automatically generate PRs.</div>
     {% else %}
       <div class="overflow-x-auto">
         <table class="w-full text-left text-xs text-gray-300">
-          <thead class="text-[10px] uppercase tracking-wider text-gray-400 bg-[#0A1128]">
+          <thead class="text-[10px] uppercase tracking-wider text-slate-400 bg-[#0A1128] rounded-lg">
             <tr>
-              <th class="py-2.5 px-3">Exercise</th>
-              <th class="py-2.5 px-3">Max Weight</th>
+              <th class="py-2.5 px-3">Exercise Movement</th>
+              <th class="py-2.5 px-3">Peak Weight</th>
               <th class="py-2.5 px-3">Reps Completed</th>
+              <th class="py-2.5 px-3">Peak Set Volume</th>
               <th class="py-2.5 px-3">Estimated 1RM (Epley)</th>
               <th class="py-2.5 px-3">Date Achieved</th>
             </tr>
@@ -182,8 +244,9 @@
                 <td class="py-2.5 px-3 font-bold text-white">{{ r.exercise_name }}</td>
                 <td class="py-2.5 px-3 font-bold text-[#E6D5B8]">{{ r.max_weight }} {{ user.unit_preference }}</td>
                 <td class="py-2.5 px-3 text-white font-semibold">{{ r.reps }}</td>
+                <td class="py-2.5 px-3 text-slate-400">{{ r.max_volume | int if r.max_volume else (r.max_weight * r.reps) | int }}</td>
                 <td class="py-2.5 px-3 font-bold text-blue-400">{{ r.estimated_1rm }} {{ user.unit_preference }}</td>
-                <td class="py-2.5 px-3 text-gray-400">{{ r.date_achieved }}</td>
+                <td class="py-2.5 px-3 text-slate-400">{{ r.date_achieved }}</td>
               </tr>
             {% endfor %}
           </tbody>
