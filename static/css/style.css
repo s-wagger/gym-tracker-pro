@@ -423,3 +423,173 @@ html.light .toast {
   border-color: #E2E8F0 !important;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
 }
+
+/* ============================================================
+   DARK THEME OVERRIDES (High-Contrast Slate Navy & Pure White)
+   Ensures text defaults to high-contrast white/light gray across all cards
+   ============================================================ */
+html.dark {
+  --bg-page: #0B1120;
+  --bg-surface: #111827;
+  --bg-subtle: #1F2937;
+  --card-dark: #111827;
+  --card-border: #1F2937;
+  --text-main: #F3F4F6;
+  --text-muted: #9CA3AF;
+  --primary-blue: #3B82F6;
+}
+
+html.dark,
+html.dark body {
+  background-color: #0B1120 !important;
+  color: #F3F4F6 !important;
+}
+
+html.dark header {
+  background-color: rgba(17, 24, 39, 0.96) !important;
+  border-bottom-color: #1F2937 !important;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5) !important;
+}
+
+html.dark .gt-card {
+  background-color: #111827 !important;
+  border-color: #1F2937 !important;
+  color: #F3F4F6 !important;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4) !important;
+}
+
+html.dark .gt-card:hover {
+  border-color: #374151 !important;
+  box-shadow: 0 6px 24px -2px rgba(0, 102, 255, 0.2) !important;
+}
+
+/* All headings, labels, and text in dark mode */
+html.dark h1,
+html.dark h2,
+html.dark h3,
+html.dark h4,
+html.dark h5,
+html.dark h6 {
+  color: #F9FAFB !important;
+}
+
+html.dark .text-slate-900,
+html.dark .text-slate-800,
+html.dark .text-slate-700,
+html.dark .text-gray-900,
+html.dark .text-gray-800,
+html.dark .text-gray-700,
+html.dark .text-[#0F172A],
+html.dark .text-[#1E293B],
+html.dark .text-black {
+  color: #F3F4F6 !important;
+}
+
+html.dark .text-slate-600,
+html.dark .text-slate-500,
+html.dark .text-slate-400,
+html.dark .text-gray-600,
+html.dark .text-gray-500,
+html.dark .text-gray-400 {
+  color: #9CA3AF !important;
+}
+
+html.dark .text-slate-300,
+html.dark .text-gray-300 {
+  color: #D1D5DB !important;
+}
+
+/* Surface backgrounds */
+html.dark .bg-white,
+html.dark .bg-slate-50,
+html.dark .bg-slate-100,
+html.dark .bg-gray-50,
+html.dark .bg-gray-100 {
+  background-color: #111827 !important;
+  border-color: #1F2937 !important;
+  color: #F3F4F6 !important;
+}
+
+html.dark .bg-slate-200,
+html.dark .bg-gray-200 {
+  background-color: #1F2937 !important;
+  border-color: #374151 !important;
+}
+
+/* Inputs, Selects, Textareas */
+html.dark .gt-input,
+html.dark input,
+html.dark select,
+html.dark textarea {
+  background-color: #1F2937 !important;
+  border-color: #374151 !important;
+  color: #F9FAFB !important;
+}
+
+html.dark .gt-input:focus,
+html.dark input:focus,
+html.dark select:focus {
+  border-color: #3B82F6 !important;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
+}
+
+/* Borders and dividers */
+html.dark .border-\[\#E2E8F0\],
+html.dark .border-slate-200,
+html.dark .border-gray-200,
+html.dark .border-slate-300 {
+  border-color: #1F2937 !important;
+}
+
+html.dark .divide-\[\#E2E8F0\] > :not([hidden]) ~ :not([hidden]) {
+  border-color: #1F2937 !important;
+}
+
+/* Pills and Badges in Dark Mode */
+html.dark .bg-blue-50,
+html.dark .bg-blue-100 {
+  background-color: rgba(37, 99, 235, 0.25) !important;
+  border-color: rgba(59, 130, 246, 0.4) !important;
+  color: #93C5FD !important;
+}
+
+html.dark .text-\[\#0066FF\],
+html.dark .text-blue-600 {
+  color: #60A5FA !important;
+}
+
+html.dark .text-amber-600 {
+  color: #FBBF24 !important;
+}
+
+html.dark .text-emerald-600 {
+  color: #34D399 !important;
+}
+
+html.dark .text-rose-600 {
+  color: #F87171 !important;
+}
+
+html.dark .mobile-nav-bar {
+  background-color: rgba(17, 24, 39, 0.98) !important;
+  border-top-color: #1F2937 !important;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3) !important;
+}
+
+html.dark footer {
+  background-color: #0B1120 !important;
+  border-top-color: #1F2937 !important;
+}
+
+html.dark .btn-theme-toggle {
+  background-color: #1F2937 !important;
+  border-color: #374151 !important;
+  color: #F3F4F6 !important;
+}
+
+html.dark .toast {
+  background-color: #111827 !important;
+  color: #F3F4F6 !important;
+  border-color: #374151 !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6) !important;
+}

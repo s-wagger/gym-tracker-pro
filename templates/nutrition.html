@@ -10,49 +10,35 @@
 {% block content %}
 <div class="space-y-6">
 
-  <!-- Top Daily Date Bar (MyFitnessPal Aesthetic) -->
-  <div
-    class="gt-card p-3 sm:p-4 bg-white border border-[#E2E8F0] shadow-sm rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-    <div class="flex items-center gap-2.5">
-      <div
-        class="w-9 h-9 rounded-xl bg-blue-50 text-[#0066FF] flex items-center justify-center font-bold text-base border border-blue-100">
-        📅
+  <!-- Sleek Top Header & Minimalist Inline Date Navigator -->
+  <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E2E8F0]">
+    <div>
+      <div class="flex items-center gap-2">
+        <h1 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">Nutrition Journal</h1>
+        <span id="nutrition-today-badge" class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-blue-50 text-[#0066FF] border border-blue-200">Today</span>
       </div>
-      <div>
-        <div class="text-[10px] font-black uppercase tracking-wider text-slate-400">Dietary Log Date</div>
-        <div class="text-sm font-bold text-[#0F172A] flex items-center gap-2">
-          <span id="display-nutrition-date">{{ today }}</span>
-          <span id="nutrition-today-badge"
-            class="text-[10px] font-extrabold uppercase px-2 py-0.5 rounded-full bg-blue-50 text-[#0066FF] border border-blue-200">Today</span>
-        </div>
-      </div>
+      <p class="text-xs text-slate-500 mt-0.5">Daily calorie budget, macro splits, and food journal</p>
     </div>
 
-    <!-- Date Navigation Arrows + Native Picker + Quick Buttons -->
-    <div class="flex flex-wrap items-center gap-2">
-      <div class="flex items-center bg-slate-100 rounded-xl p-1 border border-[#E2E8F0]">
-        <button type="button" id="btn-prev-day"
-          class="p-1.5 rounded-lg text-slate-600 hover:text-[#0066FF] hover:bg-white transition" title="Previous Day">
+    <!-- Minimalist Inline Date Bar -->
+    <div class="flex items-center gap-2 self-start sm:self-auto">
+      <div class="inline-flex items-center bg-slate-100 rounded-xl p-1 border border-[#E2E8F0]">
+        <button type="button" id="btn-prev-day" class="p-1 rounded-lg text-slate-600 hover:text-[#0066FF] hover:bg-white transition" title="Previous Day">
           ◀
         </button>
-        <input type="date" id="nutrition-active-date" value="{{ today }}"
-          class="bg-transparent text-slate-800 font-bold text-xs py-1 px-2 border-none focus:outline-none cursor-pointer">
-        <button type="button" id="btn-next-day"
-          class="p-1.5 rounded-lg text-slate-600 hover:text-[#0066FF] hover:bg-white transition" title="Next Day">
+        <input type="date" id="nutrition-active-date" value="{{ today }}" class="bg-transparent text-slate-800 font-bold text-xs py-0.5 px-1 border-none focus:outline-none cursor-pointer">
+        <button type="button" id="btn-next-day" class="p-1 rounded-lg text-slate-600 hover:text-[#0066FF] hover:bg-white transition" title="Next Day">
           ▶
         </button>
       </div>
-      <div class="flex items-center gap-1.5">
-        <button type="button" id="btn-yesterday"
-          class="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
+      <div class="flex items-center gap-1">
+        <button type="button" id="btn-yesterday" class="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
           Yesterday
         </button>
-        <button type="button" id="btn-today"
-          class="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#0066FF] hover:bg-[#0052CC] text-white transition shadow-sm">
+        <button type="button" id="btn-today" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-[#0066FF] hover:bg-[#0052CC] text-white transition shadow-sm">
           Today
         </button>
-        <button type="button" id="btn-tomorrow"
-          class="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
+        <button type="button" id="btn-tomorrow" class="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
           Tomorrow
         </button>
       </div>
