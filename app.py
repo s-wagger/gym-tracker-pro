@@ -28,14 +28,15 @@ from flask_login import (
 from config import Config
 from database import init_db
 from models import (
-    User, WorkoutManager, NutritionManager,
+    User, WorkoutManager, NutritionManager, WaterManager,
     AnalyticsManager, ExportManager, StepManager, SubscriptionManager,
     TemplateManager
 )
 from formulas import (
     calculate_epley_1rm, calculate_brzycki_1rm,
     calculate_lombardi_1rm, get_training_zones, evaluate_milestones,
-    calculate_user_fitness_plan, calculate_step_metrics
+    calculate_user_fitness_plan, calculate_step_metrics,
+    calculate_onboarding_targets
 )
 
 app = Flask(__name__)
@@ -148,13 +149,132 @@ def register():
                 fitness_goal=fitness_goal
             )
             login_user(user)
-            flash(f"Welcome to Gym Tracker Pro, {user.display_name}! Your custom plan is ready! 💪", "success")
-            return redirect(url_for("dashboard"))
+            flash(f"Welcome to Gym Tracker Pro, {user.display_name}! Let's set up your personalized goals in 60 seconds. 💪", "success")
+            return redirect(url_for("onboarding"))
         except Exception as e:
             flash("Registration failed due to a server error. Please try again.", "error")
             return render_template("auth/register.html")
 
     return render_template("auth/register.html")
+
+# -------------------------------------------------------------
+# Module 1.1: Step-by-Step User Onboarding Wizard
+# -------------------------------------------------------------
+@app.route("/onboarding", methods=["GET", "POST"])
+@login_required
+def onboarding():
+    if request.method == "POST":
+        data = request.get_json(silent=True) or request.form.to_dict()
+        first_name = (data.get("first_name") or "").strip()
+        core_goal = data.get("core_goal") or "gain_weight"
+        fitness_objective = data.get("fitness_objective") or "tone"
+        activity_level = data.get("activity_level") or "moderate"
+        gender = data.get("gender") or "male"
+        dob = data.get("dob")
+        unit_pref = data.get("unit_preference") or current_user.unit_preference or "kg"
+
+        try:
+            height = float(data.get("height") or current_user.height or 175.0)
+        except (ValueError, TypeError):
+            height = 175.0
+
+        try:
+            weight = float(data.get("weight") or current_user.weight or 75.0)
+        except (ValueError, TypeError):
+            weight = 75.0
+
+        goal_weight = None
+        if data.get("goal_weight"):
+            try:
+                goal_weight = float(data.get("goal_weight"))
+            except (ValueError, TypeError):
+                goal_weight = None
+
+        calculated = calculate_onboarding_targets(
+            gender=gender,
+            dob=dob,
+            height_cm=height,
+            weight=weight,
+            goal_weight=goal_weight,
+            core_goal=core_goal,
+            fitness_objective=fitness_objective,
+            activity_level=activity_level,
+            unit=unit_pref
+        )
+
+        onboarding_payload = {
+            "first_name": first_name or current_user.display_name,
+            "core_goal": core_goal,
+            "fitness_objective": fitness_objective,
+            "activity_level": activity_level,
+            "gender": gender,
+            "dob": dob,
+            "unit_preference": unit_pref,
+            "height": height,
+            "weight": weight,
+            "goal_weight": goal_weight,
+            "daily_calorie_target": calculated["daily_calorie_target"],
+            "daily_protein_target": calculated["daily_protein_target"],
+            "daily_carbs_target": calculated["daily_carbs_target"],
+            "daily_fat_target": calculated["daily_fat_target"],
+            "water_goal_ml": calculated["water_goal_ml"]
+        }
+        current_user.complete_onboarding(onboarding_payload)
+
+        if request.is_json:
+            return jsonify({
+                "success": True,
+                "message": "Onboarding completed successfully!",
+                "plan": calculated,
+                "redirect": url_for("dashboard")
+            })
+
+        flash(f"Awesome job, {current_user.display_name}! Your daily target is calibrated at {calculated['daily_calorie_target']} kcal.", "success")
+        return redirect(url_for("dashboard"))
+
+    return render_template("onboarding.html", user=current_user)
+
+@app.route("/api/onboarding/calculate", methods=["POST"])
+def api_onboarding_calculate():
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    gender = data.get("gender", "male")
+    dob = data.get("dob")
+    age = data.get("age")
+    try:
+        height = float(data.get("height") or 175.0)
+    except (ValueError, TypeError):
+        height = 175.0
+
+    try:
+        weight = float(data.get("weight") or 75.0)
+    except (ValueError, TypeError):
+        weight = 75.0
+
+    goal_weight = None
+    if data.get("goal_weight"):
+        try:
+            goal_weight = float(data.get("goal_weight"))
+        except (ValueError, TypeError):
+            goal_weight = None
+
+    core_goal = data.get("core_goal", "gain_weight")
+    fitness_objective = data.get("fitness_objective", "tone")
+    activity_level = data.get("activity_level", "moderate")
+    unit = data.get("unit_preference", "kg")
+
+    plan = calculate_onboarding_targets(
+        gender=gender,
+        dob=dob,
+        age=age,
+        height_cm=height,
+        weight=weight,
+        goal_weight=goal_weight,
+        core_goal=core_goal,
+        fitness_objective=fitness_objective,
+        activity_level=activity_level,
+        unit=unit
+    )
+    return jsonify({"success": True, "plan": plan})
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -369,7 +489,10 @@ def nutrition():
         today=date_str,
         nutrition=nutrition_data,
         targets=targets,
-        steps=today_steps
+        steps=today_steps,
+        water=nutrition_data.get("water"),
+        macro_percentages=nutrition_data.get("macro_percentages"),
+        has_pro_access=current_user.has_pro_access
     )
 
 @app.route("/api/nutrition", methods=["GET"])
@@ -390,8 +513,39 @@ def api_get_nutrition():
         "totals": nutrition_data["totals"],
         "grouped": nutrition_data["grouped"],
         "targets": targets,
-        "steps": today_steps
+        "steps": today_steps,
+        "water": nutrition_data.get("water"),
+        "macro_percentages": nutrition_data.get("macro_percentages"),
+        "meal_calories": nutrition_data.get("meal_calories"),
+        "has_pro_access": current_user.has_pro_access
     })
+
+@app.route("/api/nutrition/water", methods=["GET", "POST"])
+@login_required
+def api_nutrition_water():
+    if request.method == "POST":
+        data = request.get_json(silent=True) or request.form or {}
+        date_str = data.get("date") or datetime.now().strftime("%Y-%m-%d")
+        delta_ml = data.get("delta_ml")
+        amount_ml = data.get("amount_ml")
+        goal_ml = data.get("goal_ml") or getattr(current_user, "water_goal_ml", 3000)
+
+        updated_water = WaterManager.log_or_update_water(
+            user_id=current_user.id,
+            date_str=date_str,
+            delta_ml=delta_ml,
+            amount_ml=amount_ml,
+            goal_ml=goal_ml
+        )
+        return jsonify({"success": True, "water": updated_water})
+    else:
+        date_str = request.args.get("date") or datetime.now().strftime("%Y-%m-%d")
+        water = WaterManager.get_daily_water(
+            user_id=current_user.id,
+            date_str=date_str,
+            default_goal_ml=getattr(current_user, "water_goal_ml", 3000)
+        )
+        return jsonify({"success": True, "water": water})
 
 @app.route("/api/nutrition/log", methods=["POST"])
 @login_required

@@ -520,3 +520,148 @@ def calculate_user_fitness_plan(height_cm: float, weight_val: float, unit: str =
         "workout_days": workout_days,
         "nutrition_rules": nutrition_rules
     }
+
+def calculate_onboarding_targets(
+    gender: str = "male",
+    dob: str = None,
+    age: int = None,
+    height_cm: float = 175.0,
+    weight: float = 75.0,
+    goal_weight: float = None,
+    core_goal: str = "gain_weight",
+    fitness_objective: str = "tone",
+    activity_level: str = "moderate",
+    unit: str = "kg"
+) -> dict:
+    """
+    MyFitnessPal-grade algorithmic engine for user onboarding.
+    Calculates Mifflin-St Jeor BMR, TDEE, net caloric targets, optimal macronutrient splits,
+    and daily hydration requirements based on user demographics and objectives.
+    """
+    from datetime import date, datetime
+
+    # 1. Normalize units and biometrics
+    unit = unit.lower() if unit in ["kg", "lbs"] else "kg"
+    weight_val = float(weight) if weight and float(weight) > 0 else 75.0
+    weight_kg = weight_val if unit == "kg" else weight_val * 0.453592
+
+    goal_wt_val = float(goal_weight) if goal_weight and float(goal_weight) > 0 else None
+    goal_weight_kg = (goal_wt_val if unit == "kg" else goal_wt_val * 0.453592) if goal_wt_val else None
+
+    height_val = float(height_cm) if height_cm and float(height_cm) > 0 else 175.0
+    # Sanity guard: if height entered in meters e.g. 1.75
+    if height_val < 3.0:
+        height_val = height_val * 100.0
+
+    # 2. Determine age
+    user_age = 25
+    if age and int(age) > 0:
+        user_age = int(age)
+    elif dob:
+        try:
+            born = datetime.strptime(str(dob).strip(), "%Y-%m-%d").date()
+            today = date.today()
+            user_age = today.year - born.year - ((today.month, today.day) < (born.month, born.day))
+        except Exception:
+            user_age = 25
+    user_age = max(14, min(100, user_age))
+
+    # 3. Mifflin-St Jeor Basal Metabolic Rate (BMR)
+    # Men: BMR = (10 × weight in kg) + (6.25 × height in cm) - (5 × age in years) + 5
+    # Women: BMR = (10 × weight in kg) + (6.25 × height in cm) - (5 × age in years) - 161
+    is_female = str(gender).strip().lower() in ["female", "f", "woman"]
+    if is_female:
+        bmr = (10.0 * weight_kg) + (6.25 * height_val) - (5.0 * user_age) - 161.0
+    else:
+        bmr = (10.0 * weight_kg) + (6.25 * height_val) - (5.0 * user_age) + 5.0
+    bmr = round(max(900.0, bmr))
+
+    # 4. Activity Multiplier (TDEE)
+    activity_map = {
+        "sedentary": 1.20,      # Desk job, little or no exercise
+        "light": 1.375,         # Light exercise / sports 1-3 days/week
+        "moderate": 1.55,       # Moderate exercise / sports 3-5 days/week
+        "very_active": 1.725    # Hard exercise / sports 6-7 days/week
+    }
+    act_mult = activity_map.get(str(activity_level).lower(), 1.55)
+    tdee = round(bmr * act_mult)
+
+    # 5. Core Goal Net Caloric Target Adjustment
+    core_goal_clean = str(core_goal).lower().strip()
+    if core_goal_clean in ["lose", "lose_weight", "fat_loss", "cut"]:
+        core_goal_norm = "lose_weight"
+        deficit = 500
+        min_cals = 1200 if is_female else 1450
+        daily_cals = max(min_cals, tdee - deficit)
+    elif core_goal_clean in ["gain", "gain_weight", "bulk", "muscle_gain", "gain_muscle"]:
+        core_goal_norm = "gain_weight"
+        surplus = 450 if fitness_objective == "bulk" else 300
+        daily_cals = tdee + surplus
+    else:
+        core_goal_norm = "maintain_weight"
+        daily_cals = tdee
+
+    # 6. Objective-Specific Macronutrient Optimization
+    obj_clean = str(fitness_objective).lower().strip()
+    if obj_clean in ["tone", "tone_up", "lean"]:
+        obj_norm = "tone"
+        # High protein for muscle tone & definition: 2.2 g/kg
+        protein_g = round(weight_kg * 2.2)
+        fat_g = round(weight_kg * 0.85)
+    elif obj_clean in ["bulk", "bulk_up", "mass"]:
+        obj_norm = "bulk"
+        protein_g = round(weight_kg * 2.0)
+        fat_g = round(weight_kg * 0.95)
+    else: # strength / athletic
+        obj_norm = "strength"
+        protein_g = round(weight_kg * 2.0)
+        fat_g = round(weight_kg * 0.90)
+
+    # Bounds check on protein and fat
+    protein_g = max(90, min(320, protein_g))
+    fat_g = max(40, min(140, fat_g))
+
+    # Carbohydrates supply the remainder of the daily calorie budget
+    cals_from_pro_fat = (protein_g * 4) + (fat_g * 9)
+    if cals_from_pro_fat >= daily_cals:
+        daily_cals = cals_from_pro_fat + 200 # Ensure at least 50g carbs
+    carbs_g = round(max(50, (daily_cals - cals_from_pro_fat) / 4.0))
+
+    # Recalculate true calorie sum from rounded macros
+    calculated_calories = (protein_g * 4) + (carbs_g * 4) + (fat_g * 9)
+
+    # Macro Energy Percentages
+    pct_protein = round((protein_g * 4 / calculated_calories) * 100)
+    pct_carbs = round((carbs_g * 4 / calculated_calories) * 100)
+    pct_fat = max(0, 100 - pct_protein - pct_carbs)
+
+    # 7. Daily Hydration Target (ml)
+    # Standard athletic guideline: ~35 ml per kg of bodyweight (+ activity adjustment)
+    water_ml = round(max(2000, min(5000, weight_kg * 38)))
+    water_cups = round(water_ml / 250.0, 1)
+
+    # 8. BMI calculation
+    height_m = height_val / 100.0
+    bmi = round(weight_kg / (height_m * height_m), 1)
+
+    return {
+        "bmr": bmr,
+        "tdee": tdee,
+        "age": user_age,
+        "bmi": bmi,
+        "gender": "female" if is_female else "male",
+        "core_goal": core_goal_norm,
+        "fitness_objective": obj_norm,
+        "activity_level": str(activity_level).lower(),
+        "daily_calorie_target": calculated_calories,
+        "daily_protein_target": protein_g,
+        "daily_carbs_target": carbs_g,
+        "daily_fat_target": fat_g,
+        "water_goal_ml": water_ml,
+        "water_goal_cups": water_cups,
+        "macro_percentages": {
+            "protein": pct_protein,
+            "carbs": pct_carbs,
+            "fat": pct_fat
+        }
+    }

@@ -1,0 +1,597 @@
+{% extends "base.html" %}
+
+{% block title %}Personalized Onboarding Wizard | Gym Tracker Pro{% endblock %}
+
+{% block content %}
+<div class="max-w-2xl mx-auto py-6 sm:py-10">
+
+  <!-- Main Wizard Container Card -->
+  <div class="gt-card p-6 sm:p-10 bg-white border border-[#E2E8F0] shadow-xl rounded-3xl relative overflow-hidden space-y-6">
+
+    <!-- Top Accent Bar -->
+    <div class="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-[#0066FF] via-[#38BDF8] to-[#0066FF]"></div>
+
+    <!-- Step Header & Progress Indicator -->
+    <div class="space-y-3">
+      <div class="flex items-center justify-between text-xs font-black uppercase tracking-wider">
+        <span class="text-[#0066FF] flex items-center gap-1.5">
+          <span>⚡</span> <span id="wizard-step-label">Step 1 of 5</span>
+        </span>
+        <span id="wizard-step-title" class="text-slate-400">Personal Details</span>
+      </div>
+
+      <!-- Animated Progress Bar -->
+      <div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden border border-[#E2E8F0]">
+        <div id="wizard-progress-bar" class="h-full bg-gradient-to-r from-[#0066FF] to-[#38BDF8] transition-all duration-500 rounded-full" style="width: 20%"></div>
+      </div>
+    </div>
+
+    <!-- Multi-Step Form -->
+    <form id="onboarding-form" method="POST" action="{{ url_for('onboarding') }}" class="space-y-6">
+
+      <!-- ============================================================== -->
+      <!-- STEP 1: First Name / Greeting                                  -->
+      <!-- ============================================================== -->
+      <div id="step-pane-1" class="wizard-pane space-y-6">
+        <div class="text-center sm:text-left space-y-1">
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-50 text-[#0066FF] text-2xl mb-2 border border-blue-100 shadow-sm">
+            👋
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Welcome to Gym Tracker Pro</h2>
+          <p class="text-xs sm:text-sm text-slate-500">
+            Let's build your MyFitnessPal-grade fitness protocol. What should we call you?
+          </p>
+        </div>
+
+        <div class="space-y-2">
+          <label class="block text-xs font-black uppercase tracking-wider text-slate-700">First Name or Nickname *</label>
+          <input type="text" id="input-first-name" name="first_name" required
+            value="{{ user.first_name or user.display_name or '' }}"
+            placeholder="e.g. Alex"
+            class="gt-input w-full text-base sm:text-lg font-bold py-3 px-4 rounded-xl border border-slate-300 focus:border-[#0066FF] focus:ring-2 focus:ring-blue-100">
+          <p class="text-[11px] text-slate-400">Used for your personalized workout logs and celebration banners.</p>
+        </div>
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- STEP 2: Core Goal Selection                                    -->
+      <!-- ============================================================== -->
+      <div id="step-pane-2" class="wizard-pane hidden space-y-6">
+        <div class="text-center sm:text-left space-y-1">
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 text-2xl mb-2 border border-amber-100 shadow-sm">
+            🎯
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">What is your primary goal?</h2>
+          <p class="text-xs sm:text-sm text-slate-500">
+            This establishes your baseline caloric balance (surplus, maintenance, or deficit).
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <!-- Option 1: Lose Weight -->
+          <label class="goal-card p-4 rounded-2xl border-2 border-[#E2E8F0] hover:border-blue-400 cursor-pointer flex flex-col justify-between transition-all bg-slate-50 hover:bg-blue-50/40 has-[:checked]:border-[#0066FF] has-[:checked]:bg-blue-50/60 has-[:checked]:shadow-md">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-3xl">🔥</span>
+                <input type="radio" name="core_goal" value="lose_weight" {{ 'checked' if user.fitness_goal == 'lose_weight' else '' }} class="accent-[#0066FF] w-4 h-4">
+              </div>
+              <div class="text-sm font-black text-slate-900">Lose Weight</div>
+              <div class="text-[11px] text-slate-500 mt-1 leading-relaxed">Burn body fat and achieve a leaner athletic physique with a controlled deficit.</div>
+            </div>
+            <div class="mt-4 text-[10px] font-black uppercase text-rose-600 bg-rose-50 border border-rose-100 rounded-lg px-2 py-1 text-center">
+              -500 kcal Deficit
+            </div>
+          </label>
+
+          <!-- Option 2: Maintain Weight -->
+          <label class="goal-card p-4 rounded-2xl border-2 border-[#E2E8F0] hover:border-blue-400 cursor-pointer flex flex-col justify-between transition-all bg-slate-50 hover:bg-blue-50/40 has-[:checked]:border-[#0066FF] has-[:checked]:bg-blue-50/60 has-[:checked]:shadow-md">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-3xl">⚖️</span>
+                <input type="radio" name="core_goal" value="maintain_weight" {{ 'checked' if user.fitness_goal == 'maintain_weight' else '' }} class="accent-[#0066FF] w-4 h-4">
+              </div>
+              <div class="text-sm font-black text-slate-900">Maintain Weight</div>
+              <div class="text-[11px] text-slate-500 mt-1 leading-relaxed">Athletic recomposition, optimal energy, and functional strength conditioning.</div>
+            </div>
+            <div class="mt-4 text-[10px] font-black uppercase text-blue-600 bg-blue-50 border border-blue-100 rounded-lg px-2 py-1 text-center">
+              100% Isocaloric
+            </div>
+          </label>
+
+          <!-- Option 3: Gain Muscle / Weight -->
+          <label class="goal-card p-4 rounded-2xl border-2 border-[#E2E8F0] hover:border-blue-400 cursor-pointer flex flex-col justify-between transition-all bg-slate-50 hover:bg-blue-50/40 has-[:checked]:border-[#0066FF] has-[:checked]:bg-blue-50/60 has-[:checked]:shadow-md">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-3xl">🥩</span>
+                <input type="radio" name="core_goal" value="gain_weight" {{ 'checked' if user.fitness_goal in ['gain_weight', None] else '' }} class="accent-[#0066FF] w-4 h-4">
+              </div>
+              <div class="text-sm font-black text-slate-900">Gain Muscle</div>
+              <div class="text-[11px] text-slate-500 mt-1 leading-relaxed">Clean caloric surplus to stimulate myofibrillar protein synthesis and muscle size.</div>
+            </div>
+            <div class="mt-4 text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-lg px-2 py-1 text-center">
+              +300 to +450 kcal
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- STEP 3: Fitness & Muscle Objective                             -->
+      <!-- ============================================================== -->
+      <div id="step-pane-3" class="wizard-pane hidden space-y-6">
+        <div class="text-center sm:text-left space-y-1">
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-emerald-50 text-emerald-600 text-2xl mb-2 border border-emerald-100 shadow-sm">
+            💪
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Specific Fitness Objective</h2>
+          <p class="text-xs sm:text-sm text-slate-500">
+            Fine-tunes your daily macronutrient ratio (protein, carbs, and healthy fats).
+          </p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+          <!-- Objective 1: Tone Up -->
+          <label class="obj-card p-4 rounded-2xl border-2 border-[#E2E8F0] hover:border-blue-400 cursor-pointer flex flex-col justify-between transition-all bg-slate-50 hover:bg-blue-50/40 has-[:checked]:border-[#0066FF] has-[:checked]:bg-blue-50/60 has-[:checked]:shadow-md">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-3xl">⚡</span>
+                <input type="radio" name="fitness_objective" value="tone" {{ 'checked' if user.fitness_objective in ['tone', None] else '' }} class="accent-[#0066FF] w-4 h-4">
+              </div>
+              <div class="text-sm font-black text-slate-900">Tone Up</div>
+              <div class="text-[11px] text-slate-500 mt-1 leading-relaxed">Sculpt lean athletic muscle definition with high protein muscle-sparing ratios.</div>
+            </div>
+            <div class="mt-4 text-[10px] font-extrabold text-slate-600 bg-white border border-[#E2E8F0] rounded-lg px-2 py-1 text-center">
+              2.2g Protein / kg
+            </div>
+          </label>
+
+          <!-- Objective 2: Bulk Up -->
+          <label class="obj-card p-4 rounded-2xl border-2 border-[#E2E8F0] hover:border-blue-400 cursor-pointer flex flex-col justify-between transition-all bg-slate-50 hover:bg-blue-50/40 has-[:checked]:border-[#0066FF] has-[:checked]:bg-blue-50/60 has-[:checked]:shadow-md">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-3xl">🦍</span>
+                <input type="radio" name="fitness_objective" value="bulk" {{ 'checked' if user.fitness_objective == 'bulk' else '' }} class="accent-[#0066FF] w-4 h-4">
+              </div>
+              <div class="text-sm font-black text-slate-900">Bulk Up</div>
+              <div class="text-[11px] text-slate-500 mt-1 leading-relaxed">Pack on raw muscle mass with high carbohydrate glycogen replenishment.</div>
+            </div>
+            <div class="mt-4 text-[10px] font-extrabold text-slate-600 bg-white border border-[#E2E8F0] rounded-lg px-2 py-1 text-center">
+              High Glycogen Carbs
+            </div>
+          </label>
+
+          <!-- Objective 3: Get Strong -->
+          <label class="obj-card p-4 rounded-2xl border-2 border-[#E2E8F0] hover:border-blue-400 cursor-pointer flex flex-col justify-between transition-all bg-slate-50 hover:bg-blue-50/40 has-[:checked]:border-[#0066FF] has-[:checked]:bg-blue-50/60 has-[:checked]:shadow-md">
+            <div>
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-3xl">🏋️‍♂️</span>
+                <input type="radio" name="fitness_objective" value="strength" {{ 'checked' if user.fitness_objective == 'strength' else '' }} class="accent-[#0066FF] w-4 h-4">
+              </div>
+              <div class="text-sm font-black text-slate-900">Get Strong</div>
+              <div class="text-[11px] text-slate-500 mt-1 leading-relaxed">Maximum compound lifting power, neuromuscular recruitment, and PR shattering.</div>
+            </div>
+            <div class="mt-4 text-[10px] font-extrabold text-slate-600 bg-white border border-[#E2E8F0] rounded-lg px-2 py-1 text-center">
+              Heavy 1RM Focus
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- STEP 4: Baseline Activity Level                                -->
+      <!-- ============================================================== -->
+      <div id="step-pane-4" class="wizard-pane hidden space-y-6">
+        <div class="text-center sm:text-left space-y-1">
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 text-2xl mb-2 border border-indigo-100 shadow-sm">
+            👟
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Baseline Activity Level</h2>
+          <p class="text-xs sm:text-sm text-slate-500">
+            Exclude your workouts—this accounts for your daily work and movement routine.
+          </p>
+        </div>
+
+        <div class="space-y-3">
+          <!-- Sedentary -->
+          <label class="p-3.5 sm:p-4 rounded-2xl border-2 border-[#E2E8F0] hover:border-blue-400 cursor-pointer flex items-center justify-between transition-all bg-slate-50 hover:bg-blue-50/40 has-[:checked]:border-[#0066FF] has-[:checked]:bg-blue-50/60 has-[:checked]:shadow-sm">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">💻</span>
+              <div>
+                <div class="text-sm font-black text-slate-900">Not Very Active</div>
+                <div class="text-[11px] text-slate-500">Desk job, sit most of the day, minimal daily walking</div>
+              </div>
+            </div>
+            <input type="radio" name="activity_level" value="sedentary" {{ 'checked' if user.activity_level == 'sedentary' else '' }} class="accent-[#0066FF] w-4 h-4">
+          </label>
+
+          <!-- Lightly Active -->
+          <label class="p-3.5 sm:p-4 rounded-2xl border-2 border-[#E2E8F0] hover:border-blue-400 cursor-pointer flex items-center justify-between transition-all bg-slate-50 hover:bg-blue-50/40 has-[:checked]:border-[#0066FF] has-[:checked]:bg-blue-50/60 has-[:checked]:shadow-sm">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">🚶</span>
+              <div>
+                <div class="text-sm font-black text-slate-900">Lightly Active</div>
+                <div class="text-[11px] text-slate-500">On your feet occasionally (teacher, retail), light movement 1-3 days/wk</div>
+              </div>
+            </div>
+            <input type="radio" name="activity_level" value="light" {{ 'checked' if user.activity_level == 'light' else '' }} class="accent-[#0066FF] w-4 h-4">
+          </label>
+
+          <!-- Moderately Active -->
+          <label class="p-3.5 sm:p-4 rounded-2xl border-2 border-[#E2E8F0] hover:border-blue-400 cursor-pointer flex items-center justify-between transition-all bg-slate-50 hover:bg-blue-50/40 has-[:checked]:border-[#0066FF] has-[:checked]:bg-blue-50/60 has-[:checked]:shadow-sm">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">🏃</span>
+              <div>
+                <div class="text-sm font-black text-slate-900">Moderately Active</div>
+                <div class="text-[11px] text-slate-500">Active day, brisk walking, regular gym training 3-5 days/wk</div>
+              </div>
+            </div>
+            <input type="radio" name="activity_level" value="moderate" {{ 'checked' if user.activity_level in ['moderate', None] else '' }} class="accent-[#0066FF] w-4 h-4">
+          </label>
+
+          <!-- Very Active -->
+          <label class="p-3.5 sm:p-4 rounded-2xl border-2 border-[#E2E8F0] hover:border-blue-400 cursor-pointer flex items-center justify-between transition-all bg-slate-50 hover:bg-blue-50/40 has-[:checked]:border-[#0066FF] has-[:checked]:bg-blue-50/60 has-[:checked]:shadow-sm">
+            <div class="flex items-center gap-3">
+              <span class="text-2xl">⚡</span>
+              <div>
+                <div class="text-sm font-black text-slate-900">Very Active</div>
+                <div class="text-[11px] text-slate-500">Physical labor job (construction, athletic trainer) or training 6-7 days/wk</div>
+              </div>
+            </div>
+            <input type="radio" name="activity_level" value="very_active" {{ 'checked' if user.activity_level == 'very_active' else '' }} class="accent-[#0066FF] w-4 h-4">
+          </label>
+        </div>
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- STEP 5: Demographics & Body Metrics                            -->
+      <!-- ============================================================== -->
+      <div id="step-pane-5" class="wizard-pane hidden space-y-6">
+        <div class="text-center sm:text-left space-y-1">
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-purple-50 text-purple-600 text-2xl mb-2 border border-purple-100 shadow-sm">
+            📊
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Demographics & Body Metrics</h2>
+          <p class="text-xs sm:text-sm text-slate-500">
+            Required for the scientific Mifflin-St Jeor equation to compute your exact BMR and daily water needs.
+          </p>
+        </div>
+
+        <div class="space-y-4">
+          <!-- Biological Sex & DOB -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1">Biological Sex *</label>
+              <div class="grid grid-cols-2 gap-2">
+                <label class="p-3 rounded-xl border border-slate-300 bg-slate-50 hover:border-blue-400 cursor-pointer flex items-center justify-center gap-2 has-[:checked]:border-[#0066FF] has-[:checked]:bg-blue-50/60 transition">
+                  <input type="radio" name="gender" value="male" {{ 'checked' if user.gender in ['male', None] else '' }} class="accent-[#0066FF]">
+                  <span class="text-xs font-bold text-slate-800">Male 👨</span>
+                </label>
+                <label class="p-3 rounded-xl border border-slate-300 bg-slate-50 hover:border-blue-400 cursor-pointer flex items-center justify-center gap-2 has-[:checked]:border-[#0066FF] has-[:checked]:bg-blue-50/60 transition">
+                  <input type="radio" name="gender" value="female" {{ 'checked' if user.gender == 'female' else '' }} class="accent-[#0066FF]">
+                  <span class="text-xs font-bold text-slate-800">Female 👩</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1">Date of Birth *</label>
+              <input type="date" id="input-dob" name="dob" value="{{ user.dob or '1998-01-15' }}" required
+                class="gt-input w-full text-xs font-semibold py-2.5 px-3 rounded-xl border border-slate-300">
+              <span class="text-[10px] text-slate-400 mt-0.5 block">Used to calculate biological metabolic age.</span>
+            </div>
+          </div>
+
+          <!-- Unit Preference -->
+          <div>
+            <label class="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1">Measurement System</label>
+            <div class="inline-flex p-1 bg-slate-100 rounded-xl border border-[#E2E8F0]">
+              <button type="button" id="btn-unit-kg" onclick="setMeasurementUnit('kg')"
+                class="px-4 py-1.5 rounded-lg text-xs font-extrabold transition {{ 'bg-[#0066FF] text-white shadow-sm' if user.unit_preference in ['kg', None] else 'text-slate-600 hover:text-slate-900' }}">
+                Metric (kg / cm)
+              </button>
+              <button type="button" id="btn-unit-lbs" onclick="setMeasurementUnit('lbs')"
+                class="px-4 py-1.5 rounded-lg text-xs font-extrabold transition {{ 'bg-[#0066FF] text-white shadow-sm' if user.unit_preference == 'lbs' else 'text-slate-600 hover:text-slate-900' }}">
+                Imperial (lbs / ft)
+              </button>
+            </div>
+            <input type="hidden" id="input-unit-preference" name="unit_preference" value="{{ user.unit_preference or 'kg' }}">
+          </div>
+
+          <!-- Height & Current Weight -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1">
+                Height (<span id="height-unit-label">cm</span>) *
+              </label>
+              <input type="number" id="input-height" name="height" step="0.5" required
+                value="{{ user.height or 175.0 }}"
+                class="gt-input w-full text-base font-bold py-2.5 px-3 rounded-xl border border-slate-300">
+              <span id="height-helper-text" class="text-[10px] text-slate-400 mt-0.5 block">e.g. 5'10" ≈ 178 cm</span>
+            </div>
+
+            <div>
+              <label class="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1">
+                Current Weight (<span id="weight-unit-label">{{ user.unit_preference or 'kg' }}</span>) *
+              </label>
+              <input type="number" id="input-weight" name="weight" step="0.5" required
+                value="{{ user.weight or 75.0 }}"
+                class="gt-input w-full text-base font-bold py-2.5 px-3 rounded-xl border border-slate-300">
+            </div>
+          </div>
+
+          <!-- Optional Goal Weight -->
+          <div>
+            <label class="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1">
+              Goal Target Weight (<span id="goal-weight-unit-label">{{ user.unit_preference or 'kg' }}</span>) (Optional)
+            </label>
+            <input type="number" id="input-goal-weight" name="goal_weight" step="0.5"
+              value="{{ user.goal_weight or '' }}" placeholder="e.g. 80"
+              class="gt-input w-full text-base font-bold py-2.5 px-3 rounded-xl border border-slate-300">
+            <span class="text-[10px] text-slate-400 mt-0.5 block">Helps monitor milestone targets over time.</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- ============================================================== -->
+      <!-- STEP 6: Review & Calibrated Protocol Preview                   -->
+      <!-- ============================================================== -->
+      <div id="step-pane-6" class="wizard-pane hidden space-y-6">
+        <div class="text-center sm:text-left space-y-1">
+          <div class="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-blue-50 text-[#0066FF] text-2xl mb-2 border border-blue-100 shadow-sm">
+            ✨
+          </div>
+          <h2 class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">Your Calibrated Daily Protocol</h2>
+          <p class="text-xs sm:text-sm text-slate-500">
+            Calculated specifically from your body metrics and athletic objectives:
+          </p>
+        </div>
+
+        <!-- Calorie Card Banner -->
+        <div class="p-6 rounded-2xl bg-gradient-to-br from-[#0066FF] to-[#0052CC] text-white shadow-xl space-y-3">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-blue-100">Daily Calorie Target</span>
+            <span id="preview-goal-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-white/20 text-white backdrop-blur-sm">
+              🥩 Gain Muscle
+            </span>
+          </div>
+          <div class="flex items-baseline gap-2">
+            <span id="preview-cals" class="text-5xl font-black tracking-tight">2,650</span>
+            <span class="text-sm font-bold text-blue-100 uppercase tracking-wider">kcal / day</span>
+          </div>
+          <p class="text-xs text-blue-100">
+            Mifflin-St Jeor BMR: <strong id="preview-bmr">1,720</strong> kcal • TDEE: <strong id="preview-tdee">2,350</strong> kcal
+          </p>
+        </div>
+
+        <!-- 3 Macro Progress Cards & Water Goal -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <!-- Protein -->
+          <div class="p-3.5 rounded-xl bg-slate-50 border border-[#E2E8F0] text-center space-y-1">
+            <div class="text-[10px] font-black uppercase text-emerald-600">🍗 Protein</div>
+            <div id="preview-protein" class="text-2xl font-black text-slate-900">165g</div>
+            <div id="preview-protein-pct" class="text-[10px] font-bold text-slate-500">25% of energy</div>
+          </div>
+
+          <!-- Carbs -->
+          <div class="p-3.5 rounded-xl bg-slate-50 border border-[#E2E8F0] text-center space-y-1">
+            <div class="text-[10px] font-black uppercase text-amber-600">🍚 Carbs</div>
+            <div id="preview-carbs" class="text-2xl font-black text-slate-900">290g</div>
+            <div id="preview-carbs-pct" class="text-[10px] font-bold text-slate-500">50% of energy</div>
+          </div>
+
+          <!-- Fat -->
+          <div class="p-3.5 rounded-xl bg-slate-50 border border-[#E2E8F0] text-center space-y-1">
+            <div class="text-[10px] font-black uppercase text-rose-600">🥑 Fats</div>
+            <div id="preview-fat" class="text-2xl font-black text-slate-900">70g</div>
+            <div id="preview-fat-pct" class="text-[10px] font-bold text-slate-500">25% of energy</div>
+          </div>
+
+          <!-- Water -->
+          <div class="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-center space-y-1">
+            <div class="text-[10px] font-black uppercase text-[#0066FF]">💧 Water</div>
+            <div id="preview-water" class="text-2xl font-black text-[#0066FF]">3,000ml</div>
+            <div id="preview-water-cups" class="text-[10px] font-bold text-blue-600">~12 Cups</div>
+          </div>
+        </div>
+
+        <div class="p-4 rounded-xl bg-slate-50 border border-[#E2E8F0] text-xs text-slate-600 space-y-1.5">
+          <div class="font-bold text-slate-900 flex items-center gap-1.5">
+            <span>🛡️</span> <span>MyFitnessPal Balance Compatibility</span>
+          </div>
+          <p>These numbers will automatically calibrate your Remaining Calorie Counter (`Remaining = Base Goal - Food + Exercise`) and Daily Macro Rings across the app.</p>
+        </div>
+      </div>
+
+      <!-- Navigation & Action Buttons -->
+      <div class="flex items-center justify-between pt-4 border-t border-[#E2E8F0] gap-3">
+        <button type="button" id="btn-wizard-prev" class="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider text-slate-600 bg-slate-100 hover:bg-slate-200 transition disabled:opacity-30 disabled:pointer-events-none" disabled>
+          ◀ Back
+        </button>
+
+        <div class="flex items-center gap-2">
+          <a href="{{ url_for('dashboard') }}" class="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-600 transition">
+            Skip for Now
+          </a>
+          <button type="button" id="btn-wizard-next" class="btn-royal px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-sm">
+            <span>Continue</span> <span>▶</span>
+          </button>
+          <button type="submit" id="btn-wizard-submit" class="btn-royal hidden px-8 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-md">
+            <span>🚀 Launch My Journey</span>
+          </button>
+        </div>
+      </div>
+
+    </form>
+
+  </div>
+
+</div>
+
+<!-- Wizard Orchestration Script -->
+<script>
+  let currentStep = 1;
+  const totalSteps = 6;
+
+  const stepTitles = {
+    1: "First Name",
+    2: "Core Goal",
+    3: "Fitness Objective",
+    4: "Activity Level",
+    5: "Body Metrics",
+    6: "Calibrated Protocol"
+  };
+
+  function updateWizardUI() {
+    // Hide all panes, show current pane
+    for (let i = 1; i <= totalSteps; i++) {
+      const pane = document.getElementById(`step-pane-${i}`);
+      if (pane) {
+        if (i === currentStep) {
+          pane.classList.remove('hidden');
+        } else {
+          pane.classList.add('hidden');
+        }
+      }
+    }
+
+    // Step labels & progress
+    const pct = Math.round((currentStep / totalSteps) * 100);
+    const progBar = document.getElementById('wizard-progress-bar');
+    if (progBar) progBar.style.width = `${pct}%`;
+
+    const label = document.getElementById('wizard-step-label');
+    if (label) label.textContent = `Step ${currentStep} of ${totalSteps}`;
+
+    const titleEl = document.getElementById('wizard-step-title');
+    if (titleEl) titleEl.textContent = stepTitles[currentStep] || "";
+
+    // Buttons
+    const prevBtn = document.getElementById('btn-wizard-prev');
+    const nextBtn = document.getElementById('btn-wizard-next');
+    const submitBtn = document.getElementById('btn-wizard-submit');
+
+    if (prevBtn) prevBtn.disabled = (currentStep === 1);
+
+    if (currentStep === totalSteps) {
+      nextBtn?.classList.add('hidden');
+      submitBtn?.classList.remove('hidden');
+      fetchLiveCalculations();
+    } else {
+      nextBtn?.classList.remove('hidden');
+      submitBtn?.classList.add('hidden');
+    }
+  }
+
+  function setMeasurementUnit(unit) {
+    document.getElementById('input-unit-preference').value = unit;
+    const btnKg = document.getElementById('btn-unit-kg');
+    const btnLbs = document.getElementById('btn-unit-lbs');
+    const wtLabel = document.getElementById('weight-unit-label');
+    const goalWtLabel = document.getElementById('goal-weight-unit-label');
+    const htLabel = document.getElementById('height-unit-label');
+    const htHelper = document.getElementById('height-helper-text');
+
+    if (unit === 'lbs') {
+      btnLbs.className = "px-4 py-1.5 rounded-lg text-xs font-extrabold transition bg-[#0066FF] text-white shadow-sm";
+      btnKg.className = "px-4 py-1.5 rounded-lg text-xs font-extrabold transition text-slate-600 hover:text-slate-900";
+      if (wtLabel) wtLabel.textContent = "lbs";
+      if (goalWtLabel) goalWtLabel.textContent = "lbs";
+      if (htLabel) htLabel.textContent = "cm";
+      if (htHelper) htHelper.textContent = "e.g. 5'10\" ≈ 178 cm (enter in cm)";
+    } else {
+      btnKg.className = "px-4 py-1.5 rounded-lg text-xs font-extrabold transition bg-[#0066FF] text-white shadow-sm";
+      btnLbs.className = "px-4 py-1.5 rounded-lg text-xs font-extrabold transition text-slate-600 hover:text-slate-900";
+      if (wtLabel) wtLabel.textContent = "kg";
+      if (goalWtLabel) goalWtLabel.textContent = "kg";
+      if (htLabel) htLabel.textContent = "cm";
+      if (htHelper) htHelper.textContent = "e.g. 5'10\" ≈ 178 cm";
+    }
+  }
+
+  async function fetchLiveCalculations() {
+    const form = document.getElementById('onboarding-form');
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData.entries());
+
+    try {
+      const res = await fetch('/api/onboarding/calculate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (res.ok && data.success && data.plan) {
+        const p = data.plan;
+        document.getElementById('preview-cals').textContent = p.daily_calorie_target.toLocaleString();
+        document.getElementById('preview-bmr').textContent = p.bmr.toLocaleString();
+        document.getElementById('preview-tdee').textContent = p.tdee.toLocaleString();
+        document.getElementById('preview-protein').textContent = `${p.daily_protein_target}g`;
+        document.getElementById('preview-protein-pct').textContent = `${p.macro_percentages.protein}% of energy`;
+        document.getElementById('preview-carbs').textContent = `${p.daily_carbs_target}g`;
+        document.getElementById('preview-carbs-pct').textContent = `${p.macro_percentages.carbs}% of energy`;
+        document.getElementById('preview-fat').textContent = `${p.daily_fat_target}g`;
+        document.getElementById('preview-fat-pct').textContent = `${p.macro_percentages.fat}% of energy`;
+        document.getElementById('preview-water').textContent = `${p.water_goal_ml.toLocaleString()}ml`;
+        document.getElementById('preview-water-cups').textContent = `~${p.water_goal_cups} Cups`;
+
+        const badgeEl = document.getElementById('preview-goal-badge');
+        if (badgeEl) {
+          if (p.core_goal === 'lose_weight') {
+            badgeEl.textContent = '🔥 Lose Weight';
+          } else if (p.core_goal === 'gain_weight') {
+            badgeEl.textContent = '🥩 Gain Muscle';
+          } else {
+            badgeEl.textContent = '⚖️ Maintain Weight';
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Calculation preview fallback:", e);
+    }
+  }
+
+  document.getElementById('btn-wizard-next')?.addEventListener('click', () => {
+    // Validate current step
+    if (currentStep === 1) {
+      const fn = document.getElementById('input-first-name').value.trim();
+      if (!fn) {
+        alert("Please enter your name or nickname to continue.");
+        return;
+      }
+    } else if (currentStep === 5) {
+      const dob = document.getElementById('input-dob').value;
+      const ht = document.getElementById('input-height').value;
+      const wt = document.getElementById('input-weight').value;
+      if (!dob || !ht || !wt) {
+        alert("Please provide your DOB, Height, and Weight.");
+        return;
+      }
+    }
+
+    if (currentStep < totalSteps) {
+      currentStep++;
+      updateWizardUI();
+    }
+  });
+
+  document.getElementById('btn-wizard-prev')?.addEventListener('click', () => {
+    if (currentStep > 1) {
+      currentStep--;
+      updateWizardUI();
+    }
+  });
+
+  // Keyboard Enter support
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') {
+      if (currentStep < totalSteps) {
+        e.preventDefault();
+        document.getElementById('btn-wizard-next')?.click();
+      }
+    }
+  });
+
+  // Initialize
+  updateWizardUI();
+</script>
+{% endblock %}

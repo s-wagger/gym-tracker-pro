@@ -223,7 +223,80 @@
 
   </section>
 
-  <!-- 3. Categorized Meal Sections (Breakfast, Lunch, Dinner, Snacks) -->
+  <!-- 3. Water Consumption Tracker (MyFitnessPal Hydration Module) -->
+  {% set w_amt = water.amount_ml if water else 0 %}
+  {% set w_goal = water.goal_ml if water else (user.water_goal_ml or 3000) %}
+  {% set w_pct = [100, ((w_amt / [w_goal, 1] | max) * 100) | round | int] | min %}
+  {% set w_cups = (w_amt / 250.0) | round(1) %}
+  {% set w_goal_cups = (w_goal / 250.0) | round(1) %}
+  <section class="gt-card p-5 sm:p-6 bg-white border border-[#E2E8F0] shadow-sm rounded-2xl space-y-4">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E2E8F0]">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-cyan-50 text-[#0284C7] flex items-center justify-center text-xl border border-cyan-100 shadow-sm shrink-0">
+          💧
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h3 class="text-sm sm:text-base font-black text-slate-900 tracking-tight">Water Consumption</h3>
+            <span id="water-pct-badge" class="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-cyan-50 text-[#0284C7] border border-cyan-200">
+              {{ w_pct }}%
+            </span>
+          </div>
+          <p class="text-xs text-slate-500">Track daily hydration for cellular recovery and protein synthesis</p>
+        </div>
+      </div>
+
+      <!-- Quick Add Buttons -->
+      <div class="flex flex-wrap items-center gap-1.5 self-start sm:self-auto">
+        <button type="button" onclick="quickAddWater(250)"
+          class="px-3 py-1.5 rounded-xl text-xs font-bold bg-cyan-50 hover:bg-cyan-100 text-[#0284C7] border border-cyan-200 transition flex items-center gap-1 shadow-sm">
+          <span>+</span> <span>1 Cup (250ml)</span>
+        </button>
+        <button type="button" onclick="quickAddWater(500)"
+          class="px-3 py-1.5 rounded-xl text-xs font-bold bg-cyan-50 hover:bg-cyan-100 text-[#0284C7] border border-cyan-200 transition flex items-center gap-1 shadow-sm">
+          <span>+</span> <span>2 Cups (500ml)</span>
+        </button>
+        <button type="button" onclick="quickAddWater(750)"
+          class="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 border border-[#E2E8F0] transition flex items-center gap-1">
+          <span>+</span> <span>Bottle (750ml)</span>
+        </button>
+        <button type="button" onclick="quickAddWater(-250)"
+          class="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 border border-[#E2E8F0] transition" title="Undo 1 cup">
+          −1 Cup
+        </button>
+        <button type="button" onclick="resetWater()"
+          class="px-2.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 hover:bg-rose-50 hover:text-rose-600 text-slate-500 border border-[#E2E8F0] transition" title="Reset water">
+          Reset
+        </button>
+      </div>
+    </div>
+
+    <!-- Metrics Row & Progress Bar -->
+    <div class="space-y-2">
+      <div class="flex items-baseline justify-between text-xs font-semibold">
+        <div class="flex items-baseline gap-2">
+          <span id="water-val" class="text-2xl sm:text-3xl font-black text-[#0284C7]">{{ w_amt }}</span>
+          <span class="text-xs font-bold text-slate-400">/ <span id="water-target">{{ w_goal }}</span> ml</span>
+          <span id="water-cups-label" class="text-xs text-slate-500">({{ w_cups }} / {{ w_goal_cups }} cups)</span>
+        </div>
+        <span id="water-remaining-label" class="text-xs font-bold text-slate-600">
+          {% if w_amt >= w_goal %}
+            🎉 Daily Goal Reached!
+          {% else %}
+            {{ [0, w_goal - w_amt] | max }} ml remaining
+          {% endif %}
+        </span>
+      </div>
+
+      <div class="w-full bg-slate-100 rounded-full h-3 overflow-hidden border border-[#E2E8F0]">
+        <div id="water-progress-bar"
+          class="h-full rounded-full bg-gradient-to-r from-[#06B6D4] to-[#0284C7] transition-all duration-500 shadow-inner"
+          style="width: {{ w_pct }}%"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. Categorized Meal Sections (Breakfast, Lunch, Dinner, Snacks) -->
   <section class="space-y-4">
     <div class="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
       <div>
@@ -318,6 +391,155 @@
         </div>
       </div>
       {% endfor %}
+    </div>
+  </section>
+
+  <!-- 5. Advanced Nutritional Analytics (Freemium Gated Feature) -->
+  <section class="space-y-4 pt-2">
+    <div class="flex items-center justify-between pb-2 border-b border-[#E2E8F0]">
+      <div>
+        <div class="flex items-center gap-2">
+          <h3 class="text-base font-black text-slate-900 flex items-center gap-2">
+            <span>🔬</span> Advanced Nutritional Analytics & Macro Splits
+          </h3>
+          {% if has_pro_access %}
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-50 text-emerald-700 border border-emerald-200">
+              ✨ Pro Unlocked
+            </span>
+          {% else %}
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-50 text-amber-700 border border-amber-200 flex items-center gap-1">
+              <span>🔒</span> <span>Go Premium</span>
+            </span>
+          {% endif %}
+        </div>
+        <p class="text-xs text-slate-500">Caloric energy ratio, meal timing distribution, and nutrient density</p>
+      </div>
+    </div>
+
+    <!-- Relative Container for Blur Overlay when Free / Expired -->
+    <div class="relative overflow-hidden rounded-2xl">
+
+      <!-- The Analytics Content Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <!-- 1. Caloric Energy Distribution -->
+        <div class="gt-card p-5 bg-white border border-[#E2E8F0] shadow-sm rounded-2xl space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-black uppercase tracking-wider text-slate-700">Caloric Energy Ratio</span>
+            <span class="text-[11px] font-bold text-slate-500">Current vs. Ideal Split</span>
+          </div>
+
+          <!-- Ratio Progress Strip -->
+          {% set p_pct_c = macro_percentages.protein if macro_percentages else 0 %}
+          {% set c_pct_c = macro_percentages.carbs if macro_percentages else 0 %}
+          {% set f_pct_c = macro_percentages.fat if macro_percentages else 0 %}
+          <div class="w-full h-4 rounded-full overflow-hidden flex border border-[#E2E8F0] bg-slate-100">
+            <div id="macro-ratio-protein" class="bg-[#0066FF] transition-all duration-500" style="width: {{ p_pct_c }}%" title="Protein {{ p_pct_c }}%"></div>
+            <div id="macro-ratio-carbs" class="bg-[#F59E0B] transition-all duration-500" style="width: {{ c_pct_c }}%" title="Carbs {{ c_pct_c }}%"></div>
+            <div id="macro-ratio-fat" class="bg-[#EF4444] transition-all duration-500" style="width: {{ f_pct_c }}%" title="Fat {{ f_pct_c }}%"></div>
+          </div>
+
+          <!-- Breakdown Legend -->
+          <div class="grid grid-cols-3 gap-2 text-center text-xs">
+            <div class="p-2 rounded-xl bg-blue-50/60 border border-blue-100">
+              <div class="text-[10px] font-extrabold text-[#0066FF] uppercase">Protein</div>
+              <div id="legend-pct-protein" class="text-base font-black text-slate-900">{{ p_pct_c }}%</div>
+              <div class="text-[9px] text-slate-400">Target: ~25-30%</div>
+            </div>
+            <div class="p-2 rounded-xl bg-amber-50/60 border border-amber-100">
+              <div class="text-[10px] font-extrabold text-[#F59E0B] uppercase">Carbs</div>
+              <div id="legend-pct-carbs" class="text-base font-black text-slate-900">{{ c_pct_c }}%</div>
+              <div class="text-[9px] text-slate-400">Target: ~45-55%</div>
+            </div>
+            <div class="p-2 rounded-xl bg-rose-50/60 border border-rose-100">
+              <div class="text-[10px] font-extrabold text-[#EF4444] uppercase">Fat</div>
+              <div id="legend-pct-fat" class="text-base font-black text-slate-900">{{ f_pct_c }}%</div>
+              <div class="text-[9px] text-slate-400">Target: ~20-25%</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. Meal Period Caloric Distribution -->
+        <div class="gt-card p-5 bg-white border border-[#E2E8F0] shadow-sm rounded-2xl space-y-4">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-black uppercase tracking-wider text-slate-700">Meal Calorie Distribution</span>
+            <span class="text-[11px] font-bold text-slate-500">Daily Timing</span>
+          </div>
+
+          {% set breakfast_cals = (nutrition.grouped.get("Breakfast", []) | sum(attribute='calories')) | int %}
+          {% set lunch_cals = (nutrition.grouped.get("Lunch", []) | sum(attribute='calories')) | int %}
+          {% set dinner_cals = (nutrition.grouped.get("Dinner", []) | sum(attribute='calories')) | int %}
+          {% set snack_cals = ((nutrition.grouped.get("Snack", []) + nutrition.grouped.get("Post-Workout", [])) | sum(attribute='calories')) | int %}
+          {% set total_c = [1, (breakfast_cals + lunch_cals + dinner_cals + snack_cals)] | max %}
+
+          <div class="space-y-2.5 text-xs">
+            <div>
+              <div class="flex justify-between font-bold text-slate-700 mb-1">
+                <span>🍳 Breakfast</span>
+                <span>{{ breakfast_cals }} kcal ({{ ((breakfast_cals / total_c) * 100) | round | int }}%)</span>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                <div class="h-full bg-amber-500 rounded-full" style="width: {{ ((breakfast_cals / total_c) * 100) | round | int }}%"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between font-bold text-slate-700 mb-1">
+                <span>🥗 Lunch</span>
+                <span>{{ lunch_cals }} kcal ({{ ((lunch_cals / total_c) * 100) | round | int }}%)</span>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                <div class="h-full bg-emerald-500 rounded-full" style="width: {{ ((lunch_cals / total_c) * 100) | round | int }}%"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between font-bold text-slate-700 mb-1">
+                <span>🥩 Dinner</span>
+                <span>{{ dinner_cals }} kcal ({{ ((dinner_cals / total_c) * 100) | round | int }}%)</span>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                <div class="h-full bg-[#0066FF] rounded-full" style="width: {{ ((dinner_cals / total_c) * 100) | round | int }}%"></div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between font-bold text-slate-700 mb-1">
+                <span>🍎 Snacks & Post-Workout</span>
+                <span>{{ snack_cals }} kcal ({{ ((snack_cals / total_c) * 100) | round | int }}%)</span>
+              </div>
+              <div class="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                <div class="h-full bg-purple-500 rounded-full" style="width: {{ ((snack_cals / total_c) * 100) | round | int }}%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- IF NOT PRO ACCESS: Visual Lock Glassmorphism Overlay (MyFitnessPal Aesthetic) -->
+      {% if not has_pro_access %}
+        <div class="absolute inset-0 z-20 backdrop-blur-md bg-white/75 dark:bg-slate-900/80 border-2 border-amber-300/40 rounded-2xl flex flex-col items-center justify-center p-6 text-center space-y-3.5 shadow-xl">
+          <div class="w-12 h-12 rounded-2xl bg-amber-500 text-white flex items-center justify-center text-2xl shadow-lg shadow-amber-500/30">
+            🔒
+          </div>
+          <div class="max-w-md space-y-1">
+            <h4 class="text-lg font-black text-slate-900 dark:text-white tracking-tight">Unlock Advanced Deep-Dive Analytics</h4>
+            <p class="text-xs text-slate-600 dark:text-slate-300">
+              Your 7-day free trial has expired. Go Premium to unlock deep-dive macro distribution, meal timing analytics, AI food vision camera, and complete workout CSV archives.
+            </p>
+          </div>
+          <div class="flex flex-wrap items-center justify-center gap-2 pt-1">
+            <a href="{{ url_for('subscription') }}"
+              class="px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-white shadow-lg shadow-amber-500/25 transition flex items-center gap-1.5">
+              <span>⭐</span> <span>Go Premium — PKR 500 / mo</span>
+            </a>
+            <a href="{{ url_for('subscription') }}"
+              class="px-4 py-2.5 rounded-xl text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition">
+              View Plan Details
+            </a>
+          </div>
+        </div>
+      {% endif %}
+
     </div>
   </section>
 

@@ -38,6 +38,22 @@
     </div>
   </div>
 
+  <!-- Onboarding Callout Banner (shown if onboarding not completed) -->
+  {% if not user.onboarding_completed %}
+    <div class="p-3.5 rounded-2xl bg-gradient-to-r from-blue-500/10 via-sky-500/10 to-blue-500/10 border border-blue-400/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+      <div class="flex items-center gap-2.5">
+        <span class="text-xl">✨</span>
+        <div>
+          <div class="font-black text-slate-900">Complete Your Fitness Profile</div>
+          <div class="text-[11px] text-slate-500">Run the 60-second wizard to calibrate your daily net calories, macro targets & hydration goal.</div>
+        </div>
+      </div>
+      <a href="{{ url_for('onboarding') }}" class="btn-royal px-4 py-2 rounded-xl text-xs font-black shrink-0 text-center shadow-sm">
+        Start Onboarding ➔
+      </a>
+    </div>
+  {% endif %}
+
   <!-- Free Trial / Membership Alert Strip (Clean & Compact) -->
   {% if not user.is_owner_user and user.subscription_status not in ['pro', 'active', 'lifetime_owner'] %}
     <div class="p-3 rounded-xl border flex items-center justify-between gap-3 text-xs {{ 'bg-blue-50 border-blue-200 text-blue-900' if user.trial_days_left > 0 else 'bg-rose-50 border-rose-200 text-rose-900' }}">

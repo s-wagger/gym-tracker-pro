@@ -56,6 +56,19 @@
           </div>
         </div>
 
+        <!-- Onboarding Wizard Re-Run Callout -->
+        <div class="p-4 rounded-xl bg-blue-500/10 border border-blue-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <div class="text-xs font-black uppercase text-blue-400 flex items-center gap-1.5">
+              <span>⚡</span> <span>Interactive Onboarding Wizard</span>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-0.5">Recalibrate your daily calorie target, macro split, and hydration goals anytime.</p>
+          </div>
+          <a href="{{ url_for('onboarding') }}" class="btn-royal px-4 py-2 rounded-xl text-xs font-black shrink-0 text-center">
+            Launch Wizard ➔
+          </a>
+        </div>
+
         <!-- Biometrics & Goal Settings -->
         <div class="pt-4 border-t border-gray-800 space-y-3">
           <label class="block text-xs font-black uppercase tracking-wider text-[#E6D5B8]">Biometrics & Training Goal</label>

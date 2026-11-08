@@ -29,6 +29,14 @@ class User(UserMixin):
         self.subscription_status = data.get("subscription_status") or "trial"
         self.trial_ends_at = data.get("trial_ends_at")
         self.is_owner = bool(data.get("is_owner") or 0)
+        self.first_name = data.get("first_name")
+        self.fitness_objective = data.get("fitness_objective") or "tone"
+        self.activity_level = data.get("activity_level") or "moderate"
+        self.gender = data.get("gender") or "male"
+        self.dob = data.get("dob")
+        self.goal_weight = float(data["goal_weight"]) if data.get("goal_weight") is not None else None
+        self.onboarding_completed = bool(data.get("onboarding_completed") or 0)
+        self.water_goal_ml = int(data.get("water_goal_ml") or 3000)
         self.gemini_api_key = data.get("gemini_api_key")
         self.created_at = data.get("created_at")
 
@@ -232,6 +240,62 @@ class User(UserMixin):
         with get_db() as conn:
             conn.execute("UPDATE users SET gemini_api_key = ? WHERE id = ?", (cleaned_key, self.id))
         self.gemini_api_key = cleaned_key
+
+    def complete_onboarding(self, data: dict):
+        """
+        Saves full onboarding profile: first_name, fitness_objective, activity_level,
+        gender, dob, goal_weight, calculated targets, and marks onboarding_completed = 1.
+        """
+        first_name = (data.get("first_name") or "").strip()
+        display_name = first_name or self.display_name
+        core_goal = data.get("core_goal") or self.fitness_goal
+        fitness_objective = data.get("fitness_objective") or self.fitness_objective or "tone"
+        activity_level = data.get("activity_level") or self.activity_level or "moderate"
+        gender = data.get("gender") or self.gender or "male"
+        dob = data.get("dob") or self.dob
+        unit_pref = data.get("unit_preference") or self.unit_preference or "kg"
+        height = float(data.get("height") or self.height or 175.0)
+        weight = float(data.get("weight") or self.weight or 75.0)
+        goal_weight = float(data.get("goal_weight")) if data.get("goal_weight") is not None else self.goal_weight
+        cal_target = int(data.get("daily_calorie_target") or self.daily_calorie_target)
+        pro_target = int(data.get("daily_protein_target") or self.daily_protein_target)
+        carbs_target = int(data.get("daily_carbs_target") or self.daily_carbs_target)
+        fat_target = int(data.get("daily_fat_target") or self.daily_fat_target)
+        water_goal = int(data.get("water_goal_ml") or self.water_goal_ml or 3000)
+
+        with get_db() as conn:
+            conn.execute("""
+            UPDATE users SET 
+                first_name = ?, display_name = ?, fitness_goal = ?, fitness_objective = ?,
+                activity_level = ?, gender = ?, dob = ?, unit_preference = ?,
+                height = ?, weight = ?, goal_weight = ?, daily_calorie_target = ?,
+                daily_protein_target = ?, daily_carbs_target = ?, daily_fat_target = ?,
+                water_goal_ml = ?, onboarding_completed = 1
+            WHERE id = ?
+            """, (
+                first_name, display_name, core_goal, fitness_objective,
+                activity_level, gender, dob, unit_pref,
+                height, weight, goal_weight, cal_target,
+                pro_target, carbs_target, fat_target,
+                water_goal, self.id
+            ))
+        self.first_name = first_name
+        self.display_name = display_name
+        self.fitness_goal = core_goal
+        self.fitness_objective = fitness_objective
+        self.activity_level = activity_level
+        self.gender = gender
+        self.dob = dob
+        self.unit_preference = unit_pref
+        self.height = height
+        self.weight = weight
+        self.goal_weight = goal_weight
+        self.daily_calorie_target = cal_target
+        self.daily_protein_target = pro_target
+        self.daily_carbs_target = carbs_target
+        self.daily_fat_target = fat_target
+        self.water_goal_ml = water_goal
+        self.onboarding_completed = True
 
 
 class WorkoutManager:
@@ -622,6 +686,73 @@ class TemplateManager:
             return cursor.rowcount > 0
 
 
+class WaterManager:
+    @staticmethod
+    def get_daily_water(user_id: int, date_str: str, default_goal_ml: int = 3000) -> dict:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+            SELECT id, user_id, date, amount_ml, goal_ml, updated_at
+            FROM daily_water
+            WHERE user_id = ? AND date = ?
+            """, (user_id, date_str))
+            row = cursor.fetchone()
+            if row:
+                amount = int(row["amount_ml"])
+                goal = int(row["goal_ml"]) if row["goal_ml"] else default_goal_ml
+            else:
+                amount = 0
+                goal = default_goal_ml
+
+            pct = min(100, round((amount / max(1, goal)) * 100))
+            cups = round(amount / 250.0, 1)
+            goal_cups = round(goal / 250.0, 1)
+            remaining_ml = max(0, goal - amount)
+
+            return {
+                "date": date_str,
+                "amount_ml": amount,
+                "goal_ml": goal,
+                "cups": cups,
+                "goal_cups": goal_cups,
+                "remaining_ml": remaining_ml,
+                "percentage": pct
+            }
+
+    @staticmethod
+    def log_or_update_water(user_id: int, date_str: str, delta_ml: int = None, amount_ml: int = None, goal_ml: int = None) -> dict:
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, amount_ml, goal_ml FROM daily_water WHERE user_id = ? AND date = ?", (user_id, date_str))
+            row = cursor.fetchone()
+
+            current_goal = int(row["goal_ml"]) if row and row["goal_ml"] else (goal_ml or 3000)
+            if goal_ml is not None:
+                current_goal = int(goal_ml)
+
+            if amount_ml is not None:
+                new_amount = max(0, min(10000, int(amount_ml)))
+            elif delta_ml is not None:
+                prev = int(row["amount_ml"]) if row else 0
+                new_amount = max(0, min(10000, prev + int(delta_ml)))
+            else:
+                new_amount = int(row["amount_ml"]) if row else 0
+
+            if row:
+                cursor.execute("""
+                UPDATE daily_water 
+                SET amount_ml = ?, goal_ml = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = ? AND date = ?
+                """, (new_amount, current_goal, user_id, date_str))
+            else:
+                cursor.execute("""
+                INSERT INTO daily_water (user_id, date, amount_ml, goal_ml)
+                VALUES (?, ?, ?, ?)
+                """, (user_id, date_str, new_amount, current_goal))
+
+        return WaterManager.get_daily_water(user_id, date_str, current_goal)
+
+
 class NutritionManager:
     @staticmethod
     def log_meal(user_id: int, date: str, meal_type: str, food_name: str, calories: float, protein: float, carbs: float, fat: float) -> int:
@@ -671,6 +802,25 @@ class NutritionManager:
                     grouped[m_type] = []
                 grouped[m_type].append(e)
 
+            # Advanced macronutrient energy percentage breakdown
+            total_macro_cals = (total_protein * 4) + (total_carbs * 4) + (total_fat * 9)
+            if total_macro_cals > 0:
+                pct_protein = round((total_protein * 4 / total_macro_cals) * 100)
+                pct_carbs = round((total_carbs * 4 / total_macro_cals) * 100)
+                pct_fat = max(0, 100 - pct_protein - pct_carbs)
+            else:
+                pct_protein = 0
+                pct_carbs = 0
+                pct_fat = 0
+
+            water_info = WaterManager.get_daily_water(user_id, date_str)
+
+            # Meal calorie distribution
+            meal_calories = {
+                m_name: round(sum(item["calories"] for item in m_list), 1)
+                for m_name, m_list in grouped.items()
+            }
+
             return {
                 "date": date_str,
                 "entries": entries,
@@ -680,7 +830,14 @@ class NutritionManager:
                     "protein": total_protein,
                     "carbs": total_carbs,
                     "fat": total_fat
-                }
+                },
+                "macro_percentages": {
+                    "protein": pct_protein,
+                    "carbs": pct_carbs,
+                    "fat": pct_fat
+                },
+                "meal_calories": meal_calories,
+                "water": water_info
             }
 
 

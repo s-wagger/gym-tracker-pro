@@ -54,6 +54,14 @@ def init_db():
             subscription_status TEXT DEFAULT 'trial',
             trial_ends_at TIMESTAMP,
             is_owner INTEGER DEFAULT 0,
+            first_name TEXT DEFAULT NULL,
+            fitness_objective TEXT DEFAULT 'tone',
+            activity_level TEXT DEFAULT 'moderate',
+            gender TEXT DEFAULT 'male',
+            dob TEXT DEFAULT NULL,
+            goal_weight REAL DEFAULT NULL,
+            onboarding_completed INTEGER DEFAULT 0,
+            water_goal_ml INTEGER DEFAULT 3000,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """)
@@ -77,6 +85,22 @@ def init_db():
             cursor.execute("ALTER TABLE users ADD COLUMN trial_ends_at TIMESTAMP;")
         if "is_owner" not in existing_cols:
             cursor.execute("ALTER TABLE users ADD COLUMN is_owner INTEGER DEFAULT 0;")
+        if "first_name" not in existing_cols:
+            cursor.execute("ALTER TABLE users ADD COLUMN first_name TEXT DEFAULT NULL;")
+        if "fitness_objective" not in existing_cols:
+            cursor.execute("ALTER TABLE users ADD COLUMN fitness_objective TEXT DEFAULT 'tone';")
+        if "activity_level" not in existing_cols:
+            cursor.execute("ALTER TABLE users ADD COLUMN activity_level TEXT DEFAULT 'moderate';")
+        if "gender" not in existing_cols:
+            cursor.execute("ALTER TABLE users ADD COLUMN gender TEXT DEFAULT 'male';")
+        if "dob" not in existing_cols:
+            cursor.execute("ALTER TABLE users ADD COLUMN dob TEXT DEFAULT NULL;")
+        if "goal_weight" not in existing_cols:
+            cursor.execute("ALTER TABLE users ADD COLUMN goal_weight REAL DEFAULT NULL;")
+        if "onboarding_completed" not in existing_cols:
+            cursor.execute("ALTER TABLE users ADD COLUMN onboarding_completed INTEGER DEFAULT 0;")
+        if "water_goal_ml" not in existing_cols:
+            cursor.execute("ALTER TABLE users ADD COLUMN water_goal_ml INTEGER DEFAULT 3000;")
 
         # Initialize trial_ends_at for existing users if NULL (7 days / 1 week from creation)
         cursor.execute("""
@@ -214,6 +238,20 @@ def init_db():
         );
         """)
 
+        # Daily Water Consumption table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS daily_water (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            date TEXT NOT NULL,
+            amount_ml INTEGER DEFAULT 0,
+            goal_ml INTEGER DEFAULT 3000,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, date)
+        );
+        """)
+
         # Performance Indexes
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user_date ON workout_sessions(user_id, date);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_sets_user_exercise ON workout_sets(user_id, exercise_name);")
@@ -222,6 +260,7 @@ def init_db():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_steps_user_date ON daily_steps(user_id, date);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_sub_requests_user ON subscription_requests(user_id);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_workout_templates_user ON workout_templates(user_id);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_water_user_date ON daily_water(user_id, date);")
 
         # Ensure permanent Master Owner account exists
         cursor.execute("SELECT id FROM users WHERE LOWER(username) = 'swagger' OR LOWER(email) = 'ghost.5abdullah@gmail.com';")

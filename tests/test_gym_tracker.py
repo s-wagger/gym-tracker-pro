@@ -17,12 +17,14 @@ from app import app
 from database import init_db, get_db
 from models import (
     User, WorkoutManager, NutritionManager, AnalyticsManager,
-    ExportManager, StepManager, SubscriptionManager, TemplateManager
+    ExportManager, StepManager, SubscriptionManager, TemplateManager,
+    WaterManager
 )
 from formulas import (
     calculate_epley_1rm, calculate_brzycki_1rm,
     calculate_lombardi_1rm, get_training_zones, evaluate_milestones,
-    calculate_user_fitness_plan, calculate_step_metrics
+    calculate_user_fitness_plan, calculate_step_metrics,
+    calculate_onboarding_targets
 )
 
 class GymTrackerTestCase(unittest.TestCase):
@@ -37,6 +39,7 @@ class GymTrackerTestCase(unittest.TestCase):
 
         # Clean database before each test
         with get_db() as conn:
+            conn.execute("DELETE FROM daily_water")
             conn.execute("DELETE FROM workout_templates")
             conn.execute("DELETE FROM subscription_requests")
             conn.execute("DELETE FROM daily_steps")
@@ -841,6 +844,196 @@ class GymTrackerTestCase(unittest.TestCase):
         self.assertIn("steps", api_data)
         self.assertEqual(api_data["steps"]["steps"], 6500)
         self.assertGreater(api_data["steps"]["calories_burned"], 0)
+
+    # ---------------------------------------------------------
+    # 16. Step-by-Step Onboarding Wizard & Calculations
+    # ---------------------------------------------------------
+    def test_onboarding_calculation_engine(self):
+        """
+        Verify Mifflin-St Jeor BMR, TDEE, net calorie adjustments, macro splits,
+        and hydration requirements calculated across different goals and objectives.
+        """
+        # Test 1: Male, 75kg, 178cm, age 25, gain muscle, bulk objective, moderate activity
+        bulk_plan = calculate_onboarding_targets(
+            gender="male",
+            age=25,
+            height_cm=178.0,
+            weight=75.0,
+            core_goal="gain_weight",
+            fitness_objective="bulk",
+            activity_level="moderate",
+            unit="kg"
+        )
+        self.assertGreater(bulk_plan["bmr"], 1600)
+        self.assertGreater(bulk_plan["tdee"], bulk_plan["bmr"])
+        self.assertGreater(bulk_plan["daily_calorie_target"], bulk_plan["tdee"]) # Surplus
+        self.assertGreaterEqual(bulk_plan["daily_protein_target"], 150) # >= 2.0g/kg
+        self.assertGreater(bulk_plan["water_goal_ml"], 2500)
+        self.assertEqual(bulk_plan["core_goal"], "gain_weight")
+
+        # Test 2: Female, 65kg, 165cm, age 28, lose weight, tone objective, sedentary
+        cut_plan = calculate_onboarding_targets(
+            gender="female",
+            age=28,
+            height_cm=165.0,
+            weight=65.0,
+            core_goal="lose_weight",
+            fitness_objective="tone",
+            activity_level="sedentary",
+            unit="kg"
+        )
+        self.assertEqual(cut_plan["gender"], "female")
+        self.assertLess(cut_plan["daily_calorie_target"], cut_plan["tdee"]) # Deficit
+        self.assertGreaterEqual(cut_plan["daily_protein_target"], 130) # ~2.2g/kg for tone
+
+    def test_onboarding_flow_and_api(self):
+        """
+        Verify GET /onboarding, POST /api/onboarding/calculate,
+        and POST /onboarding completing onboarding and saving profile targets.
+        """
+        user = User.create("onboard_user", "onboard@test.com", "pass1234")
+        self.assertFalse(user.onboarding_completed)
+
+        with self.client.session_transaction() as sess:
+            sess["_user_id"] = str(user.id)
+            sess["_fresh"] = True
+
+        # 1. GET /onboarding
+        get_res = self.client.get("/onboarding")
+        self.assertEqual(get_res.status_code, 200)
+        self.assertIn(b"Personalized Onboarding Wizard", get_res.data)
+
+        # 2. POST /api/onboarding/calculate
+        calc_res = self.client.post("/api/onboarding/calculate", json={
+            "gender": "male",
+            "dob": "1997-06-15",
+            "height": 180,
+            "weight": 80,
+            "core_goal": "gain_weight",
+            "fitness_objective": "tone",
+            "activity_level": "moderate"
+        })
+        self.assertEqual(calc_res.status_code, 200)
+        calc_data = json.loads(calc_res.data)
+        self.assertTrue(calc_data["success"])
+        self.assertIn("daily_calorie_target", calc_data["plan"])
+
+        # 3. POST /onboarding form submission
+        post_res = self.client.post("/onboarding", data={
+            "first_name": "Marcus",
+            "core_goal": "gain_weight",
+            "fitness_objective": "bulk",
+            "activity_level": "moderate",
+            "gender": "male",
+            "dob": "1997-06-15",
+            "height": 180,
+            "weight": 80,
+            "goal_weight": 85,
+            "unit_preference": "kg"
+        }, follow_redirects=True)
+        self.assertEqual(post_res.status_code, 200)
+
+        # Reload user from DB
+        updated_user = User.get_by_id(user.id)
+        self.assertTrue(updated_user.onboarding_completed)
+        self.assertEqual(updated_user.display_name, "Marcus")
+        self.assertEqual(updated_user.fitness_goal, "gain_weight")
+        self.assertEqual(updated_user.fitness_objective, "bulk")
+        self.assertGreater(updated_user.daily_calorie_target, 2000)
+
+    # ---------------------------------------------------------
+    # 17. Water Consumption Hydration Tracker
+    # ---------------------------------------------------------
+    def test_water_consumption_tracker(self):
+        """
+        Verify WaterManager calculations, quick-add, undo, reset,
+        and integration with /api/nutrition/water and /api/nutrition.
+        """
+        user = User.create("water_user", "water@test.com", "pass1234")
+        test_date = "2026-11-08"
+
+        with self.client.session_transaction() as sess:
+            sess["_user_id"] = str(user.id)
+            sess["_fresh"] = True
+
+        # 1. Initial water is 0
+        w0 = WaterManager.get_daily_water(user.id, test_date)
+        self.assertEqual(w0["amount_ml"], 0)
+        self.assertEqual(w0["cups"], 0.0)
+
+        # 2. Add 250ml (+1 cup)
+        w1 = WaterManager.log_or_update_water(user.id, test_date, delta_ml=250)
+        self.assertEqual(w1["amount_ml"], 250)
+        self.assertEqual(w1["cups"], 1.0)
+
+        # 3. Add 500ml via API endpoint POST /api/nutrition/water
+        res_post = self.client.post("/api/nutrition/water", json={
+            "date": test_date,
+            "delta_ml": 500
+        })
+        self.assertEqual(res_post.status_code, 200)
+        data_post = json.loads(res_post.data)
+        self.assertTrue(data_post["success"])
+        self.assertEqual(data_post["water"]["amount_ml"], 750)
+        self.assertEqual(data_post["water"]["cups"], 3.0)
+
+        # 4. GET /api/nutrition/water
+        res_get = self.client.get(f"/api/nutrition/water?date={test_date}")
+        self.assertEqual(res_get.status_code, 200)
+        data_get = json.loads(res_get.data)
+        self.assertEqual(data_get["water"]["amount_ml"], 750)
+
+        # 5. GET /api/nutrition includes water data
+        res_nutr = self.client.get(f"/api/nutrition?date={test_date}")
+        self.assertEqual(res_nutr.status_code, 200)
+        nutr_data = json.loads(res_nutr.data)
+        self.assertIn("water", nutr_data)
+        self.assertEqual(nutr_data["water"]["amount_ml"], 750)
+
+    # ---------------------------------------------------------
+    # 18. Freemium 'Go Premium' Feature Locking System
+    # ---------------------------------------------------------
+    def test_freemium_feature_locking_system(self):
+        """
+        Verify 7-day free trial gives full Pro access, expired trial locks features
+        and renders 'Go Premium' upgrade prompt, and owner account retains lifetime access.
+        """
+        # 1. New user has active 7-day trial -> Pro access granted
+        trial_user = User.create("trial_hero", "trial@test.com", "pass1234")
+        self.assertTrue(trial_user.has_pro_access)
+        self.assertEqual(trial_user.subscription_badge["type"], "trial")
+        self.assertGreater(trial_user.trial_days_left, 0)
+
+        # 2. Expired trial user -> Pro access revoked
+        expired_user = User.create("expired_guy", "expired@test.com", "pass1234")
+        with get_db() as conn:
+            conn.execute("UPDATE users SET subscription_status = 'expired', trial_ends_at = datetime('now', '-2 days') WHERE id = ?", (expired_user.id,))
+        expired_reloaded = User.get_by_id(expired_user.id)
+        self.assertFalse(expired_reloaded.has_pro_access)
+        self.assertEqual(expired_reloaded.subscription_badge["type"], "expired")
+
+        # 3. Expired user blocked from Pro CSV export
+        with self.client.session_transaction() as sess:
+            sess["_user_id"] = str(expired_user.id)
+            sess["_fresh"] = True
+
+        exp_res = self.client.get("/export/workouts.csv", follow_redirects=False)
+        self.assertEqual(exp_res.status_code, 302)
+        self.assertIn("/subscription", exp_res.headers.get("Location", ""))
+
+        # 4. Nutrition page renders 'Go Premium' locking overlay for expired user
+        nutr_res = self.client.get("/nutrition")
+        self.assertEqual(nutr_res.status_code, 200)
+        self.assertIn(b"Go Premium", nutr_res.data)
+        self.assertIn(b"PKR 500 / mo", nutr_res.data)
+
+        # 5. Master Owner Swagger has permanent lifetime VIP
+        owner_user = User.get_by_username("swagger")
+        if not owner_user:
+            owner_user = User.create("swagger", "ghost.5abdullah@gmail.com", "pass1234")
+        self.assertTrue(owner_user.is_owner_user)
+        self.assertTrue(owner_user.has_pro_access)
+        self.assertEqual(owner_user.subscription_badge["type"], "owner")
 
 if __name__ == "__main__":
     unittest.main()

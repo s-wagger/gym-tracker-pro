@@ -198,8 +198,98 @@ function updateNutritionUI(data) {
   setText('fat-cals', `${fVal * 9} kcal`);
   setBarWidth('fat-progress-bar', fPct);
 
-  // 3. Render Categorized Meal Sections
+  // 3. Update Water Intake
+  if (data.water) {
+    updateWaterUI(data.water);
+  }
+
+  // 4. Update Macro Energy Percentages
+  if (data.macro_percentages) {
+    const mp = data.macro_percentages;
+    setBarWidth('macro-ratio-protein', mp.protein);
+    setBarWidth('macro-ratio-carbs', mp.carbs);
+    setBarWidth('macro-ratio-fat', mp.fat);
+    setText('legend-pct-protein', `${mp.protein}%`);
+    setText('legend-pct-carbs', `${mp.carbs}%`);
+    setText('legend-pct-fat', `${mp.fat}%`);
+  }
+
+  // 5. Render Categorized Meal Sections
   renderCategorizedMealSections(data.grouped || {});
+}
+
+// -------------------------------------------------------------
+// 2.1 Water Consumption Hydration Engine
+// -------------------------------------------------------------
+async function quickAddWater(deltaMl) {
+  try {
+    const res = await fetch('/api/nutrition/water', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        date: activeNutritionDate,
+        delta_ml: deltaMl
+      })
+    });
+    const data = await res.json();
+    if (res.ok && data.success && data.water) {
+      updateWaterUI(data.water);
+      if (typeof showToast === 'function') {
+        if (deltaMl > 0) {
+          showToast(`+${deltaMl} ml logged! Stay hydrated 💧`, 'success');
+        } else {
+          showToast(`${deltaMl} ml adjusted.`, 'info');
+        }
+      }
+    }
+  } catch (err) {
+    if (typeof showToast === 'function') showToast('Failed to update water intake.', 'error');
+  }
+}
+
+async function resetWater() {
+  if (!confirm("Reset today's logged water intake to 0 ml?")) return;
+  try {
+    const res = await fetch('/api/nutrition/water', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        date: activeNutritionDate,
+        amount_ml: 0
+      })
+    });
+    const data = await res.json();
+    if (res.ok && data.success && data.water) {
+      updateWaterUI(data.water);
+      if (typeof showToast === 'function') showToast('Water intake reset to 0 ml.', 'info');
+    }
+  } catch (err) {
+    if (typeof showToast === 'function') showToast('Failed to reset water.', 'error');
+  }
+}
+
+function updateWaterUI(water) {
+  if (!water) return;
+  const amt = water.amount_ml || 0;
+  const goal = water.goal_ml || 3000;
+  const pct = Math.min(100, Math.round((amt / Math.max(1, goal)) * 100));
+  const cups = (amt / 250.0).toFixed(1);
+  const goalCups = (goal / 250.0).toFixed(1);
+
+  setText('water-val', amt.toLocaleString());
+  setText('water-target', goal.toLocaleString());
+  setText('water-pct-badge', `${pct}%`);
+  setText('water-cups-label', `(${cups} / ${goalCups} cups)`);
+  setBarWidth('water-progress-bar', pct);
+
+  const remLabel = document.getElementById('water-remaining-label');
+  if (remLabel) {
+    if (amt >= goal) {
+      remLabel.textContent = '🎉 Daily Goal Reached!';
+    } else {
+      remLabel.textContent = `${(goal - amt).toLocaleString()} ml remaining`;
+    }
+  }
 }
 
 function setText(id, text) {
