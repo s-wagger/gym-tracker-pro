@@ -1,19 +1,22 @@
 /* Gym Tracker Pro - Service Worker (PWA) */
-const CACHE_NAME = 'gymtracker-v1.0.0';
+const CACHE_NAME = 'gymtracker-v1.1.0';
 
 const PRECACHE_ASSETS = [
   '/',
   '/dashboard',
   '/workouts',
   '/nutrition',
+  '/steps',
   '/one-rep-max',
   '/analytics',
+  '/prs',
   '/export',
   '/static/css/style.css',
   '/static/js/app.js',
   '/static/js/pwa.js',
   '/static/js/logger.js',
   '/static/js/nutrition.js',
+  '/static/js/pedometer.js',
   '/static/js/calculator.js',
   '/static/js/analytics.js',
   '/static/manifest.json',
@@ -128,4 +131,11 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(request).then((response) => response || fetch(request))
   );
+});
+
+// PWA Background Sync for Pedometer Steps and Offline Actions
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-steps') {
+    console.log('[SW] Processing background step sync event');
+  }
 });

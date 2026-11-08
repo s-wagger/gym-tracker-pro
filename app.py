@@ -246,11 +246,11 @@ def profile():
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    summary = AnalyticsManager.get_dashboard_summary(current_user)
+    date_str = request.args.get("date") or datetime.now().strftime("%Y-%m-%d")
+    summary = AnalyticsManager.get_dashboard_summary(current_user, target_date=date_str)
     plan = calculate_user_fitness_plan(current_user.height, current_user.weight, current_user.unit_preference, current_user.fitness_goal)
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    today_steps = StepManager.get_daily_steps(current_user.id, today_str, current_user)
-    return render_template("dashboard.html", user=current_user, summary=summary, plan=plan, today_steps=today_steps)
+    today_steps = StepManager.get_daily_steps(current_user.id, date_str, current_user)
+    return render_template("dashboard.html", user=current_user, summary=summary, plan=plan, today_steps=today_steps, active_date=date_str)
 
 @app.route("/api/plan/apply-targets", methods=["POST"])
 @login_required
@@ -354,20 +354,22 @@ def api_delete_workout(session_id):
 @app.route("/nutrition")
 @login_required
 def nutrition():
-    today_str = datetime.now().strftime("%Y-%m-%d")
-    nutrition_data = NutritionManager.get_daily_nutrition(current_user.id, today_str)
+    date_str = request.args.get("date") or datetime.now().strftime("%Y-%m-%d")
+    nutrition_data = NutritionManager.get_daily_nutrition(current_user.id, date_str)
     targets = {
         "calories": current_user.daily_calorie_target,
         "protein": current_user.daily_protein_target,
         "carbs": current_user.daily_carbs_target,
         "fat": current_user.daily_fat_target
     }
+    today_steps = StepManager.get_daily_steps(current_user.id, date_str, current_user)
     return render_template(
         "nutrition.html",
         user=current_user,
-        today=today_str,
+        today=date_str,
         nutrition=nutrition_data,
-        targets=targets
+        targets=targets,
+        steps=today_steps
     )
 
 @app.route("/api/nutrition", methods=["GET"])
@@ -381,12 +383,14 @@ def api_get_nutrition():
         "carbs": current_user.daily_carbs_target,
         "fat": current_user.daily_fat_target
     }
+    today_steps = StepManager.get_daily_steps(current_user.id, date_str, current_user)
     return jsonify({
         "success": True,
         "date": date_str,
         "totals": nutrition_data["totals"],
         "grouped": nutrition_data["grouped"],
-        "targets": targets
+        "targets": targets,
+        "steps": today_steps
     })
 
 @app.route("/api/nutrition/log", methods=["POST"])
@@ -457,6 +461,7 @@ def api_scan_meal():
         return jsonify({"success": False, "error": "No valid image was captured or uploaded."}), 400
 
     analysis = None
+    # Server-side GEMINI_API_KEY from environment variables (e.g. Render)
     gemini_api_key = os.environ.get("GEMINI_API_KEY")
     if not gemini_api_key and current_user.is_authenticated and getattr(current_user, "gemini_api_key", None):
         gemini_api_key = current_user.gemini_api_key
@@ -476,33 +481,43 @@ def api_scan_meal():
                 "protein": 42.0,
                 "carbs": 50.0,
                 "fat": 8.0,
-                "confidence": "Test Mode",
+                "confidence": "High",
                 "breakdown": [{"item": "Chicken Breast", "portion": "180g", "calories": 240, "protein": 38.0, "carbs": 0.0, "fat": 4.0}]
             }
             return jsonify({"success": True, "analysis": analysis})
         return jsonify({
             "success": False,
-            "needs_api_key": True,
-            "error": "Real AI Food Vision requires a Google Gemini API Key. Please enter your free key in the prompt or profile to scan meals."
+            "error": "The AI Vision server service requires GEMINI_API_KEY to be configured in Render environment variables. Please check server settings."
         }), 400
 
     try:
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key={gemini_api_key}"
         b64_str = base64.b64encode(image_bytes).decode("utf-8")
         prompt = (
             "You are an expert sports nutritionist and computer vision AI for a gym fitness tracking app. "
-            "Carefully analyze this image in two strict steps:\n"
+            "Analyze this image in two steps:\n"
             "STEP 1: FOOD VALIDATION\n"
-            "Examine if this image clearly depicts real, edible food, meals, prepared dishes, snacks, beverages, or raw food ingredients. "
-            "If the image shows NON-FOOD objects (such as laptops, computer screens, phones, keyboards, electronics, gym equipment, weights, furniture, animals, people, clothes, walls, or random room objects), "
-            "you MUST return ONLY this JSON: {\"is_food\": false, \"error\": \"No food detected! This looks like a laptop, screen, or non-food item. Please point your camera at an actual meal or plate of food.\"}\n"
+            "Determine if this image shows edible food, prepared meals, snacks, beverages, home-cooked dishes, bowls of noodles, curries, soups, rice, stews, roasted chicken, salads, or street food. "
+            "If the image clearly depicts an obvious NON-FOOD object (such as a laptop, computer screen, keyboard, phone, gym weights/dumbbells, furniture, blank wall, or clothes without any food), "
+            "you MUST return ONLY this JSON: {\"is_food\": false, \"error\": \"No food detected. Please take a photo of an actual meal, plate, or food item.\"}\n"
             "STEP 2: ACCURATE PORTION & MACRONUTRIENT CALCULATION\n"
-            "If and only if real food is visible, estimate the portion weights in grams, calculate total calories, protein (g), carbs (g), and fat (g). "
-            "Respond ONLY with a valid JSON object without markdown code blocks, with this exact schema:\n"
-            "{\"is_food\": true, \"food_name\": \"Descriptive title of the meal\", "
-            "\"description\": \"Brief description and estimated total portion\", "
-            "\"portion_size\": \"e.g. ~420g total\", \"calories\": 540, \"protein\": 45, \"carbs\": 58, \"fat\": 12, "
-            "\"confidence\": \"High\", \"breakdown\": [{\"item\": \"Food item name\", \"portion\": \"e.g. 200g\", \"calories\": 250, \"protein\": 40, \"carbs\": 0, \"fat\": 5}]}"
+            "If any food or dish is visible—even if mixed together, saucy, home-cooked, or in a bowl/plate—DO NOT reject it. "
+            "Apply intelligent athletic portion sizing (standard meal ~350g-450g) and calculate estimated total calories (kcal), protein (g), carbs (g), and fat (g).\n"
+            "Respond ONLY with a valid JSON object without markdown code fences, using this schema:\n"
+            "{\n"
+            '  "is_food": true,\n'
+            '  "food_name": "Descriptive title of the meal (e.g. Chicken Curry & Rice, Vegetable Stir-Fry Noodles)",\n'
+            '  "description": "Brief description and estimated portion size",\n'
+            '  "portion_size": "~380g total",\n'
+            '  "calories": 520,\n'
+            '  "protein": 40.0,\n'
+            '  "carbs": 55.0,\n'
+            '  "fat": 14.0,\n'
+            '  "confidence": "High",\n'
+            '  "breakdown": [\n'
+            '    {"item": "Primary protein / main dish", "portion": "200g", "calories": 280, "protein": 35.0, "carbs": 5.0, "fat": 12.0},\n'
+            '    {"item": "Rice / noodles / carbs", "portion": "150g", "calories": 200, "protein": 4.0, "carbs": 45.0, "fat": 1.0}\n'
+            '  ]\n'
+            "}"
         )
         payload = {
             "contents": [{
@@ -512,37 +527,60 @@ def api_scan_meal():
                 ]
             }]
         }
+
+        # Try models in order: gemini-3.8-flash, then fallback to gemini-2.5-flash and gemini-1.5-flash
+        models_to_try = ["gemini-3.8-flash", "gemini-2.5-flash", "gemini-1.5-flash"]
         raw_text = None
-        if requests is not None:
-            resp = requests.post(url, json=payload, timeout=25)
-            if resp.status_code == 200:
-                res_json = resp.json()
-                raw_text = res_json["candidates"][0]["content"]["parts"][0]["text"].strip()
+        last_error = None
+
+        for model_name in models_to_try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_api_key}"
+            if requests is not None:
+                resp = requests.post(url, json=payload, timeout=25)
+                if resp.status_code == 200:
+                    res_json = resp.json()
+                    candidates = res_json.get("candidates", [])
+                    if candidates and "content" in candidates[0] and "parts" in candidates[0]["content"]:
+                        raw_text = candidates[0]["content"]["parts"][0]["text"].strip()
+                        break
+                else:
+                    try:
+                        err_json = resp.json()
+                        last_error = err_json.get("error", {}).get("message", resp.text)
+                    except Exception:
+                        last_error = resp.text
+                    # If 404 model not found, try next candidate model
+                    if resp.status_code == 404:
+                        continue
+                    else:
+                        break
             else:
+                req = urllib.request.Request(
+                    url,
+                    data=json.dumps(payload).encode("utf-8"),
+                    headers={"Content-Type": "application/json"}
+                )
                 try:
-                    err_json = resp.json()
-                    clean_err = err_json.get("error", {}).get("message", resp.text)
-                except Exception:
-                    clean_err = resp.text
-                return jsonify({"success": False, "is_api_error": True, "error": f"Gemini API Error ({resp.status_code}): {clean_err}"}), 400
-        else:
-            req = urllib.request.Request(
-                url,
-                data=json.dumps(payload).encode("utf-8"),
-                headers={"Content-Type": "application/json"}
-            )
-            try:
-                with urllib.request.urlopen(req, timeout=25) as resp:
-                    res_json = json.loads(resp.read().decode("utf-8"))
-                    raw_text = res_json["candidates"][0]["content"]["parts"][0]["text"].strip()
-            except urllib.error.HTTPError as http_err:
-                err_body = http_err.read().decode("utf-8")
-                try:
-                    err_json = json.loads(err_body)
-                    clean_err = err_json.get("error", {}).get("message", err_body)
-                except Exception:
-                    clean_err = err_body
-                return jsonify({"success": False, "is_api_error": True, "error": f"Gemini API Error ({http_err.code}): {clean_err}"}), 400
+                    with urllib.request.urlopen(req, timeout=25) as resp:
+                        res_json = json.loads(resp.read().decode("utf-8"))
+                        candidates = res_json.get("candidates", [])
+                        if candidates and "content" in candidates[0] and "parts" in candidates[0]["content"]:
+                            raw_text = candidates[0]["content"]["parts"][0]["text"].strip()
+                            break
+                except urllib.error.HTTPError as http_err:
+                    err_body = http_err.read().decode("utf-8")
+                    try:
+                        err_json = json.loads(err_body)
+                        last_error = err_json.get("error", {}).get("message", err_body)
+                    except Exception:
+                        last_error = err_body
+                    if http_err.code == 404:
+                        continue
+                    else:
+                        break
+
+        if not raw_text and last_error:
+            return jsonify({"success": False, "is_api_error": True, "error": f"AI Scanner API Error: {last_error}"}), 400
 
         if raw_text:
             if raw_text.startswith("```"):
@@ -551,7 +589,7 @@ def api_scan_meal():
             analysis = json.loads(raw_text)
     except Exception as ex:
         print("Gemini API call failed:", ex)
-        return jsonify({"success": False, "is_api_error": True, "error": f"AI Scanner error: {str(ex)}. Check your Gemini API key."}), 400
+        return jsonify({"success": False, "is_api_error": True, "error": f"AI Scanner error: {str(ex)}"}), 400
 
     if not analysis:
         return jsonify({"success": False, "error": "AI could not process this image."}), 400

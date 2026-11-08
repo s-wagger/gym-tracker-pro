@@ -31,10 +31,32 @@
 
   function init() {
     cacheElements();
+    restoreLocalSteps();
     setupEventListeners();
     updateUI();
     initChart();
     checkSensorAvailability();
+
+    // Auto-resume tracking if active prior to reload/navigation
+    if (localStorage.getItem('gymtracker_pedometer_active') === 'true') {
+      startTracking(true);
+    }
+  }
+
+  function getTodayString() {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  function restoreLocalSteps() {
+    try {
+      const todayKey = 'gymtracker_steps_' + getTodayString();
+      const cached = parseInt(localStorage.getItem(todayKey) || '0', 10);
+      if (cached > currentSteps) {
+        currentSteps = cached;
+      }
+    } catch (e) {
+      console.warn('LocalStorage error reading steps:', e);
+    }
   }
 
   function cacheElements() {
@@ -117,6 +139,24 @@
         syncToServer(currentSteps);
       }
     });
+
+    // PWA & Mobile Background Sync on tab visibility change
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        restoreLocalSteps();
+        updateUI();
+        if (hasPendingSync) {
+          syncToServer(currentSteps);
+        }
+      }
+    });
+
+    // Network reconnect sync
+    window.addEventListener('online', () => {
+      if (hasPendingSync) {
+        syncToServer(currentSteps);
+      }
+    });
   }
 
   function checkSensorAvailability() {
@@ -168,13 +208,16 @@
     }
   }
 
-  function startTracking() {
+  function startTracking(isResume = false) {
     if (isTracking) return;
     try {
       window.addEventListener('devicemotion', handleMotion, false);
       isTracking = true;
+      localStorage.setItem('gymtracker_pedometer_active', 'true');
       updateTrackingStateUI(true);
-      showToast('Pedometer active! Walk with your phone in your pocket or hand.', 'success');
+      if (!isResume) {
+        showToast('Pedometer active! Walk with your phone in your pocket or hand.', 'success');
+      }
     } catch (e) {
       console.error('Failed to attach motion listener', e);
       showToast('Could not start motion listener.', 'error');
@@ -185,6 +228,7 @@
     if (!isTracking) return;
     window.removeEventListener('devicemotion', handleMotion, false);
     isTracking = false;
+    localStorage.removeItem('gymtracker_pedometer_active');
     updateTrackingStateUI(false);
     showToast('Pedometer paused. Steps saved.', 'info');
     syncToServer(currentSteps);
@@ -216,6 +260,7 @@
 
   function onStepDetected() {
     currentSteps += 1;
+    saveLocalSteps();
     updateUI();
     flashStepPulse();
 
@@ -225,6 +270,14 @@
     }
 
     scheduleSync();
+  }
+
+  function saveLocalSteps() {
+    try {
+      localStorage.setItem('gymtracker_steps_' + getTodayString(), currentSteps.toString());
+    } catch (e) {
+      // ignore localstorage quota error
+    }
   }
 
   function flashStepPulse() {
@@ -240,6 +293,7 @@
 
   function addSteps(delta) {
     currentSteps += delta;
+    saveLocalSteps();
     updateUI();
     showToast(`Added +${delta.toLocaleString()} steps!`, 'success');
     syncToServer(currentSteps);
@@ -256,8 +310,17 @@
 
   async function syncToServer(steps) {
     hasPendingSync = false;
+    saveLocalSteps();
+
+    // Trigger Service Worker background sync if supported
+    if ('serviceWorker' in navigator && 'SyncManager' in window) {
+      navigator.serviceWorker.ready.then((reg) => {
+        reg.sync.register('sync-steps').catch(() => {});
+      }).catch(() => {});
+    }
+
     try {
-      const todayStr = new Date().toISOString().split('T')[0];
+      const todayStr = getTodayString();
       const res = await fetch('/api/steps/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

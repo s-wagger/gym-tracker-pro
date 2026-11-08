@@ -4,9 +4,9 @@
  * dynamic motivational quotes, and global toast notifications.
  */
 
-// 0. Theme Switcher Engine (Dark Theme ↔ White/Light Theme)
+// 0. Theme Switcher Engine (Default: MyFitnessPal Clean Light Theme ↔ Dark Theme)
 function initThemeToggle() {
-  const savedTheme = localStorage.getItem('gym_theme') || 'dark';
+  const savedTheme = localStorage.getItem('gym_theme') || 'light';
   applyTheme(savedTheme);
 
   document.querySelectorAll('.btn-theme-toggle').forEach((btn) => {

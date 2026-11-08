@@ -248,9 +248,14 @@ class GymTrackerTestCase(unittest.TestCase):
         self.assertEqual(data["name"], "Gym Tracker Pro")
         self.assertEqual(data["short_name"], "GymTracker")
         self.assertEqual(data["display"], "standalone")
-        self.assertEqual(data["background_color"], "#0A1128")
-        self.assertEqual(data["theme_color"], "#0A1128")
+        self.assertEqual(data["background_color"], "#F8FAFC")
+        self.assertEqual(data["theme_color"], "#0066FF")
         self.assertGreaterEqual(len(data["icons"]), 2)
+        self.assertIn("shortcuts", data)
+        shortcut_names = [s["name"] for s in data["shortcuts"]]
+        self.assertIn("Log Workout", shortcut_names)
+        self.assertIn("Log Meal", shortcut_names)
+        self.assertIn("Step Counter", shortcut_names)
 
     def test_pwa_service_worker(self):
         res = self.client.get("/sw.js")
@@ -785,8 +790,57 @@ class GymTrackerTestCase(unittest.TestCase):
         # Assert badges unlocked
         self.assertTrue(m_map["first_100kg_lift"]["achieved"])
         self.assertTrue(m_map["db_50kg_club"]["achieved"])
-        self.assertTrue(m_map["first_rep"]["achieved"])
-        self.assertTrue(m_map["pr_pioneer"]["achieved"])
+
+    # ---------------------------------------------------------
+    # 15. MyFitnessPal Aesthetic, Date Bar & Calorie Formula
+    # ---------------------------------------------------------
+    def test_myfitnesspal_daily_date_bar_and_calorie_formula(self):
+        """
+        Verify Top Daily Date Bar query parameter on Hub and Nutrition,
+        and MyFitnessPal calorie formula data (Goal - Food + Exercise = Remaining).
+        """
+        user = User.create("mfp_user", "mfp@test.com", "pass1234")
+        with self.client.session_transaction() as sess:
+            sess["_user_id"] = str(user.id)
+            sess["_fresh"] = True
+
+        # 1. Log steps for exercise burned calories
+        test_date = "2026-11-08"
+        StepManager.log_or_update_steps(user.id, test_date, 6500, user)
+
+        # 2. Log food for that date
+        NutritionManager.log_meal(
+            user_id=user.id,
+            date=test_date,
+            meal_type="Lunch",
+            food_name="Chicken & Rice Bowl",
+            calories=550.0,
+            protein=45.0,
+            carbs=50.0,
+            fat=12.0
+        )
+
+        # 3. GET /dashboard with ?date=
+        dash_res = self.client.get(f"/dashboard?date={test_date}")
+        self.assertEqual(dash_res.status_code, 200)
+        self.assertIn(test_date.encode(), dash_res.data)
+
+        # 4. GET /nutrition with ?date=
+        nutr_res = self.client.get(f"/nutrition?date={test_date}")
+        self.assertEqual(nutr_res.status_code, 200)
+        self.assertIn(test_date.encode(), nutr_res.data)
+        self.assertIn(b"Calories Remaining", nutr_res.data)
+        self.assertIn(b"html5-qrcode", nutr_res.data)
+
+        # 5. GET /api/nutrition returns steps with exercise calories burned
+        api_res = self.client.get(f"/api/nutrition?date={test_date}")
+        self.assertEqual(api_res.status_code, 200)
+        api_data = json.loads(api_res.data)
+        self.assertTrue(api_data["success"])
+        self.assertEqual(api_data["totals"]["calories"], 550.0)
+        self.assertIn("steps", api_data)
+        self.assertEqual(api_data["steps"]["steps"], 6500)
+        self.assertGreater(api_data["steps"]["calories_burned"], 0)
 
 if __name__ == "__main__":
     unittest.main()

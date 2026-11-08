@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en" class="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -7,9 +7,9 @@
 
   <!-- PWA Meta Tags -->
   <link rel="manifest" href="/static/manifest.json">
-  <meta name="theme-color" content="#0A1128">
+  <meta name="theme-color" content="#0066FF">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="GymTracker">
   <link rel="apple-touch-icon" href="/static/icons/apple-touch-icon.png">
   <link rel="icon" type="image/png" href="/static/icons/favicon.png">
@@ -22,17 +22,18 @@
       theme: {
         extend: {
           colors: {
-            gtRoyal: '#1E3A8A',
-            gtBlue: '#2563EB',
-            gtBeige: '#E6D5B8',
-            gtCream: '#FAF7F2',
+            gtBlue: '#0066FF',
+            gtBlueHover: '#0052CC',
+            gtBlueLight: '#EFF6FF',
+            gtRoyal: '#0066FF',
+            gtSlateDark: '#0F172A',
+            gtSlateText: '#1E293B',
+            gtSlateMuted: '#64748B',
+            gtBorder: '#E2E8F0',
+            gtBgPage: '#F8FAFC',
+            gtCardBg: '#FFFFFF',
             gtNavy: '#0A1128',
-            gtCardNavy: '#101C3D',
-            gtDark: '#0A1128',
-            gtCard: '#101C3D',
-            gtLime: '#E6D5B8',
-            gtGold: '#E6D5B8',
-            gtCyan: '#2563EB'
+            gtCardNavy: '#101C3D'
           }
         }
       }
@@ -43,66 +44,66 @@
   <!-- Chart.js for PR analytics -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- Prevent Theme Flicker Script -->
+  <!-- Prevent Theme Flicker Script (Default: Light Mode) -->
   <script>
     (function() {
-      const saved = localStorage.getItem('gym_theme') || 'dark';
-      if (saved === 'light') {
-        document.documentElement.classList.remove('dark');
-        document.documentElement.classList.add('light');
-      } else {
+      const saved = localStorage.getItem('gym_theme') || 'light';
+      if (saved === 'dark') {
         document.documentElement.classList.remove('light');
         document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+        document.documentElement.classList.add('light');
       }
     })();
   </script>
 
   {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-[#0A1128] text-gray-100 min-h-screen flex flex-col pb-16 md:pb-0 transition-colors duration-200">
+<body class="bg-[#F8FAFC] text-[#0F172A] min-h-screen flex flex-col pb-16 md:pb-0 transition-colors duration-200">
 
   <!-- Desktop & Tablet Navigation Bar -->
-  <header class="sticky top-0 z-50 bg-[#0A1128]/95 backdrop-blur-md border-b border-[#E6D5B8]/20 transition-colors duration-200">
+  <header class="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-[#E2E8F0] shadow-sm transition-colors duration-200">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       
       <!-- Logo & Brand -->
       <a href="{{ url_for('dashboard') if current_user.is_authenticated else url_for('index') }}" class="flex items-center gap-3 group">
-        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#1E3A8A] to-[#0A1128] border border-[#E6D5B8]/40 flex items-center justify-center shadow-md shadow-blue-900/30 group-hover:border-[#E6D5B8] group-hover:shadow-[0_0_15px_rgba(230,213,184,0.3)] transition">
-          <svg class="w-5 h-5 text-[#E6D5B8]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#0066FF] to-[#0052CC] border border-blue-400 flex items-center justify-center shadow-md shadow-blue-500/20 group-hover:scale-105 transition">
+          <svg class="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
             <path d="M6 5v14M18 5v14M2 9v6M22 9v6M6 12h12"/>
           </svg>
         </div>
         <div>
-          <span class="font-black text-lg tracking-wider text-white">GYM TRACKER <span class="text-[#E6D5B8]">PRO</span></span>
-          <span class="hidden sm:inline-block text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.2 bg-[#E6D5B8]/15 text-[#E6D5B8] rounded ml-1 border border-[#E6D5B8]/30">PWA</span>
+          <span class="font-black text-lg tracking-wider text-[#0F172A]">GYM TRACKER <span class="text-[#0066FF]">PRO</span></span>
+          <span class="hidden sm:inline-block text-[10px] uppercase font-bold tracking-widest px-1.5 py-0.2 bg-blue-50 text-[#0066FF] rounded ml-1 border border-blue-200">PWA</span>
         </div>
       </a>
 
       <!-- Desktop Nav Links -->
       {% if current_user.is_authenticated %}
       <nav class="hidden md:flex items-center space-x-1 lg:space-x-2 text-sm font-semibold">
-        <a href="{{ url_for('dashboard') }}" class="px-3 py-2 rounded-lg hover:text-[#E6D5B8] hover:bg-blue-950/40 transition {{ 'text-[#E6D5B8] bg-[#101C3D] border border-[#E6D5B8]/30' if request.endpoint == 'dashboard' else 'text-gray-300' }}">
+        <a href="{{ url_for('dashboard') }}" class="px-3 py-2 rounded-lg transition {{ 'text-[#0066FF] bg-blue-50 font-bold border border-blue-200' if request.endpoint == 'dashboard' else 'text-slate-600 hover:text-[#0066FF] hover:bg-slate-100' }}">
           Hub
         </a>
-        <a href="{{ url_for('workouts') }}" class="px-3 py-2 rounded-lg hover:text-[#E6D5B8] hover:bg-blue-950/40 transition {{ 'text-[#E6D5B8] bg-[#101C3D] border border-[#E6D5B8]/30' if request.endpoint == 'workouts' else 'text-gray-300' }}">
+        <a href="{{ url_for('workouts') }}" class="px-3 py-2 rounded-lg transition {{ 'text-[#0066FF] bg-blue-50 font-bold border border-blue-200' if request.endpoint == 'workouts' else 'text-slate-600 hover:text-[#0066FF] hover:bg-slate-100' }}">
           Workouts
         </a>
-        <a href="{{ url_for('steps_tracker') }}" class="px-3 py-2 rounded-lg hover:text-[#E6D5B8] hover:bg-blue-950/40 transition flex items-center gap-1 {{ 'text-[#E6D5B8] bg-[#101C3D] border border-[#E6D5B8]/30' if request.endpoint == 'steps_tracker' else 'text-gray-300' }}">
+        <a href="{{ url_for('steps_tracker') }}" class="px-3 py-2 rounded-lg transition flex items-center gap-1 {{ 'text-[#0066FF] bg-blue-50 font-bold border border-blue-200' if request.endpoint == 'steps_tracker' else 'text-slate-600 hover:text-[#0066FF] hover:bg-slate-100' }}">
           <span>👟</span> Pedometer
         </a>
-        <a href="{{ url_for('nutrition') }}" class="px-3 py-2 rounded-lg hover:text-[#E6D5B8] hover:bg-blue-950/40 transition {{ 'text-[#E6D5B8] bg-[#101C3D] border border-[#E6D5B8]/30' if request.endpoint == 'nutrition' else 'text-gray-300' }}">
+        <a href="{{ url_for('nutrition') }}" class="px-3 py-2 rounded-lg transition {{ 'text-[#0066FF] bg-blue-50 font-bold border border-blue-200' if request.endpoint == 'nutrition' else 'text-slate-600 hover:text-[#0066FF] hover:bg-slate-100' }}">
           Nutrition
         </a>
-        <a href="{{ url_for('one_rep_max') }}" class="px-3 py-2 rounded-lg hover:text-[#E6D5B8] hover:bg-blue-950/40 transition {{ 'text-[#E6D5B8] bg-[#101C3D] border border-[#E6D5B8]/30' if request.endpoint == 'one_rep_max' else 'text-gray-300' }}">
+        <a href="{{ url_for('one_rep_max') }}" class="px-3 py-2 rounded-lg transition {{ 'text-[#0066FF] bg-blue-50 font-bold border border-blue-200' if request.endpoint == 'one_rep_max' else 'text-slate-600 hover:text-[#0066FF] hover:bg-slate-100' }}">
           1RM Engine
         </a>
-        <a href="{{ url_for('analytics') }}" class="px-3 py-2 rounded-lg hover:text-[#E6D5B8] hover:bg-blue-950/40 transition {{ 'text-[#E6D5B8] bg-[#101C3D] border border-[#E6D5B8]/30' if request.endpoint == 'analytics' else 'text-gray-300' }}">
+        <a href="{{ url_for('analytics') }}" class="px-3 py-2 rounded-lg transition {{ 'text-[#0066FF] bg-blue-50 font-bold border border-blue-200' if request.endpoint == 'analytics' else 'text-slate-600 hover:text-[#0066FF] hover:bg-slate-100' }}">
           PRs & Stats
         </a>
-        <a href="{{ url_for('export_view') }}" class="px-3 py-2 rounded-lg hover:text-[#E6D5B8] hover:bg-blue-950/40 transition {{ 'text-[#E6D5B8] bg-[#101C3D] border border-[#E6D5B8]/30' if request.endpoint == 'export_view' else 'text-gray-300' }}">
+        <a href="{{ url_for('export_view') }}" class="px-3 py-2 rounded-lg transition {{ 'text-[#0066FF] bg-blue-50 font-bold border border-blue-200' if request.endpoint == 'export_view' else 'text-slate-600 hover:text-[#0066FF] hover:bg-slate-100' }}">
           Export
         </a>
-        <a href="{{ url_for('subscription') }}" class="ml-2 px-2.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1 transition shadow-sm {{ 'bg-[#E6D5B8] text-[#0A1128]' if current_user.is_owner_user else 'bg-[#2563EB] text-white' if current_user.subscription_status in ['pro', 'active', 'lifetime_owner'] else 'bg-[#2563EB]/25 text-[#E6D5B8] border border-[#2563EB]/50' if current_user.trial_days_left > 0 else 'bg-rose-950/70 text-rose-300 border border-rose-500/40' }}" title="Subscription & Membership">
+        <a href="{{ url_for('subscription') }}" class="ml-2 px-2.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider flex items-center gap-1 transition shadow-sm {{ 'bg-[#0066FF] text-white' if current_user.is_owner_user else 'bg-blue-600 text-white' if current_user.subscription_status in ['pro', 'active', 'lifetime_owner'] else 'bg-blue-100 text-[#0066FF] border border-blue-300' if current_user.trial_days_left > 0 else 'bg-rose-100 text-rose-700 border border-rose-300' }}" title="Subscription & Membership">
           <span>{{ '👑' if current_user.is_owner_user else '⭐' if current_user.subscription_status in ['pro', 'active', 'lifetime_owner'] else '⚡' if current_user.trial_days_left > 0 else '🔒' }}</span>
           <span>{{ current_user.subscription_badge.short_label }}</span>
         </a>
@@ -113,35 +114,35 @@
       <div class="flex items-center gap-2 sm:gap-3">
         <!-- Mobile Trial / Pro Pill -->
         {% if current_user.is_authenticated %}
-        <a href="{{ url_for('subscription') }}" class="md:hidden px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 {{ 'bg-[#E6D5B8] text-[#0A1128]' if current_user.is_owner_user else 'bg-[#2563EB] text-white' if current_user.subscription_status in ['pro', 'active', 'lifetime_owner'] else 'bg-[#2563EB]/20 text-[#E6D5B8] border border-[#2563EB]/40' if current_user.trial_days_left > 0 else 'bg-rose-950/70 text-rose-300' }}">
+        <a href="{{ url_for('subscription') }}" class="md:hidden px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 {{ 'bg-[#0066FF] text-white' if current_user.is_owner_user else 'bg-blue-600 text-white' if current_user.subscription_status in ['pro', 'active', 'lifetime_owner'] else 'bg-blue-100 text-[#0066FF] border border-blue-300' if current_user.trial_days_left > 0 else 'bg-rose-100 text-rose-700 border border-rose-300' }}">
           <span>{{ '👑' if current_user.is_owner_user else '⭐' if current_user.subscription_status in ['pro', 'active', 'lifetime_owner'] else '⚡' if current_user.trial_days_left > 0 else '🔒' }}</span>
           <span>{{ current_user.subscription_badge.short_label }}</span>
         </a>
         {% endif %}
 
         <!-- Theme Switcher Button -->
-        <button type="button" class="btn-theme-toggle p-2 rounded-xl bg-[#101C3D] border border-[#E6D5B8]/30 hover:border-[#E6D5B8] text-gray-300 hover:text-white transition flex items-center gap-1.5 shadow-sm text-xs font-bold" title="Toggle Dark / White Theme">
-          <span class="theme-icon text-sm">☀️</span>
-          <span class="theme-label hidden sm:inline text-[11px]">Light</span>
+        <button type="button" class="btn-theme-toggle p-2 rounded-xl bg-slate-100 border border-[#E2E8F0] hover:border-slate-300 text-slate-700 transition flex items-center gap-1.5 shadow-sm text-xs font-bold" title="Toggle Theme">
+          <span class="theme-icon text-sm">🌙</span>
+          <span class="theme-label hidden sm:inline text-[11px]">Dark</span>
         </button>
 
         <!-- PWA Install Button -->
-        <button type="button" class="btn-pwa-install hidden px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider bg-[#E6D5B8]/15 border border-[#E6D5B8]/40 text-[#E6D5B8] hover:bg-[#E6D5B8] hover:text-[#0A1128] transition flex items-center gap-1.5 shadow-sm">
+        <button type="button" class="btn-pwa-install hidden px-3 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider bg-blue-50 border border-blue-200 text-[#0066FF] hover:bg-[#0066FF] hover:text-white transition flex items-center gap-1.5 shadow-sm">
           <span>📲</span> Install App
         </button>
 
         {% if current_user.is_authenticated %}
-        <a href="{{ url_for('profile') }}" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#101C3D] border border-[#E6D5B8]/30 hover:border-[#E6D5B8] transition" title="Profile Settings">
-          <div class="w-6 h-6 rounded-full bg-[#E6D5B8]/20 text-[#E6D5B8] flex items-center justify-center text-xs font-bold">
+        <a href="{{ url_for('profile') }}" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 border border-[#E2E8F0] hover:border-blue-300 transition" title="Profile Settings">
+          <div class="w-6 h-6 rounded-full bg-blue-100 text-[#0066FF] flex items-center justify-center text-xs font-bold">
             {{ current_user.display_name[0] | upper }}
           </div>
-          <span class="text-xs font-semibold text-gray-200 hidden sm:inline">{{ current_user.display_name }}</span>
+          <span class="text-xs font-semibold text-slate-700 hidden sm:inline">{{ current_user.display_name }}</span>
         </a>
-        <a href="{{ url_for('logout') }}" class="text-xs font-semibold text-gray-400 hover:text-red-400 px-2 py-1.5 rounded-lg transition" title="Sign Out">
+        <a href="{{ url_for('logout') }}" class="text-xs font-semibold text-slate-500 hover:text-red-500 px-2 py-1.5 rounded-lg transition" title="Sign Out">
           Log Out
         </a>
         {% else %}
-        <a href="{{ url_for('login') }}" class="text-sm font-semibold text-gray-300 hover:text-white px-3 py-1.5 rounded-lg transition">
+        <a href="{{ url_for('login') }}" class="text-sm font-semibold text-slate-600 hover:text-[#0066FF] px-3 py-1.5 rounded-lg transition">
           Log In
         </a>
         <a href="{{ url_for('register') }}" class="neon-btn px-4 py-1.5 rounded-lg text-sm font-bold shadow-md">
@@ -154,12 +155,12 @@
   </header>
 
   <!-- PWA Install Banner Notice (dismissable) -->
-  <div id="pwa-install-banner" class="hidden bg-[#101C3D] border-b border-[#E6D5B8]/30 px-4 py-2.5 text-xs text-center flex items-center justify-between gap-3 max-w-7xl mx-auto w-full">
+  <div id="pwa-install-banner" class="hidden bg-blue-50 border-b border-blue-200 px-4 py-2.5 text-xs text-slate-700 text-center flex items-center justify-between gap-3 max-w-7xl mx-auto w-full">
     <div class="flex items-center gap-2 mx-auto">
       <span class="text-base">📱</span>
       <span>Install <strong>Gym Tracker Pro</strong> on your phone for full-screen offline workout & pedometer tracking!</span>
     </div>
-    <button type="button" onclick="triggerPwaInstall()" class="bg-[#E6D5B8] text-[#0A1128] font-extrabold px-3 py-1 rounded text-xs hover:bg-[#d9c3a5] transition shrink-0">
+    <button type="button" onclick="triggerPwaInstall()" class="bg-[#0066FF] text-white font-extrabold px-3 py-1 rounded text-xs hover:bg-[#0052CC] transition shrink-0">
       Install Now
     </button>
   </div>
@@ -170,12 +171,12 @@
       <div class="max-w-4xl mx-auto px-4 mt-4 w-full">
         {% for category, message in messages %}
           <div class="p-3.5 mb-2 rounded-xl text-sm font-semibold flex items-center justify-between transition 
-            {{ 'bg-blue-950/70 border border-[#E6D5B8]/50 text-[#E6D5B8]' if category == 'success' else 'bg-red-950/50 border border-red-500/40 text-red-300' if category == 'error' else 'bg-[#101C3D] border border-gray-700 text-gray-200' }}">
+            {{ 'bg-emerald-50 border border-emerald-200 text-emerald-800' if category == 'success' else 'bg-red-50 border border-red-200 text-red-800' if category == 'error' else 'bg-blue-50 border border-blue-200 text-blue-800' }}">
             <div class="flex items-center gap-2">
               <span>{{ '✓' if category == 'success' else '⚠' if category == 'error' else 'ℹ' }}</span>
               <span>{{ message }}</span>
             </div>
-            <button type="button" onclick="this.parentElement.remove()" class="text-gray-400 hover:text-white text-xs ml-3">✕</button>
+            <button type="button" onclick="this.parentElement.remove()" class="text-slate-400 hover:text-slate-700 text-xs ml-3">✕</button>
           </div>
         {% endfor %}
       </div>
@@ -189,28 +190,28 @@
 
   <!-- Mobile Bottom Navigation Bar (PWA Friendly with 6 Core Pillars) -->
   {% if current_user.is_authenticated %}
-  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 mobile-nav-bar px-1 py-1.5 flex items-center justify-around">
-    <a href="{{ url_for('dashboard') }}" class="flex flex-col items-center py-1 px-1.5 rounded text-xs font-semibold {{ 'text-[#E6D5B8] font-bold' if request.endpoint == 'dashboard' else 'text-slate-400' }}">
+  <nav class="md:hidden fixed bottom-0 left-0 right-0 z-50 mobile-nav-bar px-1 py-1.5 flex items-center justify-around bg-white/95 backdrop-blur-md border-t border-[#E2E8F0] shadow-md">
+    <a href="{{ url_for('dashboard') }}" class="flex flex-col items-center py-1 px-1.5 rounded text-xs font-semibold {{ 'text-[#0066FF] font-bold' if request.endpoint == 'dashboard' else 'text-slate-500' }}">
       <span class="text-base">⚡</span>
       <span class="text-[10px]">Hub</span>
     </a>
-    <a href="{{ url_for('workouts') }}" class="flex flex-col items-center py-1 px-1.5 rounded text-xs font-semibold {{ 'text-[#E6D5B8] font-bold' if request.endpoint == 'workouts' else 'text-slate-400' }}">
+    <a href="{{ url_for('workouts') }}" class="flex flex-col items-center py-1 px-1.5 rounded text-xs font-semibold {{ 'text-[#0066FF] font-bold' if request.endpoint == 'workouts' else 'text-slate-500' }}">
       <span class="text-base">🏋️‍♂️</span>
       <span class="text-[10px]">Workouts</span>
     </a>
-    <a href="{{ url_for('steps_tracker') }}" class="flex flex-col items-center py-1 px-1.5 rounded text-xs font-semibold {{ 'text-[#E6D5B8] font-bold' if request.endpoint == 'steps_tracker' else 'text-slate-400' }}">
+    <a href="{{ url_for('steps_tracker') }}" class="flex flex-col items-center py-1 px-1.5 rounded text-xs font-semibold {{ 'text-[#0066FF] font-bold' if request.endpoint == 'steps_tracker' else 'text-slate-500' }}">
       <span class="text-base">👟</span>
       <span class="text-[10px]">Steps</span>
     </a>
-    <a href="{{ url_for('nutrition') }}" class="flex flex-col items-center py-1 px-1.5 rounded text-xs font-semibold {{ 'text-[#E6D5B8] font-bold' if request.endpoint == 'nutrition' else 'text-slate-400' }}">
+    <a href="{{ url_for('nutrition') }}" class="flex flex-col items-center py-1 px-1.5 rounded text-xs font-semibold {{ 'text-[#0066FF] font-bold' if request.endpoint == 'nutrition' else 'text-slate-500' }}">
       <span class="text-base">🥗</span>
       <span class="text-[10px]">Diet</span>
     </a>
-    <a href="{{ url_for('one_rep_max') }}" class="flex flex-col items-center py-1 px-1.5 rounded text-xs font-semibold {{ 'text-[#E6D5B8] font-bold' if request.endpoint == 'one_rep_max' else 'text-slate-400' }}">
+    <a href="{{ url_for('one_rep_max') }}" class="flex flex-col items-center py-1 px-1.5 rounded text-xs font-semibold {{ 'text-[#0066FF] font-bold' if request.endpoint == 'one_rep_max' else 'text-slate-500' }}">
       <span class="text-base">🔢</span>
       <span class="text-[10px]">1RM</span>
     </a>
-    <a href="{{ url_for('analytics') }}" class="flex flex-col items-center py-1 px-1.5 rounded text-xs font-semibold {{ 'text-[#E6D5B8] font-bold' if request.endpoint == 'analytics' else 'text-slate-400' }}">
+    <a href="{{ url_for('analytics') }}" class="flex flex-col items-center py-1 px-1.5 rounded text-xs font-semibold {{ 'text-[#0066FF] font-bold' if request.endpoint == 'analytics' else 'text-slate-500' }}">
       <span class="text-base">🏆</span>
       <span class="text-[10px]">PRs</span>
     </a>
@@ -218,17 +219,17 @@
   {% endif %}
 
   <!-- Global Footer -->
-  <footer class="border-t border-[#E6D5B8]/15 py-6 text-center text-xs text-slate-500 mt-auto">
+  <footer class="border-t border-[#E2E8F0] py-6 text-center text-xs text-slate-500 mt-auto bg-white/50">
     <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
       <div class="flex items-center gap-2">
-        <span class="font-bold text-slate-300">Gym Tracker Pro</span>
+        <span class="font-bold text-slate-800">Gym Tracker Pro</span>
         <span>•</span>
-        <span>Executive Royal Blue & Warm Beige Edition</span>
+        <span>Clean Performance Edition</span>
       </div>
       <div class="flex items-center gap-4">
         <span>Smart Pedometer & Motion Sensing</span>
         <span>•</span>
-        <span class="text-[#E6D5B8] font-bold">1RM Analytics Engine</span>
+        <span class="text-[#0066FF] font-bold">1RM Analytics Engine</span>
       </div>
     </div>
   </footer>

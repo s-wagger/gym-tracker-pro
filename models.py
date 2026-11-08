@@ -755,8 +755,8 @@ class AnalyticsManager:
             return [r["exercise_name"] for r in rows if r["exercise_name"]]
 
     @staticmethod
-    def get_dashboard_summary(user: User) -> dict:
-        today_str = datetime.now().strftime("%Y-%m-%d")
+    def get_dashboard_summary(user: User, target_date: str = None) -> dict:
+        today_str = target_date or datetime.now().strftime("%Y-%m-%d")
         
         with get_db() as conn:
             cursor = conn.cursor()
@@ -827,6 +827,7 @@ class AnalyticsManager:
                 "streak_days": streak_days,
                 "recent_workouts": recent_workouts,
                 "today_nutrition": today_nutrition,
+                "active_date": today_str,
                 "key_prs": key_prs,
                 "milestones": milestones
             }

@@ -5,8 +5,8 @@
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0A1128",
-  "theme_color": "#0A1128",
+  "background_color": "#F8FAFC",
+  "theme_color": "#0066FF",
   "categories": ["fitness", "health", "sports", "lifestyle"],
   "icons": [
     {
@@ -31,29 +31,36 @@
   "shortcuts": [
     {
       "name": "Log Workout",
-      "short_name": "Log",
-      "description": "Quickly record today's training session",
+      "short_name": "Workout",
+      "description": "Start a new training session",
       "url": "/workouts",
       "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Track Macros",
-      "short_name": "Macros",
-      "description": "Log meals and calories",
+      "name": "Log Meal",
+      "short_name": "Nutrition",
+      "description": "Log food, calories, and scan meals",
       "url": "/nutrition",
       "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
-      "name": "Pedometer & Steps",
-      "short_name": "Steps",
-      "description": "Live motion pedometer and daily activity tracking",
+      "name": "Step Counter",
+      "short_name": "Pedometer",
+      "description": "Live pedometer and daily activity tracking",
       "url": "/steps",
+      "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "PRs & Badges",
+      "short_name": "PRs",
+      "description": "View personal records and achievement badges",
+      "url": "/prs",
       "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }]
     },
     {
       "name": "1RM Calculator",
       "short_name": "1RM",
-      "description": "Calculate 1-Rep Max and training zones",
+      "description": "Calculate 1-Rep Max and strength zones",
       "url": "/one-rep-max",
       "icons": [{ "src": "/static/icons/icon-192.png", "sizes": "192x192" }]
     }
