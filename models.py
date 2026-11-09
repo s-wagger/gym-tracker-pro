@@ -279,6 +279,27 @@ class User(UserMixin):
                 pro_target, carbs_target, fat_target,
                 water_goal, self.id
             ))
+
+            # Record in dedicated onboarding_profiles table
+            conn.execute("""
+            INSERT INTO onboarding_profiles (
+                user_id, first_name, gender, dob, height, weight, goal_weight,
+                unit_preference, core_goal, fitness_objective, activity_level,
+                calculated_calories, calculated_protein, calculated_carbs, calculated_fat, calculated_water_ml
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(user_id) DO UPDATE SET
+                first_name=excluded.first_name, gender=excluded.gender, dob=excluded.dob,
+                height=excluded.height, weight=excluded.weight, goal_weight=excluded.goal_weight,
+                unit_preference=excluded.unit_preference, core_goal=excluded.core_goal,
+                fitness_objective=excluded.fitness_objective, activity_level=excluded.activity_level,
+                calculated_calories=excluded.calculated_calories, calculated_protein=excluded.calculated_protein,
+                calculated_carbs=excluded.calculated_carbs, calculated_fat=excluded.calculated_fat,
+                calculated_water_ml=excluded.calculated_water_ml, completed_at=CURRENT_TIMESTAMP;
+            """, (
+                self.id, first_name, gender, dob, height, weight, goal_weight,
+                unit_pref, core_goal, fitness_objective, activity_level,
+                cal_target, pro_target, carbs_target, fat_target, water_goal
+            ))
         self.first_name = first_name
         self.display_name = display_name
         self.fitness_goal = core_goal
@@ -839,6 +860,52 @@ class NutritionManager:
                 "meal_calories": meal_calories,
                 "water": water_info
             }
+
+
+class BarcodeManager:
+    @staticmethod
+    def get_by_barcode(barcode: str) -> dict:
+        """Looks up a barcode in custom_barcodes database."""
+        if not barcode:
+            return None
+        cleaned = str(barcode).strip()
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+            SELECT id, barcode, food_name, brand, serving_size, calories, protein, carbs, fat, source, created_at
+            FROM custom_barcodes
+            WHERE barcode = ?
+            """, (cleaned,))
+            row = cursor.fetchone()
+            return dict(row) if row else None
+
+    @staticmethod
+    def save_barcode(barcode: str, food_name: str, brand: str = "Packaged Item", serving_size: str = "100g",
+                     calories: float = 0.0, protein: float = 0.0, carbs: float = 0.0, fat: float = 0.0,
+                     source: str = "custom") -> dict:
+        """Saves or updates a custom barcode entry in the database."""
+        cleaned_barcode = str(barcode).strip()
+        cleaned_name = (food_name or f"Barcode #{cleaned_barcode}").strip()
+        cleaned_brand = (brand or "Custom Food").strip()
+        cleaned_serving = (serving_size or "100g").strip()
+        cal = float(calories or 0.0)
+        pro = float(protein or 0.0)
+        carb = float(carbs or 0.0)
+        f = float(fat or 0.0)
+
+        with get_db() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+            INSERT INTO custom_barcodes (barcode, food_name, brand, serving_size, calories, protein, carbs, fat, source, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            ON CONFLICT(barcode) DO UPDATE SET
+                food_name=excluded.food_name, brand=excluded.brand, serving_size=excluded.serving_size,
+                calories=excluded.calories, protein=excluded.protein, carbs=excluded.carbs, fat=excluded.fat,
+                source=excluded.source, updated_at=CURRENT_TIMESTAMP;
+            """, (cleaned_barcode, cleaned_name, cleaned_brand, cleaned_serving, cal, pro, carb, f, source))
+            conn.commit()
+
+        return BarcodeManager.get_by_barcode(cleaned_barcode)
 
 
 class AnalyticsManager:

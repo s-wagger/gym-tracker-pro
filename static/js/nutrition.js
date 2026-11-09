@@ -657,8 +657,10 @@ function renderScanResults(analysis) {
 }
 
 // -------------------------------------------------------------
-// 6. In-Browser Barcode Scanner (html5-qrcode & Open Food Facts)
+// 6. In-Browser Barcode Scanner (html5-qrcode, Open Food Facts & Local Custom DB + Gemini OCR)
 // -------------------------------------------------------------
+let activeScannedBarcode = null;
+
 function openBarcodeModalForCategory(catKey) {
   const modal = document.getElementById('barcode-scanner-modal');
   const typeSelect = document.getElementById('barcode-meal-type');
@@ -679,6 +681,14 @@ function initBarcodeScanner() {
   const lookupBtn = document.getElementById('btn-lookup-barcode');
   const manualInput = document.getElementById('manual-barcode-input');
   const confirmBtn = document.getElementById('btn-confirm-barcode-item');
+
+  // New Product Modal Elements
+  const newProductModal = document.getElementById('new-product-modal');
+  const closeNewProductBtn = document.getElementById('btn-close-new-product-modal');
+  const cancelNewProductBtn = document.getElementById('btn-cancel-new-product');
+  const snapNutritionBtn = document.getElementById('btn-snap-nutrition-label');
+  const ocrFileInput = document.getElementById('barcode-ocr-file-input');
+  const saveCustomBarcodeBtn = document.getElementById('btn-save-custom-barcode');
 
   if (!modal) return;
 
@@ -704,7 +714,7 @@ function initBarcodeScanner() {
   lookupBtn?.addEventListener('click', () => {
     const val = manualInput?.value?.trim();
     if (val) {
-      queryOpenFoodFacts(val);
+      queryBarcodeProduct(val);
     } else {
       showToast('Please type a numeric barcode (UPC / EAN).', 'error');
     }
@@ -750,6 +760,131 @@ function initBarcodeScanner() {
       showToast('Error saving scanned food item.', 'error');
     }
   });
+
+  // Wire New Product Modal handlers
+  closeNewProductBtn?.addEventListener('click', () => {
+    newProductModal?.classList.add('hidden');
+  });
+
+  cancelNewProductBtn?.addEventListener('click', () => {
+    newProductModal?.classList.add('hidden');
+  });
+
+  snapNutritionBtn?.addEventListener('click', () => {
+    ocrFileInput?.click();
+  });
+
+  ocrFileInput?.addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    const loadingElem = document.getElementById('barcode-ocr-loading');
+    if (loadingElem) loadingElem.classList.remove('hidden');
+
+    const formData = new FormData();
+    formData.append('barcode', activeScannedBarcode || '000000000000');
+    formData.append('image', file);
+
+    try {
+      showToast('Analyzing nutrition label photo with Gemini Vision OCR...', 'info');
+      const res = await fetch('/api/barcodes/ocr', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      if (loadingElem) loadingElem.classList.add('hidden');
+
+      if (res.ok && data.success && data.product) {
+        const prod = data.product;
+        const nameInput = document.getElementById('new-barcode-name');
+        const brandInput = document.getElementById('new-barcode-brand');
+        const servingInput = document.getElementById('new-barcode-serving');
+        const calsInput = document.getElementById('new-barcode-cals');
+        const proteinInput = document.getElementById('new-barcode-protein');
+        const carbsInput = document.getElementById('new-barcode-carbs');
+        const fatInput = document.getElementById('new-barcode-fat');
+
+        if (nameInput) nameInput.value = prod.food_name || '';
+        if (brandInput) brandInput.value = prod.brand || '';
+        if (servingInput) servingInput.value = prod.serving_size || '100g';
+        if (calsInput) calsInput.value = prod.calories || 0;
+        if (proteinInput) proteinInput.value = prod.protein || 0;
+        if (carbsInput) carbsInput.value = prod.carbs || 0;
+        if (fatInput) fatInput.value = prod.fat || 0;
+
+        showToast('Nutrition table scanned and parsed successfully!', 'success');
+      } else {
+        showToast(data.error || 'Could not parse nutrition facts from photo. You can fill the fields manually.', 'warning');
+      }
+    } catch (err) {
+      if (loadingElem) loadingElem.classList.add('hidden');
+      showToast('OCR processing failed. You can type in the numbers manually.', 'error');
+    }
+  });
+
+  saveCustomBarcodeBtn?.addEventListener('click', async () => {
+    const barcode = activeScannedBarcode || document.getElementById('manual-barcode-input')?.value?.trim();
+    const name = document.getElementById('new-barcode-name')?.value?.trim();
+    const brand = document.getElementById('new-barcode-brand')?.value?.trim() || 'Custom Item';
+    const serving = document.getElementById('new-barcode-serving')?.value?.trim() || '100g';
+    const calories = parseFloat(document.getElementById('new-barcode-cals')?.value || 0);
+    const protein = parseFloat(document.getElementById('new-barcode-protein')?.value || 0);
+    const carbs = parseFloat(document.getElementById('new-barcode-carbs')?.value || 0);
+    const fat = parseFloat(document.getElementById('new-barcode-fat')?.value || 0);
+    const mealType = document.getElementById('barcode-meal-type')?.value || 'Snack';
+
+    if (!name) {
+      showToast('Please provide a product name.', 'error');
+      return;
+    }
+
+    try {
+      // 1. Save permanently to database
+      await fetch('/api/barcodes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          barcode: barcode,
+          food_name: name,
+          brand: brand,
+          serving_size: serving,
+          calories: calories,
+          protein: protein,
+          carbs: carbs,
+          fat: fat,
+          source: 'user_created'
+        })
+      });
+
+      // 2. Log item to today's meal
+      const logRes = await fetch('/api/nutrition/log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          date: activeNutritionDate,
+          meal_type: mealType,
+          food_name: `${name} (${brand})`,
+          calories: calories,
+          protein: protein,
+          carbs: carbs,
+          fat: fat
+        })
+      });
+
+      const logData = await logRes.json();
+      if (logRes.ok && logData.success) {
+        showToast(`Saved "${name}" and logged ${calories} kcal to ${mealType}!`, 'success');
+        newProductModal?.classList.add('hidden');
+        modal.classList.add('hidden');
+        resetBarcodeState();
+        fetchNutritionForDate(activeNutritionDate);
+      } else {
+        showToast(logData.error || 'Saved to barcode catalog, but could not log to today.', 'warning');
+      }
+    } catch (err) {
+      showToast('Error saving custom barcode item.', 'error');
+    }
+  });
 }
 
 function startBarcodeCamera() {
@@ -781,7 +916,7 @@ function startBarcodeCamera() {
       // Successful decode
       if (statusElem) statusElem.textContent = `Barcode detected: ${decodedText}`;
       stopBarcodeCamera();
-      queryOpenFoodFacts(decodedText);
+      queryBarcodeProduct(decodedText);
     },
     (errorMessage) => {
       // Frame decode noise, ignore
@@ -817,11 +952,13 @@ function stopBarcodeCamera() {
   }
 }
 
-async function queryOpenFoodFacts(barcode) {
+async function queryBarcodeProduct(barcode) {
   const statusElem = document.getElementById('barcode-status-indicator');
+  activeScannedBarcode = barcode;
   if (statusElem) statusElem.textContent = `Looking up barcode ${barcode}...`;
-  showToast(`Searching Open Food Facts for barcode ${barcode}...`, 'info');
+  showToast(`Looking up barcode ${barcode}...`, 'info');
 
+  // Step 1: Query Open Food Facts API
   try {
     const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(barcode)}.json`;
     const res = await fetch(url);
@@ -831,19 +968,16 @@ async function queryOpenFoodFacts(barcode) {
       const p = data.product;
       const nutr = p.nutriments || {};
 
-      // Parse fields
       const brand = p.brands || p.brand_owner || 'Packaged Food';
       const name = p.product_name || p.product_name_en || p.generic_name || `Barcode Item #${barcode}`;
       const serving = p.serving_size || p.quantity || '100g';
 
-      // Parse calories (kcal)
       let cals = nutr['energy-kcal_serving'] || nutr['energy-kcal_100g'] || nutr['energy-kcal'] || 0;
       if (!cals && nutr['energy-kj_100g']) {
         cals = Math.round(nutr['energy-kj_100g'] / 4.184);
       }
       cals = Math.round(parseFloat(cals) || 0);
 
-      // Parse macros
       const protein = parseFloat(nutr['proteins_serving'] || nutr['proteins_100g'] || nutr['proteins'] || 0);
       const carbs = parseFloat(nutr['carbohydrates_serving'] || nutr['carbohydrates_100g'] || nutr['carbohydrates'] || 0);
       const fat = parseFloat(nutr['fat_serving'] || nutr['fat_100g'] || nutr['fat'] || 0);
@@ -858,30 +992,88 @@ async function queryOpenFoodFacts(barcode) {
         serving_size: serving
       };
 
-      // Display Preview Card
-      setText('scanned-product-brand', brand);
-      setText('scanned-product-name', name);
-      setText('scanned-product-serving', `Serving: ${serving}`);
-      setText('scanned-product-cals', cals);
-      setText('scanned-product-protein', `${currentBarcodeData.protein}g`);
-      setText('scanned-product-carbs', `${currentBarcodeData.carbs}g`);
-      setText('scanned-product-fat', `${currentBarcodeData.fat}g`);
-
-      document.getElementById('barcode-result-card')?.classList.remove('hidden');
+      displayScannedBarcodeCard(brand, name, serving, cals, currentBarcodeData.protein, currentBarcodeData.carbs, currentBarcodeData.fat);
       if (statusElem) statusElem.textContent = `Found: ${name}`;
-      showToast(`Product identified: ${name}!`, 'success');
-    } else {
-      showToast(`Product ${barcode} not found in Open Food Facts. You can enter macros manually.`, 'warning');
-      if (statusElem) statusElem.textContent = `Product ${barcode} not found in database`;
+      showToast(`Product identified from Open Food Facts: ${name}!`, 'success');
+      return;
     }
   } catch (err) {
-    console.error('Open Food Facts API error:', err);
-    showToast('Network error while querying product database.', 'error');
+    console.warn('Open Food Facts lookup failed or product missing, trying local database...', err);
   }
+
+  // Step 2: Fallback to Local PostgreSQL custom_barcodes table
+  try {
+    if (statusElem) statusElem.textContent = `Checking local database for ${barcode}...`;
+    const localRes = await fetch(`/api/barcodes/${encodeURIComponent(barcode)}`);
+    if (localRes.ok) {
+      const localData = await localRes.json();
+      if (localData.success && localData.product) {
+        const prod = localData.product;
+        currentBarcodeData = {
+          barcode: barcode,
+          food_name: `${prod.food_name} (${prod.brand || 'Custom'})`,
+          calories: Math.round(prod.calories || 0),
+          protein: Math.round((prod.protein || 0) * 10) / 10,
+          carbs: Math.round((prod.carbs || 0) * 10) / 10,
+          fat: Math.round((prod.fat || 0) * 10) / 10,
+          serving_size: prod.serving_size || '100g'
+        };
+
+        displayScannedBarcodeCard(prod.brand || 'Custom Item', prod.food_name, prod.serving_size || '100g', currentBarcodeData.calories, currentBarcodeData.protein, currentBarcodeData.carbs, currentBarcodeData.fat);
+        if (statusElem) statusElem.textContent = `Found in Custom DB: ${prod.food_name}`;
+        showToast(`Product found in custom database: ${prod.food_name}!`, 'success');
+        return;
+      }
+    }
+  } catch (err) {
+    console.warn('Local database lookup failed', err);
+  }
+
+  // Step 3: Missing from both -> Trigger "New Product Detected" Modal with Camera OCR
+  if (statusElem) statusElem.textContent = `Barcode ${barcode} not found. Snap nutrition label photo!`;
+  showToast(`Barcode ${barcode} not recognized. Snap a photo of the nutrition table to auto-fill!`, 'warning');
+  openNewProductModal(barcode);
+}
+
+function displayScannedBarcodeCard(brand, name, serving, cals, protein, carbs, fat) {
+  setText('scanned-product-brand', brand);
+  setText('scanned-product-name', name);
+  setText('scanned-product-serving', `Serving: ${serving}`);
+  setText('scanned-product-cals', cals);
+  setText('scanned-product-protein', `${protein}g`);
+  setText('scanned-product-carbs', `${carbs}g`);
+  setText('scanned-product-fat', `${fat}g`);
+
+  document.getElementById('barcode-result-card')?.classList.remove('hidden');
+}
+
+function openNewProductModal(barcode) {
+  const modal = document.getElementById('new-product-modal');
+  const label = document.getElementById('new-product-barcode-label');
+  const nameInput = document.getElementById('new-barcode-name');
+  const brandInput = document.getElementById('new-barcode-brand');
+  const servingInput = document.getElementById('new-barcode-serving');
+  const calsInput = document.getElementById('new-barcode-cals');
+  const proteinInput = document.getElementById('new-barcode-protein');
+  const carbsInput = document.getElementById('new-barcode-carbs');
+  const fatInput = document.getElementById('new-barcode-fat');
+
+  if (label) label.textContent = `#${barcode}`;
+  if (nameInput) nameInput.value = '';
+  if (brandInput) brandInput.value = '';
+  if (servingInput) servingInput.value = '100g';
+  if (calsInput) calsInput.value = '';
+  if (proteinInput) proteinInput.value = '';
+  if (carbsInput) carbsInput.value = '';
+  if (fatInput) fatInput.value = '';
+
+  document.getElementById('barcode-ocr-loading')?.classList.add('hidden');
+  modal?.classList.remove('hidden');
 }
 
 function resetBarcodeState() {
   currentBarcodeData = null;
+  activeScannedBarcode = null;
   const input = document.getElementById('manual-barcode-input');
   if (input) input.value = '';
   document.getElementById('barcode-result-card')?.classList.add('hidden');

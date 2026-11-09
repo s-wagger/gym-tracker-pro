@@ -38,6 +38,27 @@
     </div>
   </div>
 
+  <!-- Motivational Quote Hero Card -->
+  <div class="gt-card p-4 sm:p-5 bg-gradient-to-r from-blue-50/80 via-indigo-50/40 to-white dark:from-[#101C3D] dark:via-[#16254F] dark:to-[#0A1128] border border-blue-200/80 dark:border-blue-900/50 rounded-2xl shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+    <div class="flex items-start gap-3.5">
+      <div class="w-10 h-10 rounded-xl bg-[#0066FF]/10 text-[#0066FF] dark:bg-blue-500/20 dark:text-blue-400 border border-[#0066FF]/20 flex items-center justify-center text-xl shrink-0">
+        ⚡
+      </div>
+      <div>
+        <div class="text-[10px] font-black uppercase tracking-wider text-[#0066FF] dark:text-blue-400">Daily Athlete Inspiration</div>
+        <p id="motivational-quote-text" class="text-sm sm:text-base font-semibold text-slate-800 dark:text-slate-100 italic transition-opacity duration-300 mt-0.5">
+          "The only bad workout is the one that didn't happen."
+        </p>
+        <div id="motivational-quote-author" class="text-xs text-slate-500 dark:text-slate-400 font-bold mt-1">
+          — Gym Proverb
+        </div>
+      </div>
+    </div>
+    <button type="button" id="btn-refresh-quote" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-white dark:bg-[#0A1128] text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-blue-900/50 hover:border-[#0066FF] dark:hover:border-blue-400 transition shrink-0 flex items-center gap-1.5 shadow-xs">
+      <span>🔄</span> <span>New Quote</span>
+    </button>
+  </div>
+
   <!-- Onboarding Callout Banner (shown if onboarding not completed) -->
   {% if not user.onboarding_completed %}
     <div class="p-3.5 rounded-2xl bg-gradient-to-r from-blue-500/10 via-sky-500/10 to-blue-500/10 border border-blue-400/40 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">

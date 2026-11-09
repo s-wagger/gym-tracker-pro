@@ -30,13 +30,13 @@ from database import init_db
 from models import (
     User, WorkoutManager, NutritionManager, WaterManager,
     AnalyticsManager, ExportManager, StepManager, SubscriptionManager,
-    TemplateManager
+    TemplateManager, BarcodeManager
 )
 from formulas import (
     calculate_epley_1rm, calculate_brzycki_1rm,
     calculate_lombardi_1rm, get_training_zones, evaluate_milestones,
     calculate_user_fitness_plan, calculate_step_metrics,
-    calculate_onboarding_targets
+    calculate_onboarding_targets, calculate_barbell_plates
 )
 
 app = Flask(__name__)
@@ -765,6 +765,172 @@ def api_save_gemini_key():
     current_user.update_gemini_api_key(key)
     return jsonify({"success": True, "message": "Gemini API key updated successfully."})
 
+# -------------------------------------------------------------
+# Module 5.1: Barcode Database & Vision OCR Scanning Engine
+# -------------------------------------------------------------
+@app.route("/api/barcodes/<barcode>", methods=["GET"])
+@login_required
+def api_get_barcode(barcode):
+    item = BarcodeManager.get_by_barcode(barcode)
+    if item:
+        return jsonify({"success": True, "product": item})
+    return jsonify({"success": False, "error": f"Barcode {barcode} not found in custom database"}), 404
+
+@app.route("/api/barcodes", methods=["POST"])
+@login_required
+def api_save_barcode():
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    barcode = data.get("barcode")
+    if not barcode:
+        return jsonify({"success": False, "error": "Barcode number is required"}), 400
+
+    saved = BarcodeManager.save_barcode(
+        barcode=barcode,
+        food_name=data.get("food_name"),
+        brand=data.get("brand", "Packaged Item"),
+        serving_size=data.get("serving_size", "100g"),
+        calories=float(data.get("calories") or 0),
+        protein=float(data.get("protein") or 0),
+        carbs=float(data.get("carbs") or 0),
+        fat=float(data.get("fat") or 0),
+        source=data.get("source", "custom")
+    )
+    return jsonify({"success": True, "product": saved})
+
+@app.route("/api/barcodes/ocr", methods=["POST"])
+@login_required
+def api_barcode_ocr():
+    barcode = request.form.get("barcode") or (request.get_json(silent=True) or {}).get("barcode")
+    if not barcode:
+        return jsonify({"success": False, "error": "Barcode is required for OCR binding"}), 400
+
+    image_bytes = None
+    content_type = "image/jpeg"
+
+    if "image" in request.files:
+        file = request.files["image"]
+        image_bytes = file.read()
+        content_type = file.content_type or "image/jpeg"
+    elif "meal_image" in request.files:
+        file = request.files["meal_image"]
+        image_bytes = file.read()
+        content_type = file.content_type or "image/jpeg"
+    elif "image_data" in request.form or (request.is_json and "image_data" in request.json):
+        img_str = request.form.get("image_data") or request.json.get("image_data")
+        if img_str:
+            if "base64," in img_str:
+                header, b64_part = img_str.split("base64,", 1)
+                if "image/png" in header:
+                    content_type = "image/png"
+                image_bytes = base64.b64decode(b64_part)
+            else:
+                image_bytes = base64.b64decode(img_str)
+
+    if not image_bytes or len(image_bytes) < 100:
+        return jsonify({"success": False, "error": "No valid photo of the nutrition label was uploaded."}), 400
+
+    gemini_api_key = os.environ.get("GEMINI_API_KEY")
+    if not gemini_api_key and current_user.is_authenticated and getattr(current_user, "gemini_api_key", None):
+        gemini_api_key = current_user.gemini_api_key
+
+    if not gemini_api_key:
+        if app.config.get("TESTING"):
+            parsed = {
+                "food_name": "Test Whey Protein Bar",
+                "brand": "Pro Nutrition",
+                "serving_size": "60g",
+                "calories": 240,
+                "protein": 22.0,
+                "carbs": 24.0,
+                "fat": 6.0
+            }
+            saved = BarcodeManager.save_barcode(
+                barcode=barcode,
+                food_name=parsed["food_name"],
+                brand=parsed["brand"],
+                serving_size=parsed["serving_size"],
+                calories=parsed["calories"],
+                protein=parsed["protein"],
+                carbs=parsed["carbs"],
+                fat=parsed["fat"],
+                source="ocr"
+            )
+            return jsonify({"success": True, "product": saved, "ocr_parsed": parsed})
+        return jsonify({
+            "success": False,
+            "error": "Gemini Vision OCR requires GEMINI_API_KEY to be configured in Render environment variables."
+        }), 400
+
+    try:
+        b64_str = base64.b64encode(image_bytes).decode("utf-8")
+        prompt = (
+            "You are an expert optical character recognition (OCR) nutrition parser for packaged food items. "
+            "Analyze this photo of a product package's Nutrition Facts table, nutrition label, or ingredients box. "
+            "Extract: "
+            "1. Product name or description "
+            "2. Brand name (if visible, else 'Packaged Item') "
+            "3. Serving size (e.g. '1 bar (60g)' or '100g') "
+            "4. Total Calories in kcal "
+            "5. Total Carbohydrates in grams "
+            "6. Protein in grams "
+            "7. Total Fat in grams "
+            "Respond ONLY with a valid JSON object without markdown code fences:\n"
+            "{\n"
+            '  "food_name": "Product Name",\n'
+            '  "brand": "Brand",\n'
+            '  "serving_size": "100g",\n'
+            '  "calories": 250,\n'
+            '  "carbs": 30.0,\n'
+            '  "protein": 15.0,\n'
+            '  "fat": 8.0\n'
+            "}"
+        )
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"text": prompt},
+                    {"inline_data": {"mime_type": content_type, "data": b64_str}}
+                ]
+            }]
+        }
+
+        models_to_try = ["gemini-3.8-flash", "gemini-2.5-flash", "gemini-1.5-flash"]
+        raw_text = None
+        for model_name in models_to_try:
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={gemini_api_key}"
+            if requests is not None:
+                resp = requests.post(url, json=payload, timeout=25)
+                if resp.status_code == 200:
+                    candidates = resp.json().get("candidates", [])
+                    if candidates and "content" in candidates[0] and "parts" in candidates[0]["content"]:
+                        raw_text = candidates[0]["content"]["parts"][0]["text"].strip()
+                        break
+                elif resp.status_code == 404:
+                    continue
+                else:
+                    break
+
+        if raw_text:
+            if raw_text.startswith("```"):
+                raw_text = re.sub(r"^```(?:json)?\s*", "", raw_text)
+                raw_text = re.sub(r"\s*```$", "", raw_text)
+            parsed = json.loads(raw_text)
+            saved = BarcodeManager.save_barcode(
+                barcode=barcode,
+                food_name=parsed.get("food_name"),
+                brand=parsed.get("brand", "Packaged Item"),
+                serving_size=parsed.get("serving_size", "100g"),
+                calories=float(parsed.get("calories", 0)),
+                protein=float(parsed.get("protein", 0)),
+                carbs=float(parsed.get("carbs", 0)),
+                fat=float(parsed.get("fat", 0)),
+                source="ocr"
+            )
+            return jsonify({"success": True, "product": saved, "ocr_parsed": parsed})
+        return jsonify({"success": False, "error": "Could not parse nutrition facts table from photo."}), 400
+    except Exception as ex:
+        return jsonify({"success": False, "error": f"OCR Error: {str(ex)}"}), 400
+
 @app.route("/api/nutrition/<int:entry_id>", methods=["DELETE"])
 @login_required
 def api_delete_nutrition(entry_id):
@@ -827,14 +993,16 @@ def api_get_step_history():
     return jsonify({"success": True, "history": history})
 
 # -------------------------------------------------------------
-# Module 6: 1RM Analytical Engine
+# Module 6: 1RM & Barbell Plate Loader Analytical Engine
 # -------------------------------------------------------------
+@app.route("/plate-loader")
+@app.route("/plate-calculator")
 @app.route("/one-rep-max")
 @app.route("/1rm")
 @login_required
 def one_rep_max():
     if not current_user.has_pro_access:
-        flash("The 1-Rep Max Analytical Engine & Periodization is a Pro feature. Your 7-day free trial has expired. Upgrade to Gym Tracker Pro to access.", "warning")
+        flash("The 1-Rep Max & Barbell Plate Loader Engine is a Pro feature. Your 7-day free trial has expired. Upgrade to Gym Tracker Pro to access.", "warning")
         return redirect(url_for("subscription", required="1rm"))
 
     distinct_exercises = AnalyticsManager.get_distinct_exercises(current_user.id)
@@ -845,6 +1013,21 @@ def one_rep_max():
         user=current_user,
         exercises=distinct_exercises
     )
+
+@app.route("/api/plates/calculate", methods=["GET", "POST"])
+def api_calculate_plates():
+    if request.method == "POST":
+        data = request.get_json(silent=True) or request.form.to_dict() or {}
+        target = float(data.get("weight") or data.get("target_weight") or 100.0)
+        bar = float(data.get("bar_weight") or 20.0)
+        unit = data.get("unit") or "kg"
+    else:
+        target = float(request.args.get("weight") or request.args.get("target_weight") or 100.0)
+        bar = float(request.args.get("bar_weight") or 20.0)
+        unit = request.args.get("unit") or "kg"
+
+    breakdown = calculate_barbell_plates(target, bar_weight=bar, unit=unit)
+    return jsonify({"success": True, "breakdown": breakdown})
 
 @app.route("/api/1rm/calculate", methods=["GET", "POST"])
 def api_calculate_1rm():

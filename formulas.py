@@ -665,3 +665,77 @@ def calculate_onboarding_targets(
             "fat": pct_fat
         }
     }
+
+def calculate_barbell_plates(target_weight: float, bar_weight: float = 20.0, unit: str = "kg") -> dict:
+    """
+    Computes standard Olympic barbell plate loading breakdown per side (greedy plate loading).
+    Standard plates:
+    - Metric (kg): 25kg (Red), 20kg (Blue), 15kg (Yellow), 10kg (Green), 5kg (White), 2.5kg (Black), 1.25kg (Silver).
+    - Imperial (lbs): 45lb (Red), 35lb (Blue), 25lb (Yellow), 10lb (Green), 5lb (White), 2.5lb (Black).
+    """
+    target = max(0.0, float(target_weight or 0.0))
+    bar = max(0.0, float(bar_weight or (45.0 if str(unit).lower() == "lbs" else 20.0)))
+    unit = str(unit).lower().strip()
+    is_lbs = unit in ["lbs", "lb", "pound", "pounds"]
+
+    if is_lbs:
+        available_plates = [45.0, 35.0, 25.0, 10.0, 5.0, 2.5]
+        colors = {
+            45.0: "#EF4444", # Red
+            35.0: "#0066FF", # Blue
+            25.0: "#F59E0B", # Yellow
+            10.0: "#10B981", # Green
+            5.0: "#E2E8F0",  # White
+            2.5: "#374151"   # Charcoal/Black
+        }
+    else:
+        available_plates = [25.0, 20.0, 15.0, 10.0, 5.0, 2.5, 1.25]
+        colors = {
+            25.0: "#EF4444", # Red
+            20.0: "#0066FF", # Blue
+            15.0: "#F59E0B", # Yellow
+            10.0: "#10B981", # Green
+            5.0: "#E2E8F0",  # White
+            2.5: "#374151",  # Charcoal/Black
+            1.25: "#9CA3AF"  # Silver/Gray
+        }
+
+    if target <= bar:
+        return {
+            "target_weight": target,
+            "bar_weight": bar,
+            "side_weight": 0.0,
+            "total_loaded": bar,
+            "unit": "lbs" if is_lbs else "kg",
+            "plates_per_side": [],
+            "plate_counts": {}
+        }
+
+    weight_for_plates = target - bar
+    weight_per_side = weight_for_plates / 2.0
+    rem = weight_per_side
+    plates_per_side = []
+    plate_counts = {}
+
+    for p in available_plates:
+        count = int(rem // p)
+        if count > 0:
+            plate_counts[str(p)] = count
+            for _ in range(count):
+                plates_per_side.append({
+                    "weight": p,
+                    "color": colors.get(p, "#0066FF")
+                })
+            rem = round(rem - (count * p), 4)
+
+    total_loaded = bar + (sum(p["weight"] for p in plates_per_side) * 2)
+
+    return {
+        "target_weight": target,
+        "bar_weight": bar,
+        "side_weight": round(weight_per_side, 2),
+        "total_loaded": round(total_loaded, 2),
+        "unit": "lbs" if is_lbs else "kg",
+        "plates_per_side": plates_per_side,
+        "plate_counts": plate_counts
+    }

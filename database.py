@@ -6,7 +6,14 @@ import sqlite3
 import os
 from contextlib import contextmanager
 
+# Supabase / PostgreSQL & Database Migration Support
+RAW_DATABASE_URL = os.environ.get("DATABASE_URL")
+if RAW_DATABASE_URL and RAW_DATABASE_URL.startswith("postgres://"):
+    RAW_DATABASE_URL = RAW_DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+DATABASE_URL = RAW_DATABASE_URL
 DB_PATH = os.path.join(os.path.dirname(__file__), "gym_tracker.db")
+SQLALCHEMY_DATABASE_URI = DATABASE_URL or f"sqlite:///{DB_PATH}"
 
 def dict_factory(cursor, row):
     """Returns sqlite rows as python dictionaries."""
@@ -252,6 +259,95 @@ def init_db():
         );
         """)
 
+        # Custom Barcodes Table (Local & Supabase fallback for offline / custom scan items)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS custom_barcodes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            barcode TEXT UNIQUE NOT NULL,
+            food_name TEXT NOT NULL,
+            brand TEXT DEFAULT 'Packaged Item',
+            serving_size TEXT DEFAULT '100g',
+            calories REAL NOT NULL,
+            protein REAL DEFAULT 0.0,
+            carbs REAL DEFAULT 0.0,
+            fat REAL DEFAULT 0.0,
+            source TEXT DEFAULT 'custom', -- 'custom', 'ocr', 'openfoodfacts'
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+
+        # Onboarding Profiles Table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS onboarding_profiles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            first_name TEXT,
+            gender TEXT DEFAULT 'male',
+            dob TEXT,
+            height REAL,
+            weight REAL,
+            goal_weight REAL,
+            unit_preference TEXT DEFAULT 'kg',
+            core_goal TEXT DEFAULT 'gain_weight',
+            fitness_objective TEXT DEFAULT 'tone',
+            activity_level TEXT DEFAULT 'moderate',
+            calculated_bmr REAL,
+            calculated_tdee REAL,
+            calculated_calories INTEGER,
+            calculated_protein INTEGER,
+            calculated_carbs INTEGER,
+            calculated_fat INTEGER,
+            calculated_water_ml INTEGER,
+            completed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id)
+        );
+        """)
+
+        # Direct table aliases / schemas for workouts, prs, and meals
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS workouts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id INTEGER,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            title TEXT NOT NULL,
+            date TEXT NOT NULL,
+            notes TEXT,
+            total_volume REAL DEFAULT 0.0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS prs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            exercise_name TEXT NOT NULL,
+            max_weight REAL NOT NULL,
+            reps INTEGER NOT NULL,
+            estimated_1rm REAL NOT NULL,
+            max_volume REAL DEFAULT 0.0,
+            date_achieved TEXT NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(user_id, exercise_name)
+        );
+        """)
+
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS meals (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            date TEXT NOT NULL,
+            meal_type TEXT NOT NULL,
+            food_name TEXT NOT NULL,
+            calories REAL NOT NULL,
+            protein REAL NOT NULL,
+            carbs REAL NOT NULL,
+            fat REAL NOT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+
         # Performance Indexes
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_sessions_user_date ON workout_sessions(user_id, date);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_sets_user_exercise ON workout_sets(user_id, exercise_name);")
@@ -261,6 +357,11 @@ def init_db():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_sub_requests_user ON subscription_requests(user_id);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_workout_templates_user ON workout_templates(user_id);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_water_user_date ON daily_water(user_id, date);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_custom_barcodes_code ON custom_barcodes(barcode);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_onboarding_user ON onboarding_profiles(user_id);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_workouts_user_date ON workouts(user_id, date);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_prs_lookup ON prs(user_id, exercise_name);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_meals_user_date ON meals(user_id, date);")
 
         # Ensure permanent Master Owner account exists
         cursor.execute("SELECT id FROM users WHERE LOWER(username) = 'swagger' OR LOWER(email) = 'ghost.5abdullah@gmail.com';")

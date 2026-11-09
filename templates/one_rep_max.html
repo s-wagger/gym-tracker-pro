@@ -119,6 +119,114 @@
 
   </div>
 
+  <!-- ============================================================== -->
+  <!-- Visual Barbell Plate Loader Engine                              -->
+  <!-- ============================================================== -->
+  <section class="gt-card p-6 sm:p-8 bg-white dark:bg-[#101C3D] border border-[#E2E8F0] dark:border-blue-900/40 rounded-2xl shadow-xl space-y-6">
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#E2E8F0] dark:border-blue-900/40">
+      <div>
+        <div class="flex items-center gap-2 text-xs uppercase font-black tracking-widest text-[#0066FF] dark:text-[#E6D5B8]">
+          <span>Interactive Barbell Utility</span> • <span>Offline Ready</span>
+        </div>
+        <h2 class="text-2xl font-black text-slate-900 dark:text-white tracking-tight mt-1 flex items-center gap-2">
+          <span>🏋️‍♂️</span> <span>Visual Barbell Plate Loader</span>
+        </h2>
+        <p class="text-slate-500 dark:text-gray-400 text-xs mt-0.5">Greedy Olympic plate loading diagram per side with quick zone target buttons.</p>
+      </div>
+
+      <!-- Quick Training Zone Buttons -->
+      <div class="flex flex-wrap items-center gap-1.5">
+        <span class="text-[10px] uppercase font-bold text-slate-400 mr-1">Load % 1RM:</span>
+        <button type="button" class="btn-zone-preset px-2.5 py-1 rounded-lg text-xs font-black bg-blue-50 dark:bg-blue-900/30 text-[#0066FF] dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-[#0066FF] hover:text-white transition" data-pct="70">70%</button>
+        <button type="button" class="btn-zone-preset px-2.5 py-1 rounded-lg text-xs font-black bg-blue-50 dark:bg-blue-900/30 text-[#0066FF] dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-[#0066FF] hover:text-white transition" data-pct="80">80%</button>
+        <button type="button" class="btn-zone-preset px-2.5 py-1 rounded-lg text-xs font-black bg-blue-50 dark:bg-blue-900/30 text-[#0066FF] dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-[#0066FF] hover:text-white transition" data-pct="85">85%</button>
+        <button type="button" class="btn-zone-preset px-2.5 py-1 rounded-lg text-xs font-black bg-blue-50 dark:bg-blue-900/30 text-[#0066FF] dark:text-blue-300 border border-blue-200 dark:border-blue-800 hover:bg-[#0066FF] hover:text-white transition" data-pct="90">90%</button>
+        <button type="button" class="btn-zone-preset px-2.5 py-1 rounded-lg text-xs font-black bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-300 border border-rose-200 dark:border-rose-800 hover:bg-rose-600 hover:text-white transition" data-pct="100">100%</button>
+      </div>
+    </div>
+
+    <!-- Controls Row -->
+    <div class="grid grid-cols-1 sm:grid-cols-12 gap-4 items-center">
+      <!-- Target Weight Input -->
+      <div class="sm:col-span-5 space-y-1.5">
+        <label class="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase">Target Barbell Load</label>
+        <div class="flex items-center gap-2">
+          <input type="number" id="plate-target-weight" value="100" min="5" step="0.5" class="gt-input font-bold text-xl text-center flex-1">
+          <span class="text-xs font-bold text-slate-500 uppercase plate-unit-label">{{ user.unit_preference }}</span>
+        </div>
+        <input type="range" id="plate-weight-slider" min="20" max="300" step="2.5" value="100" class="w-full accent-[#0066FF] cursor-pointer">
+      </div>
+
+      <!-- Bar Weight Selector -->
+      <div class="sm:col-span-4 space-y-1.5">
+        <label class="text-xs font-bold text-slate-700 dark:text-gray-300 uppercase">Barbell Weight</label>
+        <select id="plate-bar-weight" class="gt-input w-full text-xs font-bold">
+          <option value="20" selected>Standard Olympic Bar (20 kg / 45 lbs)</option>
+          <option value="15">Women's / Olympic Bar (15 kg / 35 lbs)</option>
+          <option value="10">Technique / Training Bar (10 kg / 25 lbs)</option>
+          <option value="0">Zero / Custom (0 kg - Just Plates)</option>
+        </select>
+      </div>
+
+      <!-- Total Weight Readout -->
+      <div class="sm:col-span-3 p-4 rounded-xl bg-slate-50 dark:bg-[#0A1128] border border-slate-200 dark:border-blue-900/40 text-center">
+        <div class="text-[10px] font-bold uppercase text-slate-400">Total Loaded</div>
+        <div class="text-2xl font-black text-slate-900 dark:text-white mt-0.5">
+          <span id="plate-total-loaded">100</span> <span class="text-xs text-[#0066FF] font-bold plate-unit-label">{{ user.unit_preference }}</span>
+        </div>
+        <div class="text-[11px] text-slate-500 dark:text-gray-400 mt-0.5">
+          <span id="plate-per-side-display">40</span> <span class="plate-unit-label">{{ user.unit_preference }}</span> / side
+        </div>
+      </div>
+    </div>
+
+    <!-- Visual Barbell Sleeve Graphic -->
+    <div class="p-6 rounded-2xl bg-gradient-to-b from-slate-900 to-slate-950 border border-slate-800 shadow-inner overflow-x-auto">
+      <div class="text-[10px] uppercase font-black tracking-widest text-slate-400 text-center mb-4">
+        Barbell Sleeve Visual Diagram (Right Side Shown)
+      </div>
+
+      <!-- Diagram Canvas Container -->
+      <div class="flex items-center justify-center min-w-[500px] h-48 py-2 relative">
+        <!-- Center Shaft -->
+        <div class="w-20 h-5 bg-gradient-to-r from-slate-400 to-slate-300 rounded-l shadow-sm relative shrink-0">
+          <div class="absolute -top-5 left-1/2 -translate-x-1/2 text-[9px] font-bold text-slate-400 uppercase tracking-widest whitespace-nowrap">
+            Bar Center
+          </div>
+        </div>
+
+        <!-- Collar / Inner Ring -->
+        <div class="w-7 h-28 bg-gradient-to-b from-slate-300 via-slate-100 to-slate-400 rounded-sm border-r-2 border-slate-500 shadow-md shrink-0 flex items-center justify-center">
+          <div class="w-1 h-full bg-slate-400/40"></div>
+        </div>
+
+        <!-- Barbell Sleeve with Stacked Plates -->
+        <div class="relative flex items-center bg-slate-700/60 h-8 border-t border-b border-slate-500 rounded-r shadow-inner px-1 shrink-0" style="min-width: 320px;">
+          <!-- Loaded Plate Stack (dynamically populated) -->
+          <div id="visual-plates-stack" class="flex items-center gap-1 z-10">
+            <!-- Dynamic plates rendered by calculator.js -->
+          </div>
+
+          <!-- Empty sleeve space indicator -->
+          <div class="flex-1 text-right pr-3 text-[10px] font-mono text-slate-500 select-none">
+            Sleeve End ➔
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Plate Breakdown Chips per side -->
+    <div class="p-4 rounded-xl bg-slate-50 dark:bg-[#0A1128] border border-slate-200 dark:border-blue-900/40 space-y-2">
+      <div class="flex items-center justify-between text-xs font-bold text-slate-700 dark:text-gray-300">
+        <span class="uppercase">Required Plates Per Side</span>
+        <span id="plate-remainder-badge" class="text-[11px] font-normal text-slate-500">Exact match</span>
+      </div>
+      <div id="plates-breakdown-chips" class="flex flex-wrap gap-2 pt-1">
+        <!-- Rendered by calculator.js -->
+      </div>
+    </div>
+  </section>
+
   <!-- Automatic Generation of Training Zones -->
   <section class="space-y-4">
     <div class="flex items-center justify-between pb-2 border-b border-blue-900/40">

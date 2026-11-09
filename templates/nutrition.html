@@ -853,6 +853,108 @@
   </div>
 </div>
 
+<!-- ============================================================== -->
+<!-- MODAL 4: New Product Detected (Camera OCR & Custom Barcode)   -->
+<!-- ============================================================== -->
+<div id="new-product-modal"
+  class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+  <div
+    class="gt-card p-6 max-w-lg w-full bg-white dark:bg-[#101C3D] border border-[#E2E8F0] dark:border-blue-900/50 rounded-2xl shadow-2xl relative space-y-4 my-8">
+
+    <!-- Modal Header -->
+    <div class="flex items-center justify-between pb-3 border-b border-[#E2E8F0] dark:border-blue-900/40">
+      <div class="flex items-center gap-2">
+        <span class="text-xl">✨</span>
+        <div>
+          <h3 class="text-base font-black text-slate-900 dark:text-white">New Product Detected</h3>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400">Barcode <span id="new-product-barcode-label" class="font-mono font-bold text-[#0066FF]"></span> not in database</p>
+        </div>
+      </div>
+      <button type="button" id="btn-close-new-product-modal"
+        class="text-slate-400 hover:text-slate-700 dark:hover:text-white p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-blue-950 text-lg transition">✕</button>
+    </div>
+
+    <!-- Smart Nutrition Table Camera OCR Section -->
+    <div class="p-4 rounded-xl bg-gradient-to-r from-blue-50 to-indigo-50/50 dark:from-blue-950/40 dark:to-indigo-950/20 border border-blue-200 dark:border-blue-800/60 space-y-3">
+      <div class="flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="text-lg">📸</span>
+          <div>
+            <div class="text-xs font-black text-slate-900 dark:text-white">Snap Nutrition Facts Table</div>
+            <div class="text-[10px] text-slate-500 dark:text-slate-400">Gemini Vision OCR will auto-extract calories & macros</div>
+          </div>
+        </div>
+        <button type="button" id="btn-snap-nutrition-label"
+          class="px-3 py-1.5 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-bold text-xs shadow-xs transition flex items-center gap-1.5 shrink-0">
+          <span>📷</span> <span>Take Photo</span>
+        </button>
+        <input type="file" id="barcode-ocr-file-input" accept="image/*" capture="environment" class="hidden">
+      </div>
+
+      <!-- OCR Status Spinner -->
+      <div id="barcode-ocr-loading" class="hidden flex items-center justify-center gap-2 py-2 text-xs font-bold text-[#0066FF]">
+        <svg class="animate-spin h-4 w-4 text-[#0066FF]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span>Analyzing Nutrition Table with AI OCR...</span>
+      </div>
+    </div>
+
+    <!-- Manual or OCR Auto-Populated Form -->
+    <div class="space-y-3 text-xs">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">Product Name</label>
+          <input type="text" id="new-barcode-name" placeholder="e.g. Whey Protein Bar" class="gt-input w-full">
+        </div>
+        <div>
+          <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">Brand Name</label>
+          <input type="text" id="new-barcode-brand" placeholder="e.g. Optimum Nutrition" class="gt-input w-full">
+        </div>
+      </div>
+
+      <div>
+        <label class="block font-bold text-slate-700 dark:text-slate-300 uppercase mb-1">Serving Size</label>
+        <input type="text" id="new-barcode-serving" value="100g" placeholder="e.g. 1 bar (60g), 100g" class="gt-input w-full">
+      </div>
+
+      <!-- Macro Inputs -->
+      <div class="grid grid-cols-4 gap-2 pt-1">
+        <div>
+          <label class="block font-bold text-slate-500 uppercase text-[10px] mb-1">Calories</label>
+          <input type="number" id="new-barcode-cals" placeholder="kcal" min="0" class="gt-input w-full text-center font-bold">
+        </div>
+        <div>
+          <label class="block font-bold text-blue-600 uppercase text-[10px] mb-1">Protein (g)</label>
+          <input type="number" id="new-barcode-protein" placeholder="g" min="0" step="0.1" class="gt-input w-full text-center font-bold">
+        </div>
+        <div>
+          <label class="block font-bold text-amber-600 uppercase text-[10px] mb-1">Carbs (g)</label>
+          <input type="number" id="new-barcode-carbs" placeholder="g" min="0" step="0.1" class="gt-input w-full text-center font-bold">
+        </div>
+        <div>
+          <label class="block font-bold text-rose-600 uppercase text-[10px] mb-1">Fat (g)</label>
+          <input type="number" id="new-barcode-fat" placeholder="g" min="0" step="0.1" class="gt-input w-full text-center font-bold">
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="flex gap-2 pt-2 border-t border-[#E2E8F0] dark:border-blue-900/40">
+      <button type="button" id="btn-cancel-new-product"
+        class="flex-1 py-2.5 px-3 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition">
+        Cancel
+      </button>
+      <button type="button" id="btn-save-custom-barcode"
+        class="flex-2 py-2.5 px-4 rounded-xl bg-[#0066FF] hover:bg-[#0052CC] text-white font-black text-xs uppercase tracking-wider transition shadow-sm flex items-center justify-center gap-1.5">
+        <span>💾</span> <span>Save & Log to Day</span>
+      </button>
+    </div>
+
+  </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}

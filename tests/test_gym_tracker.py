@@ -18,13 +18,13 @@ from database import init_db, get_db
 from models import (
     User, WorkoutManager, NutritionManager, AnalyticsManager,
     ExportManager, StepManager, SubscriptionManager, TemplateManager,
-    WaterManager
+    WaterManager, BarcodeManager
 )
 from formulas import (
     calculate_epley_1rm, calculate_brzycki_1rm,
     calculate_lombardi_1rm, get_training_zones, evaluate_milestones,
     calculate_user_fitness_plan, calculate_step_metrics,
-    calculate_onboarding_targets
+    calculate_onboarding_targets, calculate_barbell_plates
 )
 
 class GymTrackerTestCase(unittest.TestCase):
@@ -39,6 +39,8 @@ class GymTrackerTestCase(unittest.TestCase):
 
         # Clean database before each test
         with get_db() as conn:
+            conn.execute("DELETE FROM custom_barcodes")
+            conn.execute("DELETE FROM onboarding_profiles")
             conn.execute("DELETE FROM daily_water")
             conn.execute("DELETE FROM workout_templates")
             conn.execute("DELETE FROM subscription_requests")
@@ -1034,6 +1036,179 @@ class GymTrackerTestCase(unittest.TestCase):
         self.assertTrue(owner_user.is_owner_user)
         self.assertTrue(owner_user.has_pro_access)
         self.assertEqual(owner_user.subscription_badge["type"], "owner")
+
+    # ---------------------------------------------------------
+    # 11. Barcode Database & Vision OCR Tests
+    # ---------------------------------------------------------
+    def test_barcode_database_save_and_retrieve(self):
+        """Verify BarcodeManager saves custom barcodes and handles retrieval."""
+        saved = BarcodeManager.save_barcode(
+            barcode="7613035987654",
+            food_name="Pure Whey Isolate",
+            brand="Optimum Sport",
+            serving_size="30g",
+            calories=120.0,
+            protein=25.0,
+            carbs=2.0,
+            fat=1.0,
+            source="custom"
+        )
+        self.assertIsNotNone(saved)
+        self.assertEqual(saved["barcode"], "7613035987654")
+        self.assertEqual(saved["food_name"], "Pure Whey Isolate")
+        self.assertEqual(saved["protein"], 25.0)
+
+        # Retrieve
+        fetched = BarcodeManager.get_by_barcode("7613035987654")
+        self.assertIsNotNone(fetched)
+        self.assertEqual(fetched["calories"], 120.0)
+
+        # Missing barcode returns None
+        missing = BarcodeManager.get_by_barcode("9999999999999")
+        self.assertIsNone(missing)
+
+    def test_barcode_api_endpoints(self):
+        """Test GET and POST endpoints for custom barcodes."""
+        user = User.create("barcode_user", "bar@test.com", "pass1234")
+        with self.client.session_transaction() as sess:
+            sess["_user_id"] = str(user.id)
+            sess["_fresh"] = True
+
+        # POST /api/barcodes
+        save_res = self.client.post("/api/barcodes", json={
+            "barcode": "8901234567890",
+            "food_name": "Greek Yogurt Cups",
+            "brand": "Chobani",
+            "serving_size": "150g",
+            "calories": 130,
+            "protein": 14,
+            "carbs": 12,
+            "fat": 0
+        })
+        self.assertEqual(save_res.status_code, 200)
+        save_data = save_res.get_json()
+        self.assertTrue(save_data["success"])
+        self.assertEqual(save_data["product"]["brand"], "Chobani")
+
+        # GET /api/barcodes/<barcode>
+        get_res = self.client.get("/api/barcodes/8901234567890")
+        self.assertEqual(get_res.status_code, 200)
+        get_data = get_res.get_json()
+        self.assertTrue(get_data["success"])
+        self.assertEqual(get_data["product"]["food_name"], "Greek Yogurt Cups")
+
+        # GET missing barcode
+        missing_res = self.client.get("/api/barcodes/0000000000000")
+        self.assertEqual(missing_res.status_code, 404)
+
+    def test_barcode_ocr_endpoint_in_test_mode(self):
+        """Test POST /api/barcodes/ocr with test image payload."""
+        user = User.create("ocr_user", "ocr@test.com", "pass1234")
+        with self.client.session_transaction() as sess:
+            sess["_user_id"] = str(user.id)
+            sess["_fresh"] = True
+
+        dummy_image = (io.BytesIO(b"RIFF....WAVEfmt test image data byte content over 120 bytes minimum threshold required by OCR check...................."), "label.jpg")
+        ocr_res = self.client.post(
+            "/api/barcodes/ocr",
+            data={
+                "barcode": "5060123456789",
+                "image": dummy_image
+            },
+            content_type="multipart/form-data"
+        )
+        self.assertEqual(ocr_res.status_code, 200)
+        ocr_data = ocr_res.get_json()
+        self.assertTrue(ocr_data["success"])
+        self.assertIn("product", ocr_data)
+        self.assertEqual(ocr_data["product"]["barcode"], "5060123456789")
+
+    # ---------------------------------------------------------
+    # 12. Visual Barbell Plate Loader Tests
+    # ---------------------------------------------------------
+    def test_calculate_barbell_plates_kg(self):
+        """Test greedy Olympic plate math in kg."""
+        # Target 100 kg with 20 kg bar -> 80 kg needed -> 40 kg per side: 25kg + 15kg
+        breakdown = calculate_barbell_plates(100.0, bar_weight=20.0, unit="kg")
+        self.assertEqual(breakdown["target_weight"], 100.0)
+        self.assertEqual(breakdown["bar_weight"], 20.0)
+        self.assertEqual(breakdown["side_weight"], 40.0)
+        self.assertEqual(breakdown["total_loaded"], 100.0)
+        self.assertEqual(breakdown["unit"], "kg")
+        # 40 kg per side: 1 x 25kg, 1 x 15kg
+        self.assertEqual(breakdown["plate_counts"], {"25.0": 1, "15.0": 1})
+
+        # Target 140 kg with 20 kg bar -> 120 kg needed -> 60 kg per side: 2 x 25kg + 1 x 10kg
+        breakdown_140 = calculate_barbell_plates(140.0, bar_weight=20.0, unit="kg")
+        self.assertEqual(breakdown_140["plate_counts"], {"25.0": 2, "10.0": 1})
+
+        # Target <= bar weight
+        breakdown_empty = calculate_barbell_plates(20.0, bar_weight=20.0, unit="kg")
+        self.assertEqual(breakdown_empty["side_weight"], 0.0)
+        self.assertEqual(len(breakdown_empty["plates_per_side"]), 0)
+
+    def test_calculate_barbell_plates_lbs(self):
+        """Test greedy Olympic plate math in lbs."""
+        # 225 lbs with 45 lb bar -> 180 lbs needed -> 90 lbs per side: 2 x 45lb
+        breakdown_lbs = calculate_barbell_plates(225.0, bar_weight=45.0, unit="lbs")
+        self.assertEqual(breakdown_lbs["side_weight"], 90.0)
+        self.assertEqual(breakdown_lbs["total_loaded"], 225.0)
+        self.assertEqual(breakdown_lbs["plate_counts"], {"45.0": 2})
+
+    def test_plate_calculator_api_endpoint(self):
+        """Test /api/plates/calculate endpoint."""
+        res = self.client.post("/api/plates/calculate", json={
+            "target_weight": 110.0,
+            "bar_weight": 20.0,
+            "unit": "kg"
+        })
+        self.assertEqual(res.status_code, 200)
+        data = res.get_json()
+        self.assertTrue(data["success"])
+        self.assertEqual(data["breakdown"]["side_weight"], 45.0)
+        self.assertEqual(data["breakdown"]["plate_counts"], {"25.0": 1, "20.0": 1})
+
+    # ---------------------------------------------------------
+    # 13. Supabase & Onboarding Profiles Schema Tests
+    # ---------------------------------------------------------
+    def test_onboarding_profiles_table_persistence(self):
+        """Verify User.complete_onboarding writes to the onboarding_profiles table."""
+        user = User.create("profile_user", "prof@test.com", "pass1234")
+        targets = calculate_onboarding_targets(
+            gender="male",
+            age=25,
+            height_cm=180.0,
+            weight=85.0,
+            goal_weight=78.0,
+            core_goal="lose_weight",
+            fitness_objective="tone",
+            activity_level="active"
+        )
+        user.complete_onboarding({
+            "first_name": "ProfileTester",
+            "core_goal": "lose_weight",
+            "fitness_objective": "tone",
+            "activity_level": "active",
+            "gender": "male",
+            "height": 180.0,
+            "weight": 85.0,
+            "goal_weight": 78.0,
+            "daily_calorie_target": targets["daily_calorie_target"],
+            "daily_protein_target": targets["daily_protein_target"],
+            "daily_carbs_target": targets["daily_carbs_target"],
+            "daily_fat_target": targets["daily_fat_target"],
+            "water_goal_ml": targets["water_goal_ml"]
+        })
+
+        # Check onboarding_profiles table directly
+        with get_db() as conn:
+            cur = conn.cursor()
+            cur.execute("SELECT user_id, core_goal, calculated_calories, calculated_protein FROM onboarding_profiles WHERE user_id = ?", (user.id,))
+            row = cur.fetchone()
+            self.assertIsNotNone(row)
+            self.assertEqual(row["user_id"], user.id)
+            self.assertEqual(row["core_goal"], "lose_weight")
+            self.assertEqual(row["calculated_calories"], targets["daily_calorie_target"])
 
 if __name__ == "__main__":
     unittest.main()
